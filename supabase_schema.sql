@@ -330,3 +330,11 @@ CREATE POLICY "allow_all_settings"         ON settings         FOR ALL USING (tr
 -- ✅ TERMINÉ — Toutes les tables sont prêtes.
 -- Retournez dans PharmaProjet et connectez votre Supabase.
 -- ═══════════════════════════════════════════════════════════════
+ALTER TABLE "cashRegister" ADD COLUMN IF NOT EXISTS "closedAt" BIGINT;
+ALTER TABLE "cashRegister" ADD COLUMN IF NOT EXISTS "closedBy" TEXT;
+ALTER TABLE "cashRegister" ADD COLUMN IF NOT EXISTS "openingFund" NUMERIC;
+ALTER TABLE "cashRegister" ADD COLUMN IF NOT EXISTS "expectedCash" NUMERIC;
+ALTER TABLE "cashRegister" ADD COLUMN IF NOT EXISTS "physicalCash" NUMERIC;
+ALTER TABLE "cashRegister" ADD COLUMN IF NOT EXISTS "totalSales" NUMERIC;
+ALTER TABLE "cashRegister" ADD COLUMN IF NOT EXISTS "transactionCount" BIGINT;
+ALTER TABLE "cashRegister" ADD COLUMN IF NOT EXISTS "note" TEXT;
