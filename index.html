@@ -5,19 +5,32 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Pharma_Projet — ERP Pharmaceutique pour la Guinée">
-  <meta name="theme-color" content="#1B6FAE">
+  <meta name="theme-color" content="#1B4F72">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="PharmaProjet">
   <title>PharmaProjet — ERP Pharmaceutique Premium</title>
   <link rel="icon" href="data:,">
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="manifest.json?v=3.0.0">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
     href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
     rel="stylesheet">
-  <link rel="stylesheet" href="css/main.css?v=3.2">
+  <link rel="stylesheet" href="css/main.css?v=3.0.0">
+  <script>const APP_VERSION = '3.0.0';</script>
+
+  <!-- Native App Feel: Disable right-click and common reloads in standalone mode -->
+  <script>
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+      document.addEventListener('contextmenu', e => e.preventDefault());
+      document.addEventListener('keydown', e => {
+        if (e.key === 'F5' || (e.ctrlKey && e.key === 'r') || (e.ctrlKey && e.key === 'R')) {
+          e.preventDefault();
+        }
+      });
+    }
+  </script>
   <script src="js/vendor/supabase.min.js"></script>
   <script src="js/vendor/lucide.min.js"></script>
 </head>
@@ -94,7 +107,6 @@
 
   <div id="toast-container"></div>
 
-  <script>const APP_VERSION = '3.0.0';</script>
   <script src="js/db.js?v=3.0.0"></script>
   <script src="js/auth.js?v=3.0.0"></script>
   <script src="js/ui.js?v=3.0.0"></script>
@@ -338,20 +350,18 @@
         await DB.seedDemoData();
         if (window.updatePharmacyDisplay) await updatePharmacyDisplay();
 
-        // --- NEW: Pre-login Onboarding Check ---
+        // --- Check if pharmacy is already configured ---
         const settings = await DB.dbGetAll('settings');
         const onboardingDone = settings.find(s => s.key === 'onboarding_done')?.value;
 
         if (!onboardingDone) {
-          console.log('[App] Onboarding required. Rendering directly...');
-          // IMPORTANT: On rend l'onboarding DIRECTEMENT sans passer par Router.navigate
-          // car le Router a un guard d'auth qui redirige vers login si aucun user n'est connecté
+          console.log('[App] Onboarding required.');
           Router.currentPage = 'onboarding';
           DB.AppState.currentPage = 'onboarding';
           const main = document.getElementById('app-content');
           main.innerHTML = '';
           renderOnboarding(main);
-          return; // Stop here, don't show login or dashboard
+          return;
         }
 
         const session = await Auth.restoreSession();
