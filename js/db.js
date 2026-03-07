@@ -436,7 +436,7 @@ async function syncToSupabase() {
         });
 
         const { error } = await sb
-          .from(storeName)
+          .from(storeName === 'users' ? 'app_users' : storeName)
           .upsert(payloads, {
             onConflict: storeName === 'settings' ? 'key' : 'id',
             ignoreDuplicates: false
@@ -450,6 +450,9 @@ async function syncToSupabase() {
           console.log(`[Sync] ✅ ${pending.length} items synced for ${storeName}`);
         } else {
           console.error(`[Sync] ❌ Error in ${storeName}:`, error.message || error);
+          if (AppState.currentPage === 'settings') {
+            UI.toast(`Sync failed for ${storeName}: ${error.message}`, 'error');
+          }
         }
       } catch (storeError) {
         console.error(`[Sync] Exception in ${storeName}:`, storeError);
@@ -482,7 +485,7 @@ async function pullFromSupabase() {
 
     for (const storeName of storesToPull) {
       console.log(`[Sync] Fetching ${storeName}...`);
-      const { data, error } = await sb.from(storeName).select('*');
+      const { data, error } = await sb.from(storeName === 'users' ? 'app_users' : storeName).select('*');
 
       if (error) {
         console.warn(`[Sync] Could not pull ${storeName}:`, error.message);
