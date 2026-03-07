@@ -89,6 +89,13 @@ const Onboarding = {
               </div>
             </div>
           </div>
+          <div class="onboarding-restore-area no-print">
+            <div class="divider"><span>OU</span></div>
+            <p class="text-center text-muted small mb-2">Déjà configuré sur un autre appareil ?</p>
+            <button class="btn btn-sm btn-outline w-100" onclick="Onboarding.showRestore()">
+              <i data-lucide="cloud-download"></i> Restaurer via Magic Link
+            </button>
+          </div>
         `;
       case 2:
         return `
@@ -295,6 +302,71 @@ const Onboarding = {
     } catch (err) {
       console.error(err);
       UI.toast('Erreur lors de la sauvegarde : ' + err.message, 'error');
+      this.render();
+    }
+  },
+
+  showRestore: function () {
+    UI.modal('Restaurer via Magic Link', `
+      <div class="p-3">
+        <p class="mb-3 small">Collez ici le Magic Link que vous avez reçu par email ou WhatsApp lors de votre première configuration.</p>
+        <div class="form-group">
+          <label>URL du Magic Link</label>
+          <textarea id="restore-magic-link" class="form-control" rows="3" placeholder="https://..."></textarea>
+        </div>
+      </div>
+    `, {
+      footer: `
+        <button class="btn btn-ghost" onclick="UI.closeModal()">Annuler</button>
+        <button class="btn btn-primary" onclick="Onboarding.handleRestore()">Restaurer maintenant</button>
+      `
+    });
+  },
+
+  handleRestore: async function () {
+    const link = document.getElementById('restore-magic-link').value;
+    if (!link || !link.includes('sb_url=')) {
+      UI.toast('Lien invalide. Il doit contenir "sb_url=" et "sb_key="', 'error');
+      return;
+    }
+
+    UI.closeModal();
+    UI.loading(this.container, 'Lien détecté ! Récupération de vos données Cloud...');
+
+    try {
+      const url = new URL(link);
+      const params = new URLSearchParams(url.search);
+      const sbUrl = params.get('sb_url');
+      const sbKey = params.get('sb_key');
+
+      if (sbUrl && sbKey) {
+        await DB.dbPut('settings', { key: 'supabase_url', value: sbUrl });
+        await DB.dbPut('settings', { key: 'supabase_key', value: sbKey });
+        DB.resetSupabaseClient();
+
+        await DB.pullFromSupabase();
+
+        // Mark onboarding as done since we successfully pulled data
+        const settings = await DB.dbGetAll('settings');
+        const onboardingDone = settings.find(s => s.key === 'onboarding_done')?.value;
+        const hasPharmacyName = settings.find(s => s.key === 'pharmacy_name')?.value;
+
+        if (hasPharmacyName) {
+          await DB.dbPut('settings', { key: 'onboarding_done', value: true });
+          UI.toast('Synchronisation réussie ! Vos données ont été récupérées.', 'success', 5000);
+
+          document.getElementById('app-sidebar')?.style.removeProperty('display');
+          document.getElementById('app-topbar')?.style.removeProperty('display');
+          if (window.updatePharmacyDisplay) await updatePharmacyDisplay();
+          Router.navigate('login');
+        } else {
+          UI.toast('Configuration Supabase OK, mais aucune donnée de pharmacie trouvée sur le cloud.', 'warning');
+          this.render();
+        }
+      }
+    } catch (e) {
+      console.error('[Onboarding] Restore failed:', e);
+      UI.toast('Erreur de restauration : ' + e.message, 'error');
       this.render();
     }
   }

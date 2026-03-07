@@ -55,7 +55,15 @@ async function renderPOS(container) {
       </div>
 
       <!-- ══ DROITE : Panier complet ══ -->
-      <div class="pos-right">
+      <div class="pos-right pos-cart-panel" id="pos-cart-panel">
+        <!-- MOBILE HEADER TOGGLE -->
+        <div class="pos-cart-header" onclick="this.parentElement.classList.toggle('expanded')">
+            <div style="display:flex; align-items:center; gap:10px">
+                <i data-lucide="shopping-basket"></i>
+                <span style="font-weight:700">Votre Panier</span>
+            </div>
+            <i data-lucide="chevron-up" class="cart-toggle-icon"></i>
+        </div>
 
         <!-- CLIENT -->
         <div class="pos-section">

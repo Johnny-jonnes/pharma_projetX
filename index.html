@@ -47,6 +47,7 @@
 <body>
 
   <aside id="app-sidebar">
+    <div id="sidebar-overlay" onclick="toggleSidebar()"></div>
     <div class="sidebar-logo">
       <div class="sidebar-logo-icon" id="sidebar-logo-icon"><i data-lucide="activity"></i></div>
       <div class="sidebar-logo-text">
@@ -223,7 +224,15 @@
     }
 
     function toggleSidebar() {
-      document.getElementById('app-sidebar').classList.toggle('collapsed');
+      const sidebar = document.getElementById('app-sidebar');
+      const overlay = document.getElementById('sidebar-overlay');
+      sidebar.classList.toggle('collapsed');
+
+      // On mobile, use 'show' class for off-canvas
+      if (window.innerWidth <= 768) {
+        sidebar.classList.toggle('show');
+        if (overlay) overlay.classList.toggle('show');
+      }
     }
 
     function updateTopbar() {

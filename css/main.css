@@ -3701,6 +3701,30 @@ textarea.form-control {
   align-items: center;
 }
 
+.pos-cart-header {
+  display: none;
+  background: var(--gradient-primary);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 20px 20px 0 0;
+}
+
+@media (max-width: 768px) {
+  .pos-cart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .cart-toggle-icon {
+    transition: transform 0.3s ease;
+  }
+
+  .pos-cart-panel.expanded .cart-toggle-icon {
+    transform: rotate(180deg);
+  }
+}
+
 .pos-searchicon {
   position: absolute;
   left: 11px;
@@ -8784,4 +8808,182 @@ kbd {
 .kpi-card.kpi-red .kpi-icon {
   background: rgba(231, 76, 60, 0.1);
   color: var(--danger);
+}
+
+/* ═══════════════════════════════════════════════
+   MOBILE NATIVE UX OPTIMIZATIONS — Premium 
+   ═══════════════════════════════════════════════ */
+
+/* Overlay - Glass Effect */
+#sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 90;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+#sidebar-overlay.show {
+  display: block;
+  opacity: 1;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --sidebar-w: 280px;
+  }
+
+  /* Off-canvas sidebar */
+  #app-sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: none;
+    background: var(--gradient-sidebar);
+  }
+
+  #app-sidebar.show {
+    transform: translateX(0);
+    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Reset layout margins */
+  #app-topbar,
+  #app-content,
+  #app-sidebar.collapsed~#app-topbar,
+  #app-sidebar.collapsed~main {
+    left: 0 !important;
+    margin-left: 0 !important;
+  }
+
+  #app-topbar {
+    padding: 0 16px;
+    height: 64px;
+    /* Slightly taller for mobile thumb friendliness */
+  }
+
+  #app-content {
+    padding: 88px 16px 24px;
+    overflow-x: hidden;
+  }
+
+  /* Sidebar header & Logo fix */
+  .sidebar-logo {
+    padding: 24px 20px;
+  }
+
+  .sidebar-logo-icon {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+  }
+
+  .sidebar-logo-title {
+    font-size: 18px;
+  }
+
+  /* TrillionX Badge Fix for mobile sidebar */
+  .premium-badge {
+    max-width: calc(100% - 30px);
+    margin: 5px 15px;
+    font-size: 10px;
+    padding: 8px 12px;
+  }
+
+  .premium-badge strong {
+    font-size: 10px;
+  }
+
+  /* POS Responsiveness - 1 Column */
+  .pos-wrap {
+    grid-template-columns: 1fr;
+    height: auto;
+    overflow: visible;
+    gap: 20px;
+  }
+
+  .pos-left {
+    padding-right: 0;
+    max-height: none;
+  }
+
+  .pos-cart-panel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 80;
+    max-height: 80vh;
+    border-radius: 24px 24px 0 0;
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.2);
+    transform: translateY(calc(100% - 60px));
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .pos-cart-panel.expanded {
+    transform: translateY(0);
+  }
+
+  .pos-cart-header {
+    cursor: pointer;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .pos-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+  }
+
+  /* Native Touch Feel */
+  .btn,
+  .nav-item,
+  .pos-card {
+    min-height: 44px;
+    /* Apple/Android HIG for touch zones */
+  }
+
+  .nav-item {
+    font-size: 15px;
+    /* Better readability */
+    padding: 14px 20px;
+  }
+}
+
+/* Onboarding Restoration Area */
+.onboarding-restore-area {
+  margin-top: 25px;
+  padding-top: 20px;
+  border-top: 1px dashed var(--border);
+}
+
+.onboarding-restore-area .divider {
+  display: flex;
+  align-items: center;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 15px;
+}
+
+.onboarding-restore-area .divider::before,
+.onboarding-restore-area .divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.onboarding-restore-area .divider span {
+  padding: 0 10px;
+}
+
+/* Fix for horizontal scroll on some tables */
+.table-wrapper {
+  -webkit-overflow-scrolling: touch;
 }

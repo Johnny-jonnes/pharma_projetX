@@ -513,7 +513,16 @@ async function pullFromSupabase() {
           if (storeName === 'users' && localItem.username) {
             const existing = await dbGetAll('users', 'username', localItem.username);
             if (existing.length > 0) {
-              await _dbPutRaw(storeName, { ...existing[0], ...localItem });
+              const localUser = existing[0];
+              // PROTECTION : Ne pas écraser un admin local plus récent ou identique
+              // (évite que le pull n'écrase le password défini lors de l'onboarding)
+              if (localUser.username === 'admin' && (localUser.updatedAt || 0) >= (localItem.updatedAt || 0)) {
+                console.log('[Sync] 🛡️ Protection admin local (non écrasé par le Cloud)');
+                // On garde les infos sensibles locales mais on peut merger d'autres champs non sensibles si besoin
+                await _dbPutRaw(storeName, { ...localItem, ...localUser });
+              } else {
+                await _dbPutRaw(storeName, { ...localUser, ...localItem });
+              }
               continue;
             }
           }
