@@ -256,6 +256,12 @@ async function renderSettings(container) {
             <button class="btn btn-secondary" onclick="doBackup()"><i data-lucide="save"></i> Sauvegarder maintenant</button>
             <button class="btn btn-ghost" onclick="restoreBackup()"><i data-lucide="folder-open"></i> Restaurer une sauvegarde</button>
           </div>
+          <div class="sync-repair-zone" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed rgba(0,0,0,0.1);">
+             <div style="display:flex; flex-direction:column; gap:0.5rem">
+                <button class="btn btn-sm btn-secondary" onclick="DB.syncToSupabase()"><i data-lucide="cloud-lightning"></i> Synchronisation forcée immédiate</button>
+                <button class="btn btn-xs btn-outline-danger" onclick="repairSync()"><i data-lucide="wrench"></i> ⚙️ Réparer la Synchronisation Cloud (Comptes manquants)</button>
+             </div>
+          </div>
           <hr style="margin: 1rem 0; opacity: 0.1;">
           <h4 style="margin-bottom: 0.5rem; font-size: 0.9rem;">Configuration Supabase (Cloud Sync)</h4>
           <form id="supabase-config-form" class="form-grid">
@@ -588,6 +594,26 @@ async function saveSupabaseConfig() {
   }
 }
 
+async function repairSync() {
+  const ok = await UI.confirm("Cette action va marquer TOUTES vos données locales comme 'non synchronisées' pour forcer un renvoi complet vers Supabase.\n\nCela peut prendre quelques minutes et réparera les problèmes de comptes manquants sur mobile.\n\nContinuer ?");
+  if (!ok) return;
+
+  const btn = event.currentTarget;
+  const originalText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="spinner-inline"></i> Réparation en cours...';
+
+  try {
+    await DB.forceSyncAll();
+    UI.toast('Synchronisation Cloud réparée et relancée !', 'success');
+  } catch (err) {
+    UI.toast('Erreur lors de la réparation : ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+  }
+}
+
 window.updatePharmacyDisplay = updatePharmacyDisplay;
 window.saveSupabaseConfig = saveSupabaseConfig;
 window.handleLogoUpload = handleLogoUpload;
@@ -601,6 +627,7 @@ window.updateUser = updateUser;
 window.saveSettings = saveSettings;
 window.doBackup = doBackup;
 window.restoreBackup = restoreBackup;
+window.repairSync = repairSync;
 
 Router.register('login', renderLogin);
 Router.register('settings', renderSettings);

@@ -474,7 +474,11 @@ async function pullFromSupabase() {
     }
 
     console.log('[Sync] 📥 Pulling data from Supabase...');
-    const storesToPull = ['products', 'lots', 'stock', 'suppliers', 'patients', 'users', 'settings'];
+    const storesToPull = [
+      'products', 'lots', 'stock', 'movements', 'suppliers', 'purchaseOrders',
+      'sales', 'saleItems', 'patients', 'prescriptions', 'alerts',
+      'cashRegister', 'auditLog', 'users', 'settings', 'returns'
+    ];
 
     for (const storeName of storesToPull) {
       console.log(`[Sync] Fetching ${storeName}...`);
@@ -491,18 +495,24 @@ async function pullFromSupabase() {
           // Meta-data transformation: map back to local convention
           const localItem = { ...item, _synced: true, _updatedAt: item.updatedAt || Date.now() };
 
-          // CRITICAL: Handle unique constraints (like 'code' for products or 'key' for settings)
+          // CRITICAL: Handle unique constraints
           if (storeName === 'products' && localItem.code) {
             const existing = await dbGetAll('products', 'code', localItem.code);
             if (existing.length > 0) {
-              // Update existing with Supabase ID and data
               await _dbPutRaw(storeName, { ...existing[0], ...localItem });
               continue;
             }
           }
           if (storeName === 'settings' && localItem.key) {
-            await _dbPutRaw(storeName, localItem); // Use raw put to avoid sync loop
+            await _dbPutRaw(storeName, localItem);
             continue;
+          }
+          if (storeName === 'users' && localItem.username) {
+            const existing = await dbGetAll('users', 'username', localItem.username);
+            if (existing.length > 0) {
+              await _dbPutRaw(storeName, { ...existing[0], ...localItem });
+              continue;
+            }
           }
 
           // Fallback to standard put
@@ -516,9 +526,28 @@ async function pullFromSupabase() {
   }
 }
 
+/**
+ * FORCE SYNC: Re-mark everything as pending and push to cloud
+ */
+async function forceSyncAll() {
+  const stores = [
+    'products', 'lots', 'stock', 'movements', 'suppliers', 'purchaseOrders',
+    'sales', 'saleItems', 'patients', 'prescriptions', 'alerts',
+    'cashRegister', 'auditLog', 'users', 'settings', 'returns'
+  ];
+
+  for (const s of stores) {
+    const all = await dbGetAll(s);
+    for (const item of all) {
+      await _dbPutRaw(s, { ...item, _synced: false });
+    }
+  }
+  return syncToSupabase();
+}
+
 function resetSupabaseClient() {
   console.log('[DB] Supabase client reset.');
   _supabaseInstance = null;
 }
 
-window.DB = { initDB, dbAdd, dbPut, dbGet, dbGetAll, dbDelete, dbCount, writeAudit, seedDemoData, syncToSupabase, pullFromSupabase, resetSupabaseClient, trackInstallation, STORES, AppState };
+window.DB = { initDB, dbAdd, dbPut, dbGet, dbGetAll, dbDelete, dbCount, writeAudit, seedDemoData, syncToSupabase, pullFromSupabase, resetSupabaseClient, forceSyncAll, trackInstallation, STORES, AppState };
