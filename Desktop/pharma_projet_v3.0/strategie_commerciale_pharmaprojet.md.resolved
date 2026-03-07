@@ -1,0 +1,412 @@
+# 🏥 PharmaProjet — Plan Stratégique Commercial 2026-2031
+
+> **Vision** : Devenir le leader du logiciel pharmaceutique digital en Afrique de l'Ouest d'ici 5 ans.
+> **Marché initial** : Guinée (Conakry + villes secondaires)
+> **Positionnement** : ERP pharmaceutique Offline-First, conforme, premium et adapté aux réalités africaines.
+
+---
+
+## 1️⃣ POSITIONNEMENT STRATÉGIQUE
+
+### Proposition de valeur
+
+> **« PharmaProjet : La pharmacie qui ne s'arrête jamais — avec ou sans internet. »**
+
+PharmaProjet est le **seul ERP pharmaceutique conçu nativement pour fonctionner sans connexion internet**, tout en offrant la puissance d'un logiciel cloud quand la connexion est disponible. Il transforme toute officine en pharmacie digitale conforme, sécurisée et performante.
+
+### Problème principal résolu
+
+| Problème | Impact actuel | Solution PharmaProjet |
+|---|---|---|
+| Gestion papier / Excel des stocks | Pertes financières, erreurs, périmés non détectés | Traçabilité lot par lot, alertes péremption automatiques |
+| Coupures internet fréquentes | Arrêt total des logiciels cloud classiques | Architecture Offline-First — 100% opérationnel sans réseau |
+| Non-conformité DNPM | Risques de sanctions, fermeture | Journal d'audit intégré, conforme aux exigences réglementaires |
+| Pas de visibilité financière | Marges inconnues, pilotage à l'aveugle | Dashboard temps réel, rapports financiers automatiques |
+| Solutions inadaptées importées | Complexes, chères, pas de support local | Conçu pour l'Afrique, support en français, prix adapté |
+
+### Différenciation vs ERP génériques
+
+```mermaid
+graph LR
+    A[ERP Génériques] -->|❌ Nécessitent Internet| B[Inutilisables en Guinée]
+    A -->|❌ Non conformes DNPM| C[Risque réglementaire]
+    A -->|❌ Prix en USD/EUR| D[Inabordable]
+    A -->|❌ Support éloigné| E[Pas de réactivité]
+    F[PharmaProjet] -->|✅ Offline-First| G[Fonctionne toujours]
+    F -->|✅ Conforme DNPM| H[Zéro risque]
+    F -->|✅ Prix GNF adapté| I[Accessible]
+    F -->|✅ Support local| J[Réactif & humain]
+```
+
+### Angle émotionnel (les 4 piliers)
+
+| Pilier | Message clé |
+|---|---|
+| 🔒 **Sécurité** | « Vos données ne sont jamais perdues, même sans internet, même sans électricité. » |
+| 🎯 **Contrôle** | « Savez-vous exactement combien vous gagnez ce mois-ci ? Avec PharmaProjet, oui. » |
+| ✨ **Modernité** | « Offrez à votre pharmacie l'outil qu'utilisent les leaders. » |
+| ⚖️ **Conformité** | « Soyez toujours prêt pour un contrôle DNPM — automatiquement. » |
+
+---
+
+## 2️⃣ ANALYSE DU MARCHÉ LOCAL (GUINÉE)
+
+### Maturité numérique des pharmacies
+
+| Segment | % estimé | Outil actuel | Maturité digitale |
+|---|---|---|---|
+| Pharmacies urbaines Conakry (haut de gamme) | ~15% | Logiciel basique ou Excel | ⭐⭐⭐ Moyenne |
+| Pharmacies urbaines Conakry (standard) | ~40% | Cahier + calculatrice | ⭐⭐ Faible |
+| Pharmacies villes secondaires | ~30% | Cahier uniquement | ⭐ Très faible |
+| Pharmacies rurales | ~15% | Aucun outil | ⛔ Nulle |
+
+> **Insight clé** : Le marché n'est pas « anti-digital », il est **mal desservi**. Les pharmaciens veulent se moderniser mais n'ont pas d'offre adaptée à leurs contraintes (internet, prix, complexité).
+
+### Obstacles à l'adoption
+
+| Obstacle | Gravité | Stratégie de mitigation |
+|---|---|---|
+| Méfiance envers le digital | 🔴 Élevée | Démonstrations physiques, pilotes gratuits, ambassadeurs pharmaciens |
+| Peur de perdre ses données | 🔴 Élevée | Démontrer l'Offline-First en coupant le Wi-Fi en démo |
+| Coût perçu comme élevé | 🟡 Moyenne | Montrer le ROI : « Combien perdez-vous en périmés par mois ? » |
+| Résistance au changement | 🟡 Moyenne | Formation sur site, accompagnement personnalisé |
+| Manque de compétences techniques | 🟡 Moyenne | Interface intuitive, formation incluse, support WhatsApp |
+| Infrastructure (électricité instable) | 🟡 Moyenne | PWA légère, fonctionne sur smartphone/tablette avec batterie |
+
+### Sensibilité au prix
+
+- **Budget IT moyen d'une pharmacie guinéenne** : 50 000 – 200 000 GNF/mois (soit ~5-20 USD)
+- **Seuil psychologique de douleur** : > 300 000 GNF/mois
+- **Comparaison inconsciente** : coût d'un abonnement téléphonique (20 000 – 50 000 GNF)
+- **Levier** : Justifier le prix par l'économie réalisée sur les pertes de périmés et les erreurs
+
+### Concurrence existante
+
+| Concurrent | Type | Forces | Faiblesses |
+|---|---|---|---|
+| **Excel / Cahier** | Informel | Gratuit, familier | Aucune traçabilité, erreurs, non conforme |
+| **Logiciels importés (Sage Pharma, etc.)** | Formel | Fonctionnalités riches | Cher, nécessite internet, pas adapté au contexte |
+| **Solutions locales artisanales** | Semi-formel | Bon marché | Pas de maintenance, bugs, pas de conformité |
+| **Pas d'outil du tout** | N/A | Aucun coût | Pertes massives, non-conformité |
+
+> **Conclusion** : Le concurrent principal n'est **pas un logiciel**, c'est **l'habitude du papier et d'Excel**. La vente est d'abord une mission d'éducation.
+
+---
+
+## 3️⃣ STRATÉGIE D'ENTRÉE SUR LE MARCHÉ (GTM)
+
+### Segment prioritaire (Early Adopters)
+
+```mermaid
+graph TD
+    A[Cible #1 : Pharmacies modernes de Conakry] -->|20-30 officines| B[Propriétaires jeunes < 45 ans]
+    A --> C[Déjà sur smartphone / WhatsApp]
+    A --> D[Volume > 50 ventes/jour]
+    A --> E[Sensibles à la conformité DNPM]
+    F[Cible #2 : Chaînes de 2-5 officines] -->|5-10 groupes| G[Besoin de centralisation]
+    F --> H[Budget plus élevé]
+    F --> I[Décision plus rapide si démonstration convaincante]
+```
+
+> **Profil de l'early adopter idéal** : Pharmacien(ne), 30-45 ans, propriétaire à Conakry, utilise déjà WhatsApp Business, frustré(e) par les erreurs de stock et les pertes sur périmés.
+
+### Offre de lancement — « Programme Pionniers »
+
+| Élément | Détail |
+|---|---|
+| **Nom** | Programme Pionniers PharmaProjet |
+| **Durée** | 6 mois |
+| **Nombre de places** | 20 pharmacies max |
+| **Offre** | Abonnement Pro à -50% pendant 6 mois |
+| **Inclus** | Installation + Formation sur site + Support WhatsApp prioritaire |
+| **Contrepartie** | Témoignage vidéo + Droit d'utiliser leur nom comme référence |
+| **Objectif** | Créer 20 études de cas réelles et affiner le produit |
+
+### Démonstration & Closing
+
+**Script de démonstration en 7 étapes (30 min max) :**
+
+| Étape | Durée | Action | Impact émotionnel |
+|---|---|---|---|
+| 1. Accroche | 2 min | « Combien avez-vous perdu en médicaments périmés ce trimestre ? » | Douleur financière |
+| 2. Dashboard | 3 min | Montrer le tableau de bord avec vraies données | « Wow, je pourrais voir ça ? » |
+| 3. Vente POS | 5 min | Simuler une vente complète avec ordonnance | Simplicité perçue |
+| 4. Coupure WiFi | 3 min | **Couper le Wi-Fi en direct** — tout fonctionne | Moment « magie » ← **clé du closing** |
+| 5. Péremptions | 3 min | Montrer les alertes automatiques | Sécurité & contrôle |
+| 6. Audit DNPM | 3 min | Montrer le journal d'audit | Conformité = tranquillité |
+| 7. Closing | 5 min | Offre Pionniers, urgence (places limitées) | FOMO + exclusivité |
+
+> [!IMPORTANT]
+> **L'étape 4 (coupure WiFi) est le moment décisif.** C'est la démonstration qui convertit. Tout pharmacien guinéen a vécu la frustration d'un logiciel qui plante sans internet. Montrer que PharmaProjet continue de fonctionner parfaitement crée un effet « WOW » immédiat.
+
+---
+
+## 4️⃣ STRATÉGIE DE CONFIANCE
+
+### Rassurer sur la sécurité des données
+
+| Argument | Preuve |
+|---|---|
+| « Vos données sont sur VOTRE appareil » | Démonstration IndexedDB — données locales visibles |
+| « Synchronisation chiffrée quand internet revient » | Montrer la sync Supabase en direct |
+| « Aucune tierce partie n'accède à vos données » | Politique de confidentialité claire et simple |
+| « Vous pouvez exporter vos données à tout moment » | Bouton d'export visible dans les paramètres |
+
+### L'Offline-First comme levier marketing
+
+> **Transformer la contrainte internet en avantage compétitif absolu.**
+
+**Messages marketing clés :**
+- 🔌 *« Pas de Wi-Fi ? Pas de problème. »*
+- 💪 *« Le seul logiciel de pharmacie qui ne vous abandonne jamais. »*
+- 🏆 *« Conçu pour la réalité africaine, pas depuis un bureau à Paris. »*
+
+**Tactique marketing** : Filmer une vidéo de démonstration où un pharmacien utilise PharmaProjet, puis débrancher le routeur Wi-Fi en plein milieu. Tout continue. Cette vidéo seule peut devenir virale sur WhatsApp et Facebook.
+
+### Construction de preuves sociales
+
+| Phase | Action | Livrable |
+|---|---|---|
+| Mois 1-3 | 5 pharmacies pilotes gratuites | Données d'utilisation réelles |
+| Mois 3-6 | Témoignages vidéo des 5 pilotes | Vidéos WhatsApp-friendly (< 2 min) |
+| Mois 6-12 | Études de cas chiffrées | « Pharmacie X a réduit ses pertes de 40% » |
+| Mois 12+ | Recommandations Ordre des Pharmaciens | Caution institutionnelle |
+
+---
+
+## 5️⃣ CANAUX D'ACQUISITION
+
+### Canal #1 : Vente Terrain (70% du budget acquisition)
+
+> C'est le canal roi en Guinée. Le face-à-face est incontournable.
+
+| Action | Fréquence | Cible | Coût estimé |
+|---|---|---|---|
+| Visites officines Conakry | 5/semaine | Pharmacies cibles identifiées | Déplacement + matériel démo |
+| Démonstrations groupées | 2/mois | 5-10 pharmaciens invités | Salle + collation |
+| Présence conférences pharma | Trimestrielle | Ordre des Pharmaciens, séminaires | Stand + brochures |
+
+### Canal #2 : Partenariats stratégiques (20% du budget)
+
+| Partenaire | Intérêt mutuel | Mécanisme |
+|---|---|---|
+| **Grossistes pharmaceutiques** (Laborex, SOGEPHARM) | Ils veulent digitaliser leurs clients | Co-marketing : « Recommandé par [grossiste] » |
+| **Ordre National des Pharmaciens** | Conformité & modernisation | Partenariat institutionnel, logo sur marketing |
+| **Opérateurs télécom** (Orange, MTN) | Paiement mobile intégré | Bundle : « Abonnement PharmaProjet via Orange Money » |
+| **Fournisseurs de matériel** | Vente de tablettes/PC | Pack « Tablette + PharmaProjet préinstallé » |
+
+### Canal #3 : Digital (10% du budget)
+
+| Plateforme | Usage | Type de contenu |
+|---|---|---|
+| **WhatsApp Business** | SAV + Acquisition | Vidéos courtes, témoignages, tips |
+| **Facebook** (groupes pharma) | Notoriété | Posts éducatifs, lives, publicités ciblées |
+| **YouTube** | SEO + Confiance | Tutoriels, démos complètes |
+| **LinkedIn** | B2B / Investisseurs | Articles stratégiques, crédibilité |
+
+### Stratégie Ambassadeur Pharmacien
+
+| Niveau | Critère | Avantage |
+|---|---|---|
+| 🥉 **Ambassadeur** | Utilise PharmaProjet + recommande 1 collègue | -20% sur son abonnement |
+| 🥈 **Champion** | 3+ recommandations converties | Abonnement gratuit 3 mois |
+| 🥇 **Leader** | 5+ recommandations + témoignage vidéo | Abonnement gratuit 1 an + invitation événements VIP |
+
+---
+
+## 6️⃣ STRATÉGIE DE PRICING
+
+### Principes de pricing
+
+1. **Ancrage sur la perte** : « Vous perdez 500 000 GNF/mois en périmés → PharmaProjet coûte 150 000 GNF/mois »
+2. **Prix en monnaie locale** (GNF) — jamais en USD
+3. **Paiement mensuel via Orange Money** — zéro friction
+4. **Pas de contrat annuel obligatoire** au début — réduire la barrière
+
+### Grille tarifaire
+
+| | 🌱 **Essentiel** | 🏢 **Pro** | 🏗️ **Enterprise** |
+|---|---|---|---|
+| **Cible** | Petite officine solo | Pharmacie standard | Chaîne 2+ officines |
+| **Prix/mois** | **100 000 GNF** (~10 USD) | **250 000 GNF** (~25 USD) | **Sur devis** (à partir de 500 000 GNF) |
+| POS & Ventes | ✅ | ✅ | ✅ |
+| Gestion stocks & lots | ✅ | ✅ | ✅ |
+| Alertes péremption | ✅ | ✅ | ✅ |
+| Offline-First | ✅ | ✅ | ✅ |
+| Dashboard & Rapports | Basique | ✅ Avancé | ✅ Avancé + Multi-site |
+| Journal audit DNPM | ❌ | ✅ | ✅ |
+| Paiement mobile intégré | ❌ | ✅ | ✅ |
+| Multi-utilisateurs | 1 user | 3 users | Illimité |
+| Sync cloud Supabase | ❌ | ✅ | ✅ + Dashboard centralisé |
+| Support | WhatsApp communauté | WhatsApp prioritaire | Dédié + Formation sur site |
+| Formation initiale | Vidéo tutoriel | 1h visio | Sur site illimité |
+
+### Upsells stratégiques
+
+| Upsell | Prix additionnel | Déclencheur |
+|---|---|---|
+| Module Multi-utilisateurs (add-on Essentiel) | +50 000 GNF/mois | Quand l'officine embauche un 2e vendeur |
+| Rapports avancés | +30 000 GNF/mois | Quand le pharmacien demande des stats |
+| Sync Cloud | +50 000 GNF/mois | Quand le pharmacien veut accéder depuis 2 appareils |
+| Module Grossiste (futur) | Devis | Phase 2 du produit |
+
+### Ancrage psychologique
+
+> **Script commercial** : « Un carton de Paracétamol périmé vous coûte 200 000 GNF. Un seul. J'ai vu des pharmacies en perdre 5 à 10 par mois. PharmaProjet coûte moins cher qu'un seul carton périmé — et il les empêche TOUS de périmer. »
+
+---
+
+## 7️⃣ STRATÉGIE DE RÉTENTION
+
+### Les 90 premiers jours (critiques)
+
+```mermaid
+gantt
+    title Parcours d'onboarding PharmaProjet
+    dateFormat  YYYY-MM-DD
+    section Formation
+    Installation + Config       :a1, 2026-01-01, 1d
+    Formation initiale (2h)     :a2, after a1, 1d
+    Saisie stock initial        :a3, after a2, 3d
+    section Accompagnement
+    Check-in J+7 (WhatsApp)     :b1, 2026-01-09, 1d
+    Check-in J+14              :b2, 2026-01-16, 1d
+    Check-in J+30              :b3, 2026-02-01, 1d
+    section Fidélisation
+    Premier rapport mensuel     :c1, 2026-02-01, 1d
+    Revue trimestrielle         :c2, 2026-04-01, 1d
+```
+
+### Programme de rétention
+
+| Levier | Action | Fréquence |
+|---|---|---|
+| **Support réactif** | Groupe WhatsApp dédié, réponse < 2h | Continu |
+| **Mises à jour** | Nouvelles fonctionnalités communiquées | Mensuelle |
+| **Tips & astuces** | Vidéos WhatsApp « Le saviez-vous ? » | Hebdomadaire |
+| **Revue business** | Appel avec le pharmacien pour analyser ses rapports | Trimestrielle |
+| **Communauté** | Groupe WhatsApp inter-pharmaciens utilisateurs | Continu |
+
+### Création de dépendance fonctionnelle saine
+
+| Mécanisme | Effet |
+|---|---|
+| **Historique de ventes cumulé** | Plus il utilise PharmaProjet, plus ses données ont de valeur |
+| **Alertes péremption automatiques** | Il ne peut plus gérer sans — trop habitué |
+| **Rapports mensuels de performance** | Devient son outil de décision business |
+| **Habitude POS** | Impossible de revenir au cahier après avoir goûté à la rapidité |
+| **Conformité DNPM continue** | Arrêter = redevenir non conforme |
+
+> [!TIP]
+> **Indicateur clé de rétention** : Si un pharmacien utilise PharmaProjet 25+ jours par mois pendant 3 mois, la probabilité de churn tombe en dessous de 5%.
+
+---
+
+## 8️⃣ PLAN D'EXPANSION RÉGIONALE (2027-2031)
+
+### Roadmap d'expansion
+
+| Année | Pays | Justification | Objectif |
+|---|---|---|---|
+| **2026** | 🇬🇳 Guinée | Marché de lancement, preuve de concept | 50-100 pharmacies |
+| **2027** | 🇲🇱 Mali | Proximité culturelle/linguistique, même contraintes internet | 30-50 pharmacies |
+| **2028** | 🇸🇳 Sénégal | Marché plus grand, écosystème digital plus mature | 100+ pharmacies |
+| **2029** | 🇨🇮 Côte d'Ivoire | Plus grand marché pharma d'Afrique de l'Ouest francophone | 150+ pharmacies |
+| **2030-31** | 🇧🇫🇳🇪🇹🇬 Burkina, Niger, Togo | Expansion naturelle CEDEAO | 200+ pharmacies |
+
+### Adaptations réglementaires par pays
+
+| Pays | Régulateur | Adaptations nécessaires |
+|---|---|---|
+| Guinée | DNPM | ✅ Déjà conforme |
+| Mali | DPM (Direction de la Pharmacie et du Médicament) | Adapter le journal d'audit aux normes maliennes |
+| Sénégal | DPM Sénégal | Conformité aux normes de traçabilité sénégalaises |
+| Côte d'Ivoire | DPML | Intégration avec le Système National d'Information Sanitaire |
+
+### Scalabilité technique
+
+| Dimension | Solution actuelle | Évolution pour l'expansion |
+|---|---|---|
+| **Infrastructure** | Supabase (1 instance) | Multi-tenant avec isolation par pays |
+| **Langues** | Français | Ajouter l'anglais pour Ghana/Nigeria (phase 3) |
+| **Monnaies** | GNF | Support multi-devises (XOF, XAF) |
+| **Réglementation** | DNPM Guinée | Module réglementaire configurable par pays |
+| **Paiement mobile** | Orange Money GN | Orange Money West Africa + Wave + MTN MoMo régional |
+
+### Modèle d'expansion
+
+> **Stratégie « Lighthouse »** : Dans chaque nouveau pays, identifier 3-5 pharmacies « phares » (influentes, visibles, bien situées), les équiper gratuitement pendant 3 mois, puis utiliser leur succès comme tremplin commercial.
+
+---
+
+## 9️⃣ RISQUES STRATÉGIQUES
+
+### 10 erreurs critiques à éviter
+
+| # | Erreur | Pourquoi c'est mortel | Prévention |
+|---|---|---|---|
+| 1 | **Lancer à grande échelle trop tôt** | Support submergé, bugs non corrigés, mauvaise réputation | Limiter à 20 pionniers pendant 6 mois |
+| 2 | **Pricer en USD** | Déconnexion psychologique totale | Toujours en GNF, paiement Orange Money |
+| 3 | **Négliger le terrain** | Le digital seul ne vend pas en Guinée | 70% du budget en vente terrain |
+| 4 | **Ignorer la formation** | Produit abandonné en 2 semaines | Formation incluse + check-ins réguliers |
+| 5 | **Promettre ce que le produit ne fait pas** | Perte de confiance irréversible | Démo honest, feuille de route transparente |
+| 6 | **Ne pas avoir de support WhatsApp** | Canal de communication #1 en Guinée | Groupe WhatsApp + réponse < 2h |
+| 7 | **Copier un modèle SaaS occidental** | Contrat annuel, carte bancaire = impossible ici | Paiement mensuel mobile, pas d'engagement |
+| 8 | **Sous-estimer la compétition gratuite (Excel, cahier)** | L'ennemi est l'habitude, pas un concurrent | Vendre le ROI, pas la technologie |
+| 9 | **Ne pas impliquer l'Ordre des Pharmaciens** | Manque de légitimité institutionnelle | Partenariat dès le mois 1 |
+| 10 | **Étendre géographiquement avant de maîtriser la Guinée** | Dispersion fatale | Objectif : 50 clients payants avant toute expansion |
+
+### Facteurs pouvant tuer le projet
+
+> [!CAUTION]
+> **Risques existentiels** à monitorer en permanence :
+
+| Risque | Probabilité | Impact | Mitigation |
+|---|---|---|---|
+| Entrée d'un géant (SAP, Oracle) sur le marché pharma africain | Faible | Élevé | Avantage Offline-First + localisation + prix |
+| Réglementation imposant un logiciel officiel étatique | Moyenne | Critique | Relations avec le régulateur, lobbying via l'Ordre |
+| Cash burn avant rentabilité | Élevée | Critique | Atteindre 30 clients payants en 12 mois (break-even) |
+| Fondateur seul = bus factor | Élevée | Critique | Documenter tout, recruter un CTO associé |
+| Piratage / copie du produit | Moyenne | Moyen | PWA + backend Supabase = difficile à copier vs logiciel installé |
+
+### Seuil de viabilité financière
+
+| Métrique | Objectif 12 mois |
+|---|---|
+| Nombre de clients payants | 30 minimum |
+| MRR cible | 5 000 000 GNF (~500 USD) |
+| Coûts mensuels (infra + support) | ~3 000 000 GNF (~300 USD) |
+| Marge nette | > 40% |
+| Churn mensuel | < 5% |
+
+---
+
+## 📊 SYNTHÈSE — TIMELINE OPÉRATIONNELLE
+
+| Phase | Période | Actions clés | KPI |
+|---|---|---|---|
+| **Phase 0 : Préparation** | Mois 1-2 | Finaliser le produit, préparer le matériel commercial, identifier les 20 pionniers | Produit stable, brochures prêtes |
+| **Phase 1 : Pionniers** | Mois 3-8 | Programme Pionniers, 20 pharmacies, itération produit | 20 installations, NPS > 50 |
+| **Phase 2 : Croissance** | Mois 9-18 | Offre commerciale standard, vente terrain intensive, partenariats | 50-80 clients payants, MRR 8M GNF |
+| **Phase 3 : Expansion** | Mois 19-36 | Entrée Mali + Sénégal, recrutement équipe terrain | 150+ clients, présence 3 pays |
+| **Phase 4 : Leadership** | Mois 37-60 | Côte d'Ivoire + reste CEDEAO, levée de fonds Series A | 500+ clients, leader reconnu |
+
+---
+
+## 🎯 ACTIONS IMMÉDIATES (Semaines 1-4)
+
+- [ ] Finaliser la version stable de PharmaProjet (bug fixes, polish)
+- [ ] Créer une brochure commerciale 1 page (PDF + WhatsApp-friendly)
+- [ ] Filmer une vidéo de démonstration de 3 minutes (avec la coupure WiFi)
+- [ ] Identifier 20 pharmacies cibles à Conakry pour le Programme Pionniers
+- [ ] Contacter l'Ordre National des Pharmaciens pour un partenariat
+- [ ] Créer un groupe WhatsApp « PharmaProjet Pionniers »
+- [ ] Configurer le paiement via Orange Money
+- [ ] Recruter 1 commercial terrain (pharmacien ou délégué médical)
+- [ ] Préparer un script de démonstration standardisé
+- [ ] Définir les métriques de suivi (tableau de bord interne)
+
+---
+
+> [!IMPORTANT]
+> **Règle d'or** : Ne vendez pas un logiciel. Vendez la tranquillité d'esprit. Vendez le fait de ne plus jamais perdre un carton de médicaments périmés. Vendez le fait d'être toujours prêt pour un contrôle DNPM. Vendez la fierté de diriger une pharmacie moderne. Le logiciel n'est que l'outil — l'émotion est le moteur de la vente.
