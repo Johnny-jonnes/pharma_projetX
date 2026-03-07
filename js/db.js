@@ -422,9 +422,17 @@ async function syncToSupabase() {
           const payload = {};
           for (const [key, value] of Object.entries(item)) {
             if (!key.startsWith('_')) {
-              // BigInt safety for userId
-              if (key === 'userId' && typeof value === 'string' && value.startsWith('session_')) {
-                payload[key] = DB.AppState.currentUser?.id || 1;
+              // Global BigInt safety for any numeric or session field
+              if (typeof value === 'string') {
+                if (value.startsWith('session_')) {
+                  // Extract numeric part from session_123456789
+                  payload[key] = parseInt(value.replace('session_', '')) || 1;
+                } else if (/^\d+$/.test(value)) {
+                  // Only convert strings that are purely numeric to avoid breaking UUIDs/Codes
+                  payload[key] = parseInt(value);
+                } else {
+                  payload[key] = value;
+                }
               } else {
                 payload[key] = value;
               }
@@ -432,6 +440,12 @@ async function syncToSupabase() {
           }
           // Mapping _updatedAt to updatedAt for Supabase
           if (item._updatedAt) payload.updatedAt = item._updatedAt;
+
+          // Ensure userId is never null if required by schema
+          if (payload.userId === undefined || payload.userId === null) {
+            payload.userId = AppState.currentUser?.id || 1;
+          }
+
           return payload;
         });
 

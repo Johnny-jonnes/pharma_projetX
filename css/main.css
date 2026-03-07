@@ -8903,14 +8903,19 @@ kbd {
     transform: translateX(0) !important;
   }
 
-  /* Show ALL sidebar content on mobile (undo collapsed hiding) */
-  #app-sidebar.collapsed .sidebar-logo-text,
-  #app-sidebar.collapsed .nav-label,
-  #app-sidebar.collapsed .nav-section,
-  #app-sidebar.collapsed .sidebar-user-info,
-  #app-sidebar.collapsed .sidebar-logout,
-  #app-sidebar.collapsed .sync-text {
-    display: unset !important;
+  /* Show ALL sidebar content on mobile (ignore collapsed state) */
+  #app-sidebar .sidebar-logo-text,
+  #app-sidebar .nav-label,
+  #app-sidebar .nav-section,
+  #app-sidebar .sidebar-user-info,
+  #app-sidebar .sidebar-logout,
+  #app-sidebar .sync-text {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    width: auto !important;
+    height: auto !important;
+    margin: unset !important;
   }
 
   #app-sidebar.collapsed .nav-item {
