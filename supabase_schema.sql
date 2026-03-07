@@ -1,10 +1,10 @@
 -- ============================================================
--- PHARMA_PROJET v3.0 — Schéma Supabase COMPLET
+-- PHARMA_PROJET v3.2.1 — Schéma Supabase COMPLET (STABLE)
 -- 
--- INSTRUCTIONS :
--- 1. Ouvrez votre Dashboard Supabase
--- 2. Allez dans "SQL Editor" → "New query"
--- 3. Collez tout ce script et cliquez "Run"
+-- DESCRIPTION :
+-- Ce fichier contient la structure complète de la base de données 
+-- Supabase pour PharmaProjet. Il inclut toutes les tables, 
+-- types de données et politiques de sécurité (RLS).
 -- ============================================================
 
 -- ═══════════════════════════════════════════════════════════════
@@ -13,7 +13,7 @@
 DROP TABLE IF EXISTS "cashRegister" CASCADE;
 DROP TABLE IF EXISTS "auditLog" CASCADE;
 DROP TABLE IF EXISTS "app_users" CASCADE;
-DROP TABLE IF EXISTS "users" CASCADE; -- Nettoyage ancienne table
+DROP TABLE IF EXISTS "users" CASCADE;
 DROP TABLE IF EXISTS "returns" CASCADE;
 DROP TABLE IF EXISTS alerts CASCADE;
 DROP TABLE IF EXISTS "saleItems" CASCADE;
@@ -52,7 +52,7 @@ CREATE TABLE products (
 );
 
 -- ═══════════════════════════════════════════════════════════════
--- 2. TABLE LOTS — Gestion des lots (péremption, traçabilité)
+-- 2. TABLE LOTS — Gestion des lots
 -- ═══════════════════════════════════════════════════════════════
 CREATE TABLE lots (
   id                BIGINT PRIMARY KEY,
@@ -80,7 +80,7 @@ CREATE TABLE stock (
 );
 
 -- ═══════════════════════════════════════════════════════════════
--- 4. TABLE MOVEMENTS — Historique des mouvements de stock
+-- 4. TABLE MOVEMENTS — Historique des mouvements
 -- ═══════════════════════════════════════════════════════════════
 CREATE TABLE movements (
   id            BIGINT PRIMARY KEY,
@@ -232,18 +232,26 @@ CREATE TABLE "returns" (
 );
 
 -- ═══════════════════════════════════════════════════════════════
--- 13. TABLE CASH_REGISTER — Caisse journalière
+-- 13. TABLE CASH_REGISTER — Caisse journalière & Clôtures
 -- ═══════════════════════════════════════════════════════════════
 CREATE TABLE "cashRegister" (
-  id              BIGINT PRIMARY KEY,
-  type            TEXT,
-  amount          NUMERIC DEFAULT 0,
-  "paymentMethod" TEXT,
-  reason          TEXT,
-  date            TEXT,
-  "timestamp"     BIGINT,
-  "userId"        BIGINT,
-  "updatedAt"     BIGINT
+  id                BIGINT PRIMARY KEY,
+  type              TEXT, -- 'income', 'expense', 'closure'
+  amount            NUMERIC DEFAULT 0,
+  "paymentMethod"   TEXT,
+  reason            TEXT,
+  date              TEXT,
+  "timestamp"       BIGINT,
+  "userId"          BIGINT,
+  "closedAt"        BIGINT,
+  "closedBy"        TEXT,
+  "openingFund"     NUMERIC DEFAULT 0,
+  "expectedCash"    NUMERIC DEFAULT 0,
+  "physicalCash"    NUMERIC DEFAULT 0,
+  "totalSales"      NUMERIC DEFAULT 0,
+  "transactionCount" BIGINT DEFAULT 0,
+  "note"            TEXT,
+  "updatedAt"       BIGINT
 );
 
 -- ═══════════════════════════════════════════════════════════════
@@ -286,55 +294,22 @@ CREATE TABLE settings (
 );
 
 -- ═══════════════════════════════════════════════════════════════
--- 15. SÉCURITÉ — Row Level Security (RLS)
+-- 17. SÉCURITÉ — Row Level Security (RLS)
 -- ═══════════════════════════════════════════════════════════════
--- On active RLS sur toutes les tables et on crée une politique
--- "Allow all" pour l'accès via la clé anon (usage interne pharmacie).
+-- On active RLS et on autorise tout accès via clé anon pour le PWA.
 -- ═══════════════════════════════════════════════════════════════
 
-ALTER TABLE products         ENABLE ROW LEVEL SECURITY;
-ALTER TABLE lots             ENABLE ROW LEVEL SECURITY;
-ALTER TABLE stock            ENABLE ROW LEVEL SECURITY;
-ALTER TABLE movements        ENABLE ROW LEVEL SECURITY;
-ALTER TABLE suppliers        ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "purchaseOrders" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE patients         ENABLE ROW LEVEL SECURITY;
-ALTER TABLE prescriptions    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE sales            ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "saleItems"      ENABLE ROW LEVEL SECURITY;
-ALTER TABLE alerts           ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "returns"         ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "cashRegister"   ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "auditLog"       ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "app_users"      ENABLE ROW LEVEL SECURITY;
-ALTER TABLE settings         ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "allow_all_products"         ON products         FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "allow_all_lots"             ON lots             FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "allow_all_stock"            ON stock            FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "allow_all_movements"        ON movements        FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "allow_all_suppliers"        ON suppliers        FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "allow_all_purchaseOrders"   ON "purchaseOrders" FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "allow_all_patients"         ON patients         FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "allow_all_prescriptions"    ON prescriptions    FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "allow_all_sales"            ON sales            FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "allow_all_saleItems"        ON "saleItems"      FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "allow_all_alerts"           ON alerts           FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "allow_all_returns"          ON "returns"        FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "allow_all_cashRegister"     ON "cashRegister"   FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "allow_all_auditLog"         ON "auditLog"       FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "allow_all_app_users"        ON "app_users"      FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "allow_all_settings"         ON settings         FOR ALL USING (true) WITH CHECK (true);
+DO $$ 
+DECLARE
+    t text;
+BEGIN
+    FOR t IN (SELECT table_name FROM information_schema.tables WHERE table_schema = 'public') LOOP
+        EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t);
+        EXECUTE format('DROP POLICY IF EXISTS "allow_all" ON %I', t);
+        EXECUTE format('CREATE POLICY "allow_all" ON %I FOR ALL USING (true) WITH CHECK (true)', t);
+    END LOOP;
+END $$;
 
 -- ═══════════════════════════════════════════════════════════════
--- ✅ TERMINÉ — Toutes les tables sont prêtes.
--- Retournez dans PharmaProjet et connectez votre Supabase.
+-- ✅ TERMINÉ — Toutes les tables sont prêtes. v3.2.1-stable
 -- ═══════════════════════════════════════════════════════════════
-ALTER TABLE "cashRegister" ADD COLUMN IF NOT EXISTS "closedAt" BIGINT;
-ALTER TABLE "cashRegister" ADD COLUMN IF NOT EXISTS "closedBy" TEXT;
-ALTER TABLE "cashRegister" ADD COLUMN IF NOT EXISTS "openingFund" NUMERIC;
-ALTER TABLE "cashRegister" ADD COLUMN IF NOT EXISTS "expectedCash" NUMERIC;
-ALTER TABLE "cashRegister" ADD COLUMN IF NOT EXISTS "physicalCash" NUMERIC;
-ALTER TABLE "cashRegister" ADD COLUMN IF NOT EXISTS "totalSales" NUMERIC;
-ALTER TABLE "cashRegister" ADD COLUMN IF NOT EXISTS "transactionCount" BIGINT;
-ALTER TABLE "cashRegister" ADD COLUMN IF NOT EXISTS "note" TEXT;
