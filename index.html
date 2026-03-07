@@ -25,12 +25,17 @@
     if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
       document.addEventListener('contextmenu', e => e.preventDefault());
       document.addEventListener('keydown', e => {
-        if (e.key === 'F5' || (e.ctrlKey && e.key === 'r') || (e.ctrlKey && e.key === 'R')) {
+        // Block F5, Ctrl+R, F12, Ctrl+Shift+I, Ctrl+U, Ctrl+S
+        if (e.key === 'F5' || e.key === 'F12' || (e.ctrlKey && (e.key === 'r' || e.key === 'R' || e.key === 'u' || e.key === 'U' || e.key === 's' || e.key === 'S')) ||
+          (e.ctrlKey && e.shiftKey && (e.key === 'i' || e.key === 'I'))) {
           e.preventDefault();
         }
       });
     }
   </script>
+  <meta name="theme-color" content="#1B4F72">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <script src="js/vendor/supabase.min.js"></script>
   <script src="js/vendor/lucide.min.js"></script>
 </head>
@@ -351,8 +356,20 @@
         if (window.updatePharmacyDisplay) await updatePharmacyDisplay();
 
         // --- Check if pharmacy is already configured ---
-        const settings = await DB.dbGetAll('settings');
-        const onboardingDone = settings.find(s => s.key === 'onboarding_done')?.value;
+        let settings = await DB.dbGetAll('settings');
+        let onboardingDone = settings.find(s => s.key === 'onboarding_done')?.value;
+        const hasSupabase = settings.find(s => s.key === 'supabase_url')?.value;
+
+        // If Supabase configured but onboarding not done locally, attempt sync pull
+        if (!onboardingDone && hasSupabase && navigator.onLine) {
+          try {
+            const main = document.getElementById('app-content');
+            if (main) main.innerHTML = '<div class="loader-container"><div class="loader-spinner"></div><p>Synchronisation Cloud...</p></div>';
+            await DB.pullFromSupabase();
+            settings = await DB.dbGetAll('settings');
+            onboardingDone = settings.find(s => s.key === 'onboarding_done')?.value;
+          } catch (e) { console.warn('[App] Initial sync failed:', e); }
+        }
 
         if (!onboardingDone) {
           console.log('[App] Onboarding required.');

@@ -234,7 +234,50 @@ Supabase offre un plan gratuit généreux :
 4. **Copiez TOUT le contenu** du fichier `supabase_schema.sql`
 5. **Collez-le** dans l'éditeur SQL de Supabase
 6. Cliquez sur le bouton vert **"Run"** (▶️)
-7. Vous devez voir : **"Success. No rows returned"** — c'est normal, les 14 tables ont été créées !
+7. Vous devez voir : **"Success. No rows returned"** — c'est normal, les 15 tables ont été créées !
+
+---
+
+### 🛠️ Cas particulier : Application d'un Patch (si déjà installé)
+
+Si vous avez déjà créé votre base de données Supabase avant la version 3.0.0 « Elite », vous pourriez voir des erreurs de synchronisation (colonne `updatedAt` manquante). 
+
+**NE supprimez PAS vos tables** (vous perdriez vos données). Utilisez plutôt ce script de patch :
+
+1. Allez dans **SQL Editor** → **New query**
+2. Collez ce code :
+   ```sql
+   -- Ajout des colonnes de synchronisation manquantes
+   ALTER TABLE products ADD COLUMN IF NOT EXISTS "updatedAt" BIGINT;
+   ALTER TABLE lots ADD COLUMN IF NOT EXISTS "updatedAt" BIGINT;
+   ALTER TABLE stock ADD COLUMN IF NOT EXISTS "updatedAt" BIGINT;
+   ALTER TABLE movements ADD COLUMN IF NOT EXISTS "updatedAt" BIGINT;
+   ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS "updatedAt" BIGINT;
+   ALTER TABLE "purchaseOrders" ADD COLUMN IF NOT EXISTS "updatedAt" BIGINT;
+   ALTER TABLE patients ADD COLUMN IF NOT EXISTS "updatedAt" BIGINT;
+   ALTER TABLE prescriptions ADD COLUMN IF NOT EXISTS "updatedAt" BIGINT;
+   ALTER TABLE sales ADD COLUMN IF NOT EXISTS "updatedAt" BIGINT;
+   ALTER TABLE sales ADD COLUMN IF NOT EXISTS "returnStatus" TEXT;
+   ALTER TABLE sales ADD COLUMN IF NOT EXISTS "lastReturnId" BIGINT;
+   ALTER TABLE sales ADD COLUMN IF NOT EXISTS "lastReturnDate" TEXT;
+   ALTER TABLE "saleItems" ADD COLUMN IF NOT EXISTS "updatedAt" BIGINT;
+   ALTER TABLE alerts ADD COLUMN IF NOT EXISTS "updatedAt" BIGINT;
+   ALTER TABLE "cashRegister" ADD COLUMN IF NOT EXISTS "updatedAt" BIGINT;
+   ALTER TABLE "auditLog" ADD COLUMN IF NOT EXISTS "updatedAt" BIGINT;
+
+   -- Création de la table des retours si elle n'existe pas
+   CREATE TABLE IF NOT EXISTS "returns" (
+      id BIGINT PRIMARY KEY, "saleId" BIGINT, "saleRef" TEXT, "patientId" BIGINT,
+      "patientName" TEXT, date TEXT, reason TEXT, items JSONB,
+      "refundAmount" NUMERIC DEFAULT 0, "isFullReturn" BOOLEAN DEFAULT false,
+      status TEXT DEFAULT 'approved', "paymentMethod" TEXT, "processedBy" TEXT, "updatedAt" BIGINT
+   );
+   ALTER TABLE "returns" ENABLE ROW LEVEL SECURITY;
+   CREATE POLICY IF NOT EXISTS "allow_all_returns" ON "returns" FOR ALL USING (true) WITH CHECK (true);
+   ```
+3. Cliquez sur **Run**.
+
+---
 
 > ⚠️ **Ne modifiez RIEN** dans le script SQL. Collez-le tel quel.
 

@@ -468,7 +468,10 @@ async function syncToSupabase() {
 async function pullFromSupabase() {
   try {
     const sb = await getSupabaseClient();
-    if (!sb || !navigator.onLine) return;
+    if (!sb || !navigator.onLine) {
+      console.warn('[Sync] Cannot pull: No Supabase client or offline.');
+      return;
+    }
 
     console.log('[Sync] 📥 Pulling data from Supabase...');
     const storesToPull = ['products', 'lots', 'stock', 'suppliers', 'patients', 'settings'];
