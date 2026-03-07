@@ -2629,8 +2629,17 @@ textarea.form-control {
   .sidebar-logo-text,
   .sidebar-user-info,
   .nav-section,
-  .sidebar-user {
+  .sidebar-user,
+  .premium-badge span {
     display: none;
+  }
+
+  .premium-badge {
+    padding: 8px;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    margin: 0 auto;
   }
 
   .sidebar-logo {
