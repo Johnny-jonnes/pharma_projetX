@@ -1,0 +1,303 @@
+/**
+ * PHARMA_PROJET — onboarding.js
+ * Comprehensive pharmacy setup wizard
+ */
+
+const Onboarding = {
+  step: 1,
+  totalSteps: 4,
+  data: {},
+
+  init: async function (container) {
+    this.container = container;
+
+    // Hide sidebar and topbar during onboarding (full-screen experience)
+    document.getElementById('app-sidebar')?.style.setProperty('display', 'none');
+    document.getElementById('app-topbar')?.style.setProperty('display', 'none');
+    document.getElementById('app-content').style.marginLeft = '0';
+    document.getElementById('app-content').style.paddingTop = '0';
+
+    // Load existing settings if any
+    const settings = await DB.dbGetAll('settings');
+    settings.forEach(s => {
+      this.data[s.key] = s.value;
+    });
+    this.render();
+  },
+
+  render: function () {
+    this.container.innerHTML = `
+      <div class="onboarding-layout">
+        <div class="onboarding-brand-badge premium-style no-print">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="color:var(--primary)"><path d="m7 8-4 4 4 4"/><path d="m17 8 4 4-4 4"/><path d="m14 4-4 16"/></svg>
+          <span>Par <strong>TrillionX</strong></span>
+        </div>
+        <div class="onboarding-card elite-card">
+          <div class="onboarding-header">
+            <div class="onboarding-logo">
+              <i data-lucide="activity"></i>
+            </div>
+            <div class="onboarding-progress">
+              <div class="progress-text">Étape ${this.step} sur ${this.totalSteps}</div>
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill" style="width: ${(this.step / this.totalSteps) * 100}%"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="onboarding-body">
+            ${this.renderStep()}
+          </div>
+
+          <div class="onboarding-footer">
+            ${this.step > 1 ? `<button class="btn btn-ghost" onclick="Onboarding.prev()"><i data-lucide="arrow-left"></i> Retour</button>` : '<div></div>'}
+            <button class="btn btn-primary" onclick="Onboarding.next()">
+              ${this.step === this.totalSteps ? 'Terminer la configuration' : 'Suivant'} <i data-lucide="${this.step === this.totalSteps ? 'check' : 'arrow-right'}"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    if (window.lucide) lucide.createIcons();
+  },
+
+  renderStep: function () {
+    switch (this.step) {
+      case 1:
+        return `
+          <h2 class="onboarding-title">Identité de votre Pharmacie</h2>
+          <p class="onboarding-subtitle">Ces informations apparaîtront sur vos factures et rapports.</p>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Nom de la pharmacie</label>
+              <input type="text" id="ob-pharmacy_name" class="form-control" value="${this.data.pharmacy_name || ''}" placeholder="Ex: Pharmacie du Bonheur">
+            </div>
+            <div class="form-group">
+              <label>Slogan ou Phrase d'accroche</label>
+              <input type="text" id="ob-pharmacy_slogan" class="form-control" value="${this.data.pharmacy_slogan || ''}" placeholder="Ex: Votre santé est notre priorité">
+            </div>
+            <div class="form-group">
+              <label>Adresse complète</label>
+              <input type="text" id="ob-pharmacy_address" class="form-control" value="${this.data.pharmacy_address || ''}" placeholder="Ex: Avenue de la République, Conakry">
+            </div>
+            <div class="form-group">
+              <label>Logo (recommandé)</label>
+              <div class="logo-onboarding-preview">
+                ${this.data.pharmacy_logo ? `<img src="${this.data.pharmacy_logo}" style="max-height: 60px;">` : `<div class="placeholder"><i data-lucide="image"></i></div>`}
+                <button class="btn btn-xs btn-secondary" onclick="document.getElementById('ob-logo-upload').click()">Choisir...</button>
+                <input type="file" id="ob-logo-upload" hidden onchange="Onboarding.handleLogo(event)">
+              </div>
+            </div>
+          </div>
+        `;
+      case 2:
+        return `
+          <h2 class="onboarding-title">Contact & Réglementation</h2>
+          <p class="onboarding-subtitle">Indispensable pour la conformité DNPM.</p>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Téléphone de contact</label>
+              <input type="text" id="ob-pharmacy_phone" class="form-control" value="${this.data.pharmacy_phone || ''}" placeholder="Ex: +224 620 00 00 00">
+            </div>
+            <div class="form-group">
+              <label>Email professionnel</label>
+              <input type="email" id="ob-pharmacy_email" class="form-control" value="${this.data.pharmacy_email || ''}" placeholder="Ex: contact@pharmacie.gn">
+            </div>
+            <div class="form-group">
+              <label>N° Licence DNPM</label>
+              <input type="text" id="ob-pharmacy_dnpm" class="form-control" value="${this.data.pharmacy_dnpm || ''}" placeholder="Ex: LIC-2024-XXX">
+            </div>
+            <div class="form-group">
+              <label>Pharmacien responsable</label>
+              <input type="text" id="ob-pharmacy_resp" class="form-control" value="${this.data.pharmacy_resp || ''}" placeholder="Nom du Dr en Pharmacie">
+            </div>
+          </div>
+        `;
+      case 3:
+        return `
+          <h2 class="onboarding-title">Configuration Technique</h2>
+          <p class="onboarding-subtitle">Paramètres par défaut pour votre gestion.</p>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Seuil d'alerte stock (unités)</label>
+              <input type="number" id="ob-min_stock_alert" class="form-control" value="${this.data.min_stock_alert || 10}">
+              <small>Quantité en deçà de laquelle une alerte est générée.</small>
+            </div>
+            <div class="form-group">
+              <label>Délai alerte expiration (jours)</label>
+              <input type="number" id="ob-expiry_alert_days" class="form-control" value="${this.data.expiry_alert_days || 90}">
+              <small>Nombre de jours avant péremption pour déclencher l'alerte.</small>
+            </div>
+            <div class="form-group">
+              <label>Devise locale</label>
+              <input type="text" id="ob-currency" class="form-control" value="${this.data.currency || 'GNF'}" disabled>
+            </div>
+          </div>
+          <div class="info-box-small success mt-1">
+            <i data-lucide="shield-check"></i>
+            <span>Vos données sont stockées localement et en toute sécurité.</span>
+          </div>
+        `;
+      case 4:
+        return `
+          <h2 class="onboarding-title">Sécurité du Compte Admin</h2>
+          <p class="onboarding-subtitle">Remplacez le mot de passe "admin123" par défaut.</p>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Nouveau mot de passe administrateur *</label>
+              <input type="password" id="ob-admin_password" class="form-control" placeholder="Minimum 6 caractères" required>
+            </div>
+            <div class="form-group">
+              <label>Confirmer le mot de passe *</label>
+              <input type="password" id="ob-admin_password_confirm" class="form-control" placeholder="Répétez le mot de passe" required>
+            </div>
+          </div>
+          <div class="info-box-small warning mt-2">
+            <i data-lucide="shield-alert"></i>
+            <span><strong>Important</strong> : Notez bien ce mot de passe. Vous en aurez besoin pour votre première connexion.</span>
+          </div>
+        `;
+    }
+  },
+
+  handleLogo: function (e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (re) => {
+      this.data.pharmacy_logo = re.target.result;
+      this.render();
+    };
+    reader.readAsDataURL(file);
+  },
+
+  saveCurrentStep: function () {
+    const fields = {
+      1: ['pharmacy_name', 'pharmacy_slogan', 'pharmacy_address'],
+      2: ['pharmacy_phone', 'pharmacy_email', 'pharmacy_dnpm', 'pharmacy_resp'],
+      3: ['min_stock_alert', 'expiry_alert_days', 'currency'],
+      4: ['admin_password', 'admin_password_confirm']
+    };
+    fields[this.step].forEach(f => {
+      const el = document.getElementById(`ob-${f}`);
+      if (el) this.data[f] = el.value;
+    });
+  },
+
+  next: async function () {
+    this.saveCurrentStep();
+
+    // Validation étape 1 : nom de pharmacie obligatoire
+    if (this.step === 1 && (!this.data.pharmacy_name || !this.data.pharmacy_name.trim())) {
+      UI.toast('Le nom de la pharmacie est obligatoire', 'error');
+      return;
+    }
+
+    if (this.step === 4) {
+      if (!this.data.admin_password || this.data.admin_password.length < 6) {
+        UI.toast('Le mot de passe doit faire au moins 6 caractères', 'error');
+        return;
+      }
+      if (this.data.admin_password !== this.data.admin_password_confirm) {
+        UI.toast('Les mots de passe ne correspondent pas', 'error');
+        return;
+      }
+    }
+    if (this.step < this.totalSteps) {
+      this.step++;
+      this.render();
+    } else {
+      await this.finish();
+    }
+  },
+
+  prev: function () {
+    this.saveCurrentStep();
+    if (this.step > 1) {
+      this.step--;
+      this.render();
+    }
+  },
+
+  finish: async function () {
+    UI.loading(this.container, 'Sécurisation et finalisation...');
+    try {
+      // 1. Create or Update Admin Account
+      const users = await DB.dbGetAll('users');
+      let admin = users.find(u => u.username === 'admin');
+
+      const adminData = {
+        username: 'admin',
+        password: this.data.admin_password,
+        role: 'admin',
+        name: this.data.pharmacy_resp || 'Administrateur',
+        email: this.data.pharmacy_email || 'admin@pharma.gn',
+        active: true
+      };
+
+      if (admin) {
+        await DB.dbPut('users', { ...admin, ...adminData });
+        console.log('[Onboarding] Admin password updated');
+      } else {
+        await DB.dbAdd('users', adminData);
+        console.log('[Onboarding] Admin account created');
+      }
+
+      // 2. Save all pharmacy settings
+      const settingsToSave = [
+        'pharmacy_name', 'pharmacy_slogan', 'pharmacy_address', 'pharmacy_logo',
+        'pharmacy_phone', 'pharmacy_email', 'pharmacy_dnpm', 'pharmacy_resp',
+        'min_stock_alert', 'expiry_alert_days', 'currency',
+        'supabase_url', 'supabase_key'
+      ];
+      for (const key of settingsToSave) {
+        if (this.data[key] !== undefined) {
+          await DB.dbPut('settings', { key, value: this.data[key] });
+        }
+      }
+
+      // 3. Mark as done
+      await DB.dbPut('settings', { key: 'onboarding_done', value: true });
+
+      // 4. Reset Supabase client to use the new keys just saved
+      if (DB.resetSupabaseClient) {
+        DB.resetSupabaseClient();
+      }
+
+      // 5. Track installation (Remote)
+      if (DB.trackInstallation) {
+        await DB.trackInstallation();
+      }
+
+      // --- Force initial sync / Pull existing data if any ---
+      try {
+        if (DB.pullFromSupabase) {
+          console.log('[Onboarding] Checking for existing data on cloud...');
+          await DB.pullFromSupabase();
+        }
+        if (DB.syncToSupabase) {
+          console.log('[Onboarding] Syncing local data to cloud...');
+          await DB.syncToSupabase();
+        }
+      } catch (syncErr) {
+        console.warn('[Onboarding] Initial sync/pull partial failure:', syncErr);
+      }
+
+      UI.toast('Configuration terminée ! Connectez-vous avec votre nouveau mot de passe.', 'success', 5000);
+
+      // 5. Restore sidebar/topbar and update display
+      document.getElementById('app-sidebar')?.style.removeProperty('display');
+      document.getElementById('app-topbar')?.style.removeProperty('display');
+      document.getElementById('app-content').style.marginLeft = '';
+      document.getElementById('app-content').style.paddingTop = '';
+      if (window.updatePharmacyDisplay) await updatePharmacyDisplay();
+      Router.navigate('login');
+    } catch (err) {
+      console.error(err);
+      UI.toast('Erreur lors de la sauvegarde : ' + err.message, 'error');
+      this.render();
+    }
+  }
+};
+
+window.renderOnboarding = (container) => Onboarding.init(container);
