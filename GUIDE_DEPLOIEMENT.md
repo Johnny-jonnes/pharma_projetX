@@ -151,18 +151,31 @@ python -m SimpleHTTPServer 8080
 
 Ouvrez ensuite : `http://localhost:8080`
 
-#### Option 3 : Avec Node.js
-
+#### Option 3 : Avec Node.js (via http-server)
 ```bash
-# Installer le serveur (une seule fois)
-npm install -g http-server
-
-# Lancer
-cd chemin/vers/pharma_projet
-http-server -p 8080
-
-# Ouvrir http://localhost:8080
+npx http-server -p 8080
 ```
+
+---
+
+## 4.5 🖥️ Enlever les onglets d'en haut (Mode Application)
+
+D'après votre image, vous voyez encore les onglets de Chrome et la barre d'adresse. Pour transformer PharmaProjet en une **vraie application** sans bordures :
+
+### Sur Google Chrome ou Microsoft Edge (PC) :
+
+1.  Ouvrez l'app dans votre navigateur.
+2.  Regardez à droite de la barre d'adresse, vous verrez une petite icône **📲 (Installer)** ou un cercle avec une flèche. Cliquez dessus.
+3.  Si vous ne voyez pas l'icône :
+    *   Cliquez sur les **3 petits points (⋮)** en haut à droite.
+    *   Allez dans **"Enregistrer et partager"** (ou "Plus d'outils").
+    *   Cliquez sur **"Installer PharmaProjet..."** (ou "Créer un raccourci").
+    *   **IMPORTANT** : Cochez la case **"Ouvrir dans une fenêtre"**.
+4.  Cliquez sur **Installer**.
+
+**Résultat** : L'application s'ouvre maintenant seule, sans barre d'adresse, sans onglets, et elle apparaît dans votre barre des tâches Windows comme un vrai logiciel.
+
+---
 
 #### Créer un raccourci Bureau (Windows)
 
@@ -239,29 +252,22 @@ Supabase offre un plan gratuit généreux :
 > 🔒 **IMPORTANT** : Ne copiez JAMAIS la clé `service_role` (la clé "secret"). 
 > Utilisez uniquement la clé **`anon` `public`**.
 
-### Étape 5.5 — Connecter PharmaProjet à Supabase
+### Étape 5.5 — Connecter PharmaProjet à Supabase (Le Magic Link)
 
-**Méthode 1 : Magic Link (automatique) — Recommandée**
+Le **Magic Link** permet de configurer l'application d'un seul clic sans que le pharmacien ait à copier des clés compliquées.
 
-Construisez ce lien et envoyez-le au pharmacien (WhatsApp, SMS, email) :
+#### Comment créer votre Magic Link :
+1.  Prenez l'URL de votre app : `https://johnny-jonnes.github.io/pharma_projetX/`
+2.  Ajoutez `?sb_url=` suivi de l'URL Supabase.
+3.  Ajoutez `&sb_key=` suivi de la clé Anon.
 
-```
-http://localhost:8080/?sb_url=VOTRE_URL_SUPABASE&sb_key=VOTRE_CLE_ANON
-```
+**Modèle à copier/coller :**
+`https://johnny-jonnes.github.io/pharma_projetX/?sb_url=VOTRE_URL&sb_key=VOTRE_CLE`
 
-Exemple concret :
-```
-http://localhost:8080/?sb_url=https://abcdef123.supabase.co&sb_key=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
+**Exemple concret :**
+`https://johnny-jonnes.github.io/pharma_projetX/?sb_url=https://xyz.supabase.co&sb_key=eyJhbGciOiJIUz...`
 
-L'application détecte automatiquement les paramètres et configure la connexion.
-
-**Méthode 2 : Configuration manuelle**
-
-1. Connectez-vous à PharmaProjet en tant qu'admin
-2. Allez dans **Paramètres** → **Synchronisation & Sauvegarde**
-3. Renseignez l'**URL Supabase** et la **Clé Anon**
-4. Cliquez sur **"Enregistrer la config Cloud"**
+> 💡 **Astuce** : Envoyez ce lien par WhatsApp au pharmacien. Dès qu'il clique sur son PC, l'app est configurée !
 
 ---
 
