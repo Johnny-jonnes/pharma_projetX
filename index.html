@@ -20,9 +20,9 @@
   <link rel="stylesheet" href="css/main.css?v=3.0.0">
   <script>const APP_VERSION = '3.0.0';</script>
 
-  <!-- Native App Feel: Disable right-click and common reloads in standalone mode -->
+  <!-- Native App Feel: Disable right-click and common reloads -->
   <script>
-    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
       document.addEventListener('contextmenu', e => e.preventDefault());
       document.addEventListener('keydown', e => {
         if (e.key === 'F5' || (e.ctrlKey && e.key === 'r') || (e.ctrlKey && e.key === 'R')) {
