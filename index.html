@@ -11,14 +11,14 @@
   <meta name="apple-mobile-web-app-title" content="PharmaProjet">
   <title>PharmaProjet — ERP Pharmaceutique Premium</title>
   <link rel="icon" href="data:,">
-  <link rel="manifest" href="manifest.json?v=3.0.0">
+  <link rel="manifest" href="manifest.json?v=3.1.0">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
     href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
     rel="stylesheet">
-  <link rel="stylesheet" href="css/main.css?v=3.0.0">
-  <script>const APP_VERSION = '3.0.0';</script>
+  <link rel="stylesheet" href="css/main.css?v=3.1.0">
+  <script>const APP_VERSION = '3.1.0';</script>
 
   <!-- Native App Feel: Disable right-click and common reloads -->
   <script>
@@ -117,28 +117,28 @@
 
   <div id="toast-container"></div>
 
-  <script src="js/db.js?v=3.0.0"></script>
-  <script src="js/auth.js?v=3.0.0"></script>
-  <script src="js/ui.js?v=3.0.0"></script>
-  <script src="js/mobile-money.js?v=3.0.0"></script>
-  <script src="js/pages/dashboard.js?v=3.0.0"></script>
-  <script src="js/pages/pos.js?v=3.0.0"></script>
-  <script src="js/pages/stock.js?v=3.0.0"></script>
-  <script src="js/pages/products.js?v=3.0.0"></script>
-  <script src="js/pages/sales.js?v=3.0.0"></script>
-  <script src="js/pages/returns.js?v=3.0.0"></script>
-  <script src="js/pages/settings.js?v=3.0.0"></script>
-  <script src="js/pages/prescriptions.js?v=3.0.0"></script>
-  <script src="js/pages/suppliers.js?v=3.0.0"></script>
-  <script src="js/pages/patients.js?v=3.0.0"></script>
-  <script src="js/pages/caisse.js?v=3.0.0"></script>
-  <script src="js/pages/traceability.js?v=3.0.0"></script>
-  <script src="js/pages/alerts-engine.js?v=3.0.0"></script>
-  <script src="js/pages/print.js?v=3.0.0"></script>
-  <script src="js/pages/onboarding.js?v=3.0.0"></script>
-  <script src="js/pages/metrics.js?v=3.0.0"></script>
-  <script src="js/ui/command-palette.js?v=3.0.0"></script>
-  <script src="js/ui/feedback.js?v=3.0.0"></script>
+  <script src="js/db.js?v=3.1.0"></script>
+  <script src="js/auth.js?v=3.1.0"></script>
+  <script src="js/ui.js?v=3.1.0"></script>
+  <script src="js/mobile-money.js?v=3.1.0"></script>
+  <script src="js/pages/dashboard.js?v=3.1.0"></script>
+  <script src="js/pages/pos.js?v=3.1.0"></script>
+  <script src="js/pages/stock.js?v=3.1.0"></script>
+  <script src="js/pages/products.js?v=3.1.0"></script>
+  <script src="js/pages/sales.js?v=3.1.0"></script>
+  <script src="js/pages/returns.js?v=3.1.0"></script>
+  <script src="js/pages/settings.js?v=3.1.0"></script>
+  <script src="js/pages/prescriptions.js?v=3.1.0"></script>
+  <script src="js/pages/suppliers.js?v=3.1.0"></script>
+  <script src="js/pages/patients.js?v=3.1.0"></script>
+  <script src="js/pages/caisse.js?v=3.1.0"></script>
+  <script src="js/pages/traceability.js?v=3.1.0"></script>
+  <script src="js/pages/alerts-engine.js?v=3.1.0"></script>
+  <script src="js/pages/print.js?v=3.1.0"></script>
+  <script src="js/pages/onboarding.js?v=3.1.0"></script>
+  <script src="js/pages/metrics.js?v=3.1.0"></script>
+  <script src="js/ui/command-palette.js?v=3.1.0"></script>
+  <script src="js/ui/feedback.js?v=3.1.0"></script>
 
   <script>
     const NAV_ITEMS = [
@@ -226,12 +226,30 @@
     function toggleSidebar() {
       const sidebar = document.getElementById('app-sidebar');
       const overlay = document.getElementById('sidebar-overlay');
-      sidebar.classList.toggle('collapsed');
 
-      // On mobile, use 'show' class for off-canvas
       if (window.innerWidth <= 768) {
-        sidebar.classList.toggle('show');
-        if (overlay) overlay.classList.toggle('show');
+        // Mobile: use 'show' class for off-canvas
+        const isOpen = sidebar.classList.contains('show');
+        if (isOpen) {
+          sidebar.classList.remove('show');
+          if (overlay) overlay.classList.remove('show');
+        } else {
+          sidebar.classList.add('show');
+          if (overlay) overlay.classList.add('show');
+        }
+      } else {
+        // Desktop: use 'collapsed' class
+        sidebar.classList.toggle('collapsed');
+      }
+    }
+
+    // Auto-close sidebar on mobile after navigation
+    function closeSidebarMobile() {
+      if (window.innerWidth <= 768) {
+        const sidebar = document.getElementById('app-sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        if (sidebar) sidebar.classList.remove('show');
+        if (overlay) overlay.classList.remove('show');
       }
     }
 
@@ -255,6 +273,7 @@
       document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.page === page));
       const t = document.getElementById('topbar-title');
       if (t) t.textContent = PAGE_TITLES[page] || page;
+      closeSidebarMobile();
       Router.navigate(page);
     }
 
@@ -334,15 +353,42 @@
       e.preventDefault(); _pwaPrompt = e;
       const b = document.getElementById('pwa-install-btn');
       if (b) b.style.display = 'flex';
+      // Show install banner if not in standalone mode
+      if (!window.matchMedia('(display-mode: standalone)').matches) {
+        showPWAInstallBanner();
+      }
     });
+
+    function showPWAInstallBanner() {
+      if (document.getElementById('pwa-install-banner')) return;
+      if (localStorage.getItem('pwa-banner-dismissed')) return;
+      const banner = document.createElement('div');
+      banner.id = 'pwa-install-banner';
+      banner.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:2001;background:linear-gradient(135deg,#1B6FAE,#2EAF7D);color:white;padding:14px 20px;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,0.25);display:flex;align-items:center;gap:14px;max-width:460px;width:calc(100% - 40px);font-family:Inter,system-ui,sans-serif;animation:slideUp 0.4s ease';
+      banner.innerHTML = '<div style="flex:1"><strong style="font-size:14px;display:block;margin-bottom:2px">📲 Installer PharmaProjet</strong><span style="font-size:12px;opacity:0.9">Installez l\'app pour une expérience native sans barre du navigateur</span></div><button onclick="installPWA()" style="background:white;color:#1B6FAE;border:none;padding:8px 16px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap">Installer</button><button onclick="dismissPWABanner()" style="background:none;border:none;color:white;opacity:0.7;cursor:pointer;font-size:18px;padding:4px">✕</button>';
+      document.body.appendChild(banner);
+    }
+
+    function dismissPWABanner() {
+      const banner = document.getElementById('pwa-install-banner');
+      if (banner) banner.remove();
+      localStorage.setItem('pwa-banner-dismissed', '1');
+    }
+    window.dismissPWABanner = dismissPWABanner;
+
     async function installPWA() {
       if (!_pwaPrompt) { UI.toast('Application déjà installée ou non disponible', 'info'); return; }
       _pwaPrompt.prompt();
       const r = await _pwaPrompt.userChoice;
-      if (r.outcome === 'accepted') { UI.toast('PharmaProjet installé !', 'success', 4000); document.getElementById('pwa-install-btn').style.display = 'none'; }
+      if (r.outcome === 'accepted') {
+        UI.toast('PharmaProjet installé ! L\'app se lancera sans barre du navigateur.', 'success', 5000);
+        document.getElementById('pwa-install-btn').style.display = 'none';
+        dismissPWABanner();
+      }
       _pwaPrompt = null;
     }
     window.installPWA = installPWA;
+    window.closeSidebarMobile = closeSidebarMobile;
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js')

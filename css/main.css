@@ -8811,6 +8811,41 @@ kbd {
 }
 
 /* ═══════════════════════════════════════════════
+   PWA STANDALONE & WINDOW CONTROLS OVERLAY
+   ═══════════════════════════════════════════════ */
+
+/* When app is installed as PWA standalone — hide browser-like elements */
+@media (display-mode: standalone) {
+  body {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
+
+/* Window Controls Overlay — custom title bar when WCO is active */
+@media (display-mode: window-controls-overlay) {
+  #app-topbar {
+    padding-left: env(titlebar-area-x, 24px);
+    padding-right: calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw) + 8px);
+    height: env(titlebar-area-height, var(--topbar-h));
+    -webkit-app-region: drag;
+    app-region: drag;
+  }
+
+  #app-topbar .topbar-btn,
+  #app-topbar .topbar-menu-btn,
+  #app-topbar .topbar-actions {
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
+  }
+
+  /* Adjust content for WCO title bar */
+  #app-content {
+    padding-top: calc(env(titlebar-area-height, var(--topbar-h)) + 24px);
+  }
+}
+
+/* ═══════════════════════════════════════════════
    MOBILE NATIVE UX OPTIMIZATIONS — Premium 
    ═══════════════════════════════════════════════ */
 
@@ -8819,17 +8854,19 @@ kbd {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.4);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  z-index: 90;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: 150;
   opacity: 0;
+  pointer-events: none;
   transition: opacity 0.3s ease;
 }
 
 #sidebar-overlay.show {
   display: block;
   opacity: 1;
+  pointer-events: auto;
 }
 
 @media (max-width: 768px) {
@@ -8837,17 +8874,55 @@ kbd {
     --sidebar-w: 280px;
   }
 
-  /* Off-canvas sidebar */
+  /* Off-canvas sidebar — MUST be above overlay */
   #app-sidebar {
     transform: translateX(-100%);
     transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: none;
     background: var(--gradient-sidebar);
+    z-index: 200 !important;
+    pointer-events: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   #app-sidebar.show {
     transform: translateX(0);
     box-shadow: 10px 0 30px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Ensure nav items are fully interactive on mobile */
+  #app-sidebar .sidebar-nav {
+    pointer-events: auto;
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+  }
+
+  #app-sidebar .nav-item {
+    pointer-events: auto;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(255, 255, 255, 0.15);
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+  }
+
+  #app-sidebar .nav-item:active {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(0.98);
+    transition: transform 0.1s ease, background 0.1s ease;
+  }
+
+  /* Sidebar footer also interactive */
+  #app-sidebar .sidebar-footer {
+    pointer-events: auto;
+  }
+
+  #app-sidebar .sidebar-footer button,
+  #app-sidebar .sidebar-footer a {
+    pointer-events: auto;
+    touch-action: manipulation;
   }
 
   /* Reset layout margins */
@@ -8862,7 +8937,6 @@ kbd {
   #app-topbar {
     padding: 0 16px;
     height: 64px;
-    /* Slightly taller for mobile thumb friendliness */
   }
 
   #app-content {
@@ -8873,6 +8947,7 @@ kbd {
   /* Sidebar header & Logo fix */
   .sidebar-logo {
     padding: 24px 20px;
+    pointer-events: auto;
   }
 
   .sidebar-logo-icon {
@@ -8945,13 +9020,18 @@ kbd {
   .nav-item,
   .pos-card {
     min-height: 44px;
-    /* Apple/Android HIG for touch zones */
+    touch-action: manipulation;
   }
 
   .nav-item {
     font-size: 15px;
-    /* Better readability */
     padding: 14px 20px;
+  }
+
+  /* Ensure all interactive elements have proper touch behavior */
+  button, a, .btn, .nav-item, .topbar-btn, .topbar-menu-btn {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
   }
 }
 
