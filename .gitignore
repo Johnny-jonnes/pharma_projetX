@@ -1,16 +1,10 @@
-# Node
-node_modules/
-
-# OS
-Thumbs.db
-Desktop.ini
+# Fichiers système
 .DS_Store
-ntuser.*
-NTUSER.*
+Thumbs.db
+desktop.ini
+
+# Backups CSS
+css/*.bak
 
 # IDE
 .vscode/
-
-# Chrome / Browser profiles
-Default/
-Cookies
