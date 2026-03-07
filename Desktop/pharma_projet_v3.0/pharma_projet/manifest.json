@@ -3,11 +3,8 @@
   "short_name": "PharmaProjet",
   "description": "ERP Pharmaceutique Premium — Gestion stocks, ventes, ordonnances",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
-  "display_override": [
-    "window-controls-overlay",
-    "standalone"
-  ],
   "orientation": "any",
   "background_color": "#1B4F72",
   "theme_color": "#1B4F72",

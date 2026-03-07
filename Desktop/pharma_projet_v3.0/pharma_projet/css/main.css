@@ -144,10 +144,10 @@ a {
   bottom: 0;
   width: var(--sidebar-w);
   background: var(--gradient-sidebar);
-  z-index: 100;
+  z-index: 2000;
   display: flex;
   flex-direction: column;
-  box-shadow: 2px 0 20px rgba(27, 111, 174, 0.2);
+  box-shadow: 2px 0 20px rgba(0, 0, 0, 0.2);
 }
 
 .sidebar-header {
@@ -191,7 +191,7 @@ a {
   height: var(--topbar-h);
   background: var(--surface);
   border-bottom: 1px solid var(--border);
-  z-index: 99;
+  z-index: 1000;
   display: flex;
   align-items: center;
   padding: 0 24px;
@@ -8844,20 +8844,19 @@ kbd {
 
 /* Overlay - Glass Effect (sibling of sidebar, not child) */
 #sidebar-overlay {
-  display: none;
+  display: block;
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.7);
-  z-index: 199;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 1999;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.3s ease;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
+  transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 #sidebar-overlay.show {
-  display: block;
   opacity: 1;
   pointer-events: auto;
 }
@@ -8872,15 +8871,14 @@ kbd {
     width: 280px !important;
     -webkit-transform: translate3d(-100%, 0, 0) !important;
     transform: translate3d(-100%, 0, 0) !important;
-    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
     box-shadow: none;
     background: var(--gradient-sidebar);
-    z-index: 200 !important;
+    z-index: 2000 !important;
     pointer-events: auto;
     -webkit-overflow-scrolling: touch;
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
-    image-rendering: -webkit-optimize-contrast;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
