@@ -407,7 +407,7 @@ async function syncToSupabase() {
       return;
     }
 
-    const storesToSync = ['products', 'lots', 'stock', 'movements', 'suppliers', 'purchaseOrders', 'sales', 'saleItems', 'patients', 'prescriptions', 'alerts', 'cashRegister', 'auditLog', 'settings', 'returns'];
+    const storesToSync = ['products', 'lots', 'stock', 'movements', 'suppliers', 'purchaseOrders', 'sales', 'saleItems', 'patients', 'prescriptions', 'alerts', 'cashRegister', 'auditLog', 'users', 'settings', 'returns'];
 
     for (const storeName of storesToSync) {
       try {
@@ -474,7 +474,7 @@ async function pullFromSupabase() {
     }
 
     console.log('[Sync] 📥 Pulling data from Supabase...');
-    const storesToPull = ['products', 'lots', 'stock', 'suppliers', 'patients', 'settings'];
+    const storesToPull = ['products', 'lots', 'stock', 'suppliers', 'patients', 'users', 'settings'];
 
     for (const storeName of storesToPull) {
       console.log(`[Sync] Fetching ${storeName}...`);

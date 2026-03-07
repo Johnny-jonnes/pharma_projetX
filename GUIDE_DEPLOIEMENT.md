@@ -175,6 +175,16 @@ D'après votre image, vous voyez encore les onglets de Chrome et la barre d'adre
 
 **Résultat** : L'application s'ouvre maintenant seule, sans barre d'adresse, sans onglets, et elle apparaît dans votre barre des tâches Windows comme un vrai logiciel.
 
+> [!WARNING]
+> **Si vous voyez encore les onglets** : Désinstallez le raccourci et recommencez en faisant bien attention à cocher **"Ouvrir dans une fenêtre"**.
+
+### 👤 4.6 Synchronisation des Utilisateurs (Multi-Postes)
+
+Les comptes que vous créez sur votre PC sont automatiquement sauvegardés sur Supabase. 
+*   **Sur un nouveau téléphone/tablette** : Utilisez le Magic Link.
+*   L'application affichera un message *"Synchronisation Cloud (Utilisateurs et Paramètres)..."*.
+*   **Attendez la fin du chargement** avant d'essayer de vous connecter. Vos identifiants seront alors reconnus.
+
 ---
 
 #### Créer un raccourci Bureau (Windows)
