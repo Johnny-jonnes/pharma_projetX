@@ -8854,13 +8854,15 @@ kbd {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.55);
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
   z-index: 199;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.3s ease;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 #sidebar-overlay.show {
@@ -8877,18 +8879,23 @@ kbd {
   /* Off-canvas sidebar — ALWAYS hidden by default on mobile */
   #app-sidebar {
     width: 280px !important;
-    transform: translateX(-100%) !important;
+    -webkit-transform: translate3d(-100%, 0, 0) !important;
+    transform: translate3d(-100%, 0, 0) !important;
     transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
     box-shadow: none;
     background: var(--gradient-sidebar);
     z-index: 200 !important;
     pointer-events: auto;
     -webkit-overflow-scrolling: touch;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    image-rendering: -webkit-optimize-contrast;
   }
 
   /* When open, slide in from the left */
   #app-sidebar.show {
-    transform: translateX(0) !important;
+    -webkit-transform: translate3d(0, 0, 0) !important;
+    transform: translate3d(0, 0, 0) !important;
     box-shadow: 10px 0 30px rgba(0, 0, 0, 0.3);
   }
 
