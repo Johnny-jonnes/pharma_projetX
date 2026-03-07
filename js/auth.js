@@ -29,27 +29,7 @@ const Auth = {
   },
 
   async restoreSession() {
-    try {
-      const sessions = await DB.dbGetAll('sessions');
-      if (sessions.length > 0) {
-        // Get the most recent session
-        const lastSession = sessions.sort((a, b) => b.loginTime - a.loginTime)[0];
-        // Session valid for 24 hours
-        if (Date.now() - lastSession.loginTime < 24 * 60 * 60 * 1000) {
-          DB.AppState.currentUser = {
-            id: lastSession.userId,
-            username: lastSession.username,
-            role: lastSession.role,
-            name: lastSession.name,
-            sessionId: lastSession.id
-          };
-          console.log('[Auth] Session restored for:', lastSession.username);
-          return DB.AppState.currentUser;
-        }
-      }
-    } catch (e) {
-      console.warn('[Auth] Session restoration failed:', e);
-    }
+    // Session restoration disabled to force login on every app start as requested
     return null;
   },
 
