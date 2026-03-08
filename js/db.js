@@ -59,6 +59,21 @@ async function getSupabaseClient() {
 async function initDB() {
   // --- Magic Link Auto-Config ---
   const urlParams = new URLSearchParams(window.location.search);
+
+  if (urlParams.get('reset') === 'true') {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.deleteDatabase(DB_NAME);
+      req.onsuccess = () => {
+        localStorage.clear();
+        window.location.href = window.location.pathname;
+      };
+      req.onerror = () => {
+        console.error("Failed to delete local DB");
+        resolve(); // proceed anyway
+      };
+    });
+  }
+
   const sbUrl = urlParams.get('sb_url');
   const sbKey = urlParams.get('sb_key');
 
