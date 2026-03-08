@@ -441,9 +441,12 @@ async function syncToSupabase() {
           // Mapping _updatedAt to updatedAt for Supabase
           if (item._updatedAt) payload.updatedAt = item._updatedAt;
 
-          // Ensure userId is never null if required by schema
-          if (payload.userId === undefined || payload.userId === null) {
-            payload.userId = AppState.currentUser?.id || 1;
+          // Ensure userId is never null ONLY for tables that have a userId column in Supabase
+          const tablesWithUserId = ['sales', 'movements', 'cashRegister', 'auditLog'];
+          if (tablesWithUserId.includes(storeName)) {
+            if (payload.userId === undefined || payload.userId === null) {
+              payload.userId = AppState.currentUser?.id || 1;
+            }
           }
 
           return payload;
