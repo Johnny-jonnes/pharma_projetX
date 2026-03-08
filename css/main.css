@@ -8815,28 +8815,6 @@ kbd {
   }
 }
 
-/* Window Controls Overlay — custom title bar when WCO is active */
-@media (display-mode: window-controls-overlay) {
-  #app-topbar {
-    padding-left: env(titlebar-area-x, 24px);
-    padding-right: calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw) + 8px);
-    height: env(titlebar-area-height, var(--topbar-h));
-    -webkit-app-region: drag;
-    app-region: drag;
-  }
-
-  #app-topbar .topbar-btn,
-  #app-topbar .topbar-menu-btn,
-  #app-topbar .topbar-actions {
-    -webkit-app-region: no-drag;
-    app-region: no-drag;
-  }
-
-  /* Adjust content for WCO title bar */
-  #app-content {
-    padding-top: calc(env(titlebar-area-height, var(--topbar-h)) + 24px);
-  }
-}
 
 /* ═══════════════════════════════════════════════
    MOBILE NATIVE UX OPTIMIZATIONS — Premium 
