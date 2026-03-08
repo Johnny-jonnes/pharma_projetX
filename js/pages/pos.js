@@ -1341,6 +1341,6 @@ window.renderPOS = renderPOS;
 window.imprimerTicket = imprimerTicket;
 window.startBarcodeScan = startBarcodeScan;
 window.MobileMoneyGateway = MobileMoneyGateway;
-console.log('[POS] Script loading complete. renderPOS is now global.');
+
 
 Router.register('pos', renderPOS);

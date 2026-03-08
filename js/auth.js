@@ -51,13 +51,13 @@ const Router = {
   currentPage: null,
 
   register(name, renderFn) {
-    console.log('[Router] Registering route:', name);
+
     this.routes[name] = renderFn;
     // Auto-refresh if we are on this page and it showed "not found"
     if (this.currentPage === name) {
       const main = document.getElementById('app-content');
       if (main && main.innerHTML.includes('Page introuvable')) {
-        console.log('[Router] Auto-refreshing page now available:', name);
+
         this.render(name);
       }
     }

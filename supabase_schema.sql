@@ -311,5 +311,5 @@ BEGIN
 END $$;
 
 -- ═══════════════════════════════════════════════════════════════
--- ✅ TERMINÉ — Toutes les tables sont prêtes. v3.2.1-stable
+-- ✅ TERMINÉ — Toutes les tables sont prêtes. v3.4.0-stable
 -- ═══════════════════════════════════════════════════════════════

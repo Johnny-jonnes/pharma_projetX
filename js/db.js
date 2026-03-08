@@ -70,7 +70,7 @@ async function initDB() {
 
       // If URL params are present, update settings automatically
       if (sbUrl && sbKey) {
-        console.log('[DB] Magic Link detected. Configuring Supabase...');
+
         try {
           const settings = await dbGetAll('settings');
           const update = async (k, v) => {
@@ -83,7 +83,7 @@ async function initDB() {
 
           // Clean URL to hide keys and avoid re-triggering
           window.history.replaceState({}, document.title, window.location.pathname);
-          console.log('[DB] Configuration updated. Reloading client...');
+
           _supabaseInstance = null; // Force recreation
           await getSupabaseClient();
         } catch (e) {
@@ -363,13 +363,13 @@ async function seedDemoData() {
   const alreadySeeded = settings.find(s => s.key === 'seeded');
   if (alreadySeeded) return;
 
-  console.log('[DB] Initialisation des paramètres de base...');
+
 
   // Settings essentiels uniquement
   await dbPut('settings', { key: 'currency', value: 'GNF' });
   await dbPut('settings', { key: 'seeded', value: true });
 
-  console.log('[DB] Paramètres initialisés. Aucune donnée de test créée.');
+
 }
 
 async function trackInstallation() {
@@ -385,7 +385,7 @@ async function trackInstallation() {
     await sb.from('pharmacies_registry').insert([
       { name, address, installed_at: new Date().toISOString() }
     ]);
-    console.log('[DB] Installation tracked.');
+
   } catch (e) {
     // Table might not exist — this is expected and safe to ignore
     console.warn('[DB] Tracking skipped (table may not exist):', e.message);
@@ -399,11 +399,11 @@ async function syncToSupabase() {
   try {
     const sb = await getSupabaseClient();
     if (!sb) {
-      console.log('[Sync] Cloud sync skipped: Supabase not configured.');
+
       return;
     }
     if (!navigator.onLine) {
-      console.log('[Sync] Cloud sync skipped: Offline.');
+
       return;
     }
 
@@ -416,7 +416,7 @@ async function syncToSupabase() {
 
         if (pending.length === 0) continue;
 
-        console.log(`[Sync] 📤 Sending ${pending.length} items from ${storeName}...`);
+
 
         const payloads = pending.map(item => {
           const payload = {};
@@ -464,7 +464,7 @@ async function syncToSupabase() {
             item._synced = true;
             await _dbPutRaw(storeName, item);
           }
-          console.log(`[Sync] ✅ ${pending.length} items synced for ${storeName}`);
+
         } else {
           console.error(`[Sync] ❌ Error in ${storeName}:`, error.message || error);
           if (AppState.currentPage === 'settings') {
@@ -493,7 +493,7 @@ async function pullFromSupabase() {
       return;
     }
 
-    console.log('[Sync] 📥 Pulling data from Supabase...');
+
     const storesToPull = [
       'products', 'lots', 'stock', 'movements', 'suppliers', 'purchaseOrders',
       'sales', 'saleItems', 'patients', 'prescriptions', 'alerts',
@@ -501,7 +501,7 @@ async function pullFromSupabase() {
     ];
 
     for (const storeName of storesToPull) {
-      console.log(`[Sync] Fetching ${storeName}...`);
+
       const { data, error } = await sb.from(storeName === 'users' ? 'app_users' : storeName).select('*');
 
       if (error) {
@@ -510,7 +510,7 @@ async function pullFromSupabase() {
       }
 
       if (data && data.length > 0) {
-        console.log(`[Sync] 📥 Downloaded ${data.length} items for ${storeName}`);
+
         for (const item of data) {
           // Meta-data transformation: map back to local convention
           const localItem = { ...item, _synced: true, _updatedAt: item.updatedAt || Date.now() };
@@ -534,7 +534,7 @@ async function pullFromSupabase() {
               // PROTECTION : Ne pas écraser un admin local plus récent ou identique
               // (évite que le pull n'écrase le password défini lors de l'onboarding)
               if (localUser.username === 'admin' && (localUser.updatedAt || 0) >= (localItem.updatedAt || 0)) {
-                console.log('[Sync] 🛡️ Protection admin local (non écrasé par le Cloud)');
+
                 // On garde les infos sensibles locales mais on peut merger d'autres champs non sensibles si besoin
                 await _dbPutRaw(storeName, { ...localItem, ...localUser });
               } else {
@@ -549,7 +549,7 @@ async function pullFromSupabase() {
         }
       }
     }
-    console.log('[Sync] 🏁 Pull complete.');
+
   } catch (e) {
     console.error('[Sync] Pull failed:', e);
   }
@@ -575,7 +575,7 @@ async function forceSyncAll() {
 }
 
 function resetSupabaseClient() {
-  console.log('[DB] Supabase client reset.');
+
   _supabaseInstance = null;
 }
 

@@ -80,7 +80,7 @@ const MobileMoneyGateway = (() => {
     if (!cfg) { onFailure?.('Méthode non supportée'); return; }
 
     const normalPhone = normalizePhone(phone);
-    console.log(`[MobileMoney] ${cfg.name} — ${UI.formatCurrency(amount)} → ${normalPhone}`);
+
 
     await logToQueue({ type: 'PAYMENT_INIT', method, phone: normalPhone, amount, description, status: 'pending' });
 
@@ -112,7 +112,7 @@ const MobileMoneyGateway = (() => {
   // ── SMS ───────────────────────────────────────────────────────────────────
   async function sendSMS(phone, message) {
     const normalPhone = normalizePhone(phone);
-    console.log(`[SMS] → ${normalPhone}: ${message.slice(0, 60)}…`);
+
 
     await logToQueue({ type: 'SMS', phone: normalPhone, message, status: navigator.onLine ? 'sending' : 'queued' });
 
@@ -134,7 +134,7 @@ const MobileMoneyGateway = (() => {
       const data = await resp.json();
       const recipient = data?.SMSMessageData?.Recipients?.[0];
       if (recipient?.status === 'Success') {
-        console.log('[SMS] Envoyé, messageId:', recipient.messageId);
+
         return { success: true, messageId: recipient.messageId };
       } else {
         console.warn('[SMS] Échec:', recipient);
@@ -220,7 +220,7 @@ const MobileMoneyGateway = (() => {
       commentaires: declarationData.comments || '',
     };
 
-    console.log('[ANSS] Déclaration pharmacovigilance:', payload);
+
 
     // Enregistrer dans la file
     const qId = await logToQueue({ type: 'ANSS_DECLARATION', payload, status: navigator.onLine ? 'sending' : 'queued' });
@@ -242,7 +242,7 @@ const MobileMoneyGateway = (() => {
       });
       if (resp.ok) {
         const result = await resp.json();
-        console.log('[ANSS] Déclaration acceptée, réf:', result.reference);
+
         return { success: true, reference: result.reference };
       } else {
         throw new Error(`ANSS API HTTP ${resp.status}`);
@@ -262,7 +262,7 @@ const MobileMoneyGateway = (() => {
     const pending = queue.filter(q => q.status === 'queued');
     if (!pending.length) return;
 
-    console.log(`[Sync] ${pending.length} opération(s) en attente`);
+
     let synced = 0;
 
     for (const op of pending) {

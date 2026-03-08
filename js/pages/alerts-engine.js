@@ -8,7 +8,7 @@ const AlertsEngine = {
   lastRun: null,
 
   async start() {
-    console.log('[AlertsEngine] Démarrage...');
+
     // Run immediately then every 15 minutes
     await this.run();
     this.intervalId = setInterval(() => this.run(), 15 * 60 * 1000);
@@ -16,13 +16,13 @@ const AlertsEngine = {
 
   stop() {
     if (this.intervalId) clearInterval(this.intervalId);
-    console.log('[AlertsEngine] Arrêté.');
+
   },
 
   async run() {
     if (!DB.AppState.currentUser) return;
     this.lastRun = Date.now();
-    console.log('[AlertsEngine] Scan en cours...');
+
 
     try {
       await Promise.all([

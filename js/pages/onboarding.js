@@ -244,10 +244,10 @@ const Onboarding = {
 
       if (admin) {
         await DB.dbPut('users', { ...admin, ...adminData });
-        console.log('[Onboarding] Admin password updated');
+
       } else {
         await DB.dbAdd('users', adminData);
-        console.log('[Onboarding] Admin account created');
+
       }
 
       // 2. Save all pharmacy settings
@@ -279,11 +279,11 @@ const Onboarding = {
       // --- Force initial sync / Pull existing data if any ---
       try {
         if (DB.pullFromSupabase) {
-          console.log('[Onboarding] Checking for existing data on cloud...');
+
           await DB.pullFromSupabase();
         }
         if (DB.syncToSupabase) {
-          console.log('[Onboarding] Syncing local data to cloud...');
+
           await DB.syncToSupabase();
         }
       } catch (syncErr) {
