@@ -1671,37 +1671,22 @@ textarea.form-control {
 }
 
 .alert-high {
-  border-color: var(--danger);
-  background: rgba(214, 59, 59, 0.1);
-  color: var(--danger);
+  border-color: #FADBD8;
+  background: #FFF5F5;
 }
 
 .alert-medium {
-  border-color: var(--warning);
-  background: rgba(232, 145, 58, 0.1);
-  color: var(--warning);
+  border-color: #FDEBD0;
+  background: #FFFBF5;
 }
 
 .alert-low {
-  border-color: var(--success);
-  background: rgba(46, 175, 125, 0.1);
-  color: var(--success);
+  border-color: #D5F5E3;
+  background: #F5FFF8;
 }
 
-[data-theme="dark"] .alert-high {
-  background: rgba(214, 59, 59, 0.2);
-  color: #ff8a8a;
-}
 
-[data-theme="dark"] .alert-medium {
-  background: rgba(232, 145, 58, 0.2);
-  color: #ffb366;
-}
 
-[data-theme="dark"] .alert-low {
-  background: rgba(46, 175, 125, 0.2);
-  color: #4ade80;
-}
 
 
 .alert-dot {
@@ -2354,15 +2339,10 @@ textarea.form-control {
 }
 
 .modal-msg {
-  font-size: 15px;
+  font-size: 14px;
   margin-bottom: 24px;
   color: var(--text);
   white-space: pre-line;
-  line-height: 1.5;
-}
-
-[data-theme="dark"] .modal-msg {
-  color: var(--text) !important;
 }
 
 .modal-actions {
@@ -2370,6 +2350,7 @@ textarea.form-control {
   gap: 12px;
   justify-content: center;
 }
+
 
 
 /* ===== TOASTS ===== */
@@ -2386,28 +2367,20 @@ textarea.form-control {
 .toast {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 20px;
+  gap: 10px;
+  padding: 12px 16px;
   background: var(--surface);
-  color: var(--text);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   box-shadow: var(--shadow-lg);
-  border: 1px solid var(--border);
   border-left: 4px solid transparent;
-  font-size: 14px;
-  max-width: 400px;
+  font-size: 13px;
+  max-width: 360px;
   transform: translateX(110%);
   opacity: 0;
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  min-width: 280px;
+  transition: all 0.3s ease;
+  min-width: 260px;
 }
 
-[data-theme="dark"] .toast {
-  background: var(--surface-2) !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
-  color: var(--text) !important;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-}
 
 
 .toast.show {
@@ -2456,6 +2429,25 @@ textarea.form-control {
   flex: 1;
   line-height: 1.3;
 }
+
+/* Fix global pour visibilité mode nuit (Messages & Modaux) */
+[data-theme="dark"] .toast-msg,
+[data-theme="dark"] .modal-msg,
+[data-theme="dark"] .confirm-box p {
+  color: #FFFFFF !important;
+}
+
+[data-theme="dark"] .modal-box {
+  background-color: #1A1C1E;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .toast {
+  background-color: #1A1C1E !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5) !important;
+}
+
 
 /* ===== STATES ===== */
 .loading-state,
