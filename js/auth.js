@@ -5,7 +5,11 @@
 const Auth = {
   async login(username, password) {
     const users = await DB.dbGetAll('users');
-    const user = users.find(u => u.username === username && u.password === password && u.active);
+    const user = users.find(u =>
+      String(u.username) === String(username) &&
+      String(u.password) === String(password) &&
+      u.active
+    );
     if (!user) return null;
     const session = { id: 'session_' + Date.now(), userId: user.id, username: user.username, role: user.role, name: user.name, loginTime: Date.now() };
     await DB.dbPut('sessions', session);

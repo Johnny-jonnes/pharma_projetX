@@ -538,6 +538,14 @@ async function pullFromSupabase() {
           // Meta-data transformation: map back to local convention
           const localItem = { ...item, _synced: true, _updatedAt: item.updatedAt || Date.now() };
 
+          // CRITICAL: Force sensitive fields to String to prevent numeric breakage
+          const mustBeString = ['password', 'code', 'lotNumber', 'phone', 'dnpm'];
+          for (const key of mustBeString) {
+            if (localItem[key] !== undefined && localItem[key] !== null) {
+              localItem[key] = String(localItem[key]);
+            }
+          }
+
           // CRITICAL: Handle unique constraints
           if (storeName === 'products' && localItem.code) {
             const existing = await dbGetAll('products', 'code', localItem.code);
