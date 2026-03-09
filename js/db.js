@@ -707,8 +707,79 @@ function startAutoPull() {
   }, 5 * 60 * 1000); // 5 minutes
 }
 
+/**
+ * RESTAURATION SÉCURISÉE "ZERO LOSS"
+ * Procédure : Backup de secours auto -> Backup localStorage -> Wipe -> Restore -> Audit
+ */
+async function restoreFromBackup(backupData) {
+  try {
+    // 1. PHASE DE PRÉSERVATION (Auto-download de l'état actuel)
+    console.log('[Restore] 🛡️ Phase 1 : Sauvegarde de secours automatique...');
+    await doBackup();
+
+    // 2. PHASE D'URGENCE (Copie en localStorage)
+    console.log('[Restore] 🛡️ Phase 2 : Copie d\'urgence en localStorage...');
+    const emergencyBackup = await autoBackupToStorage();
+    if (emergencyBackup) {
+      localStorage.setItem('pharma_emergency_restore', JSON.stringify(emergencyBackup));
+    }
+
+    // 3. PHASE DE VALIDATION DU FICHIER
+    console.log('[Restore] 🛡️ Phase 3 : Validation du fichier...');
+    if (!backupData || typeof backupData !== 'object') throw new Error('Données de sauvegarde invalides');
+
+    // Support des deux formats (ancien _exportDate et nouveau exportedAt)
+    const isPharmaBackup = backupData.data || backupData.products;
+    if (!isPharmaBackup) throw new Error('Ce fichier ne semble pas être une sauvegarde PharmaProjet valide.');
+
+    // 4. PHASE DE NETTOYAGE (Wipe)
+    console.log('[Restore] 🛡️ Phase 4 : Nettoyage de la base de données locale...');
+    const storesToClear = [
+      'products', 'lots', 'stock', 'movements', 'suppliers', 'purchaseOrders',
+      'sales', 'saleItems', 'patients', 'prescriptions', 'alerts',
+      'cashRegister', 'auditLog', 'settings', 'returns'
+    ];
+
+    const db = await initDB();
+    for (const storeName of storesToClear) {
+      await new Promise((resolve, reject) => {
+        const transaction = db.transaction([storeName], 'readwrite');
+        const store = transaction.objectStore(storeName);
+        const request = store.clear();
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    // 5. PHASE D'INJECTION
+    console.log('[Restore] 🛡️ Phase 5 : Injection des nouvelles données...');
+    const dataToImport = backupData.data || backupData; // Gère les deux structures de backup possible
+
+    for (const storeName of storesToClear) {
+      const items = dataToImport[storeName];
+      if (items && Array.isArray(items)) {
+        for (const item of items) {
+          await dbPut(storeName, item);
+        }
+      }
+    }
+
+    // 6. PHASE D'AUDIT ET FINALISATION
+    console.log('[Restore] ✅ Restauration terminée avec succès.');
+    await writeAudit('RESTORE_ZERO_LOSS', 'system', null, {
+      timestamp: Date.now(),
+      version: backupData.version || 'unknown'
+    });
+
+    return { success: true };
+  } catch (e) {
+    console.error('[Restore] ❌ Erreur critique lors de la restauration:', e);
+    throw e;
+  }
+}
+
 function resetSupabaseClient() {
   _supabaseInstance = null;
 }
 
-window.DB = { initDB, dbAdd, dbPut, dbGet, dbGetAll, dbDelete, dbCount, writeAudit, seedDemoData, syncToSupabase, pullFromSupabase, resetSupabaseClient, forceSyncAll, trackInstallation, STORES, AppState, doBackup, startAutoBackup, startAutoPull, autoBackupToStorage };
+window.DB = { initDB, dbAdd, dbPut, dbGet, dbGetAll, dbDelete, dbCount, writeAudit, seedDemoData, syncToSupabase, pullFromSupabase, resetSupabaseClient, forceSyncAll, trackInstallation, STORES, AppState, doBackup, startAutoBackup, startAutoPull, autoBackupToStorage, restoreFromBackup };

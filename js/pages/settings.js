@@ -477,6 +477,9 @@ async function doBackup() {
   UI.toast('Sauvegarde téléchargée', 'success');
 }
 
+/**
+ * RESTAURATION DE SAUVEGARDE (Protocole Zero Loss)
+ */
 function restoreBackup() {
   const input = document.createElement('input');
   input.type = 'file';
@@ -484,24 +487,27 @@ function restoreBackup() {
   input.onchange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const ok = await UI.confirm('⚠️ Restaurer une sauvegarde remplacera toutes les données actuelles.\n\nCette action est irréversible. Continuer ?');
-    if (!ok) return;
+
+    // Double confirmation de sécurité
+    const ok1 = await UI.confirm(`⚠️ ATTENTION : La restauration remplacera TOUTES vos données actuelles par celles du fichier "${file.name}".\n\nSouhaitez-vous continuer ?`);
+    if (!ok1) return;
+
+    const ok2 = await UI.confirm(`🛡️ SÉCURITÉ : Un fichier de secours de vos données actuelles va être téléchargé automatiquement AVANT la restauration.\n\nConfirmer le lancement du protocole "Zéro Perte" ?`);
+    if (!ok2) return;
+
     try {
+      UI.toast('⏳ Analyse du fichier et préparation du secours...', 'info', 3000);
       const text = await file.text();
       const data = JSON.parse(text);
-      const stores = ['products', 'lots', 'stock', 'movements', 'suppliers', 'sales', 'saleItems', 'prescriptions', 'patients', 'settings', 'alerts', 'cashRegister', 'purchaseOrders'];
-      for (const s of stores) {
-        if (data[s] && Array.isArray(data[s])) {
-          for (const item of data[s]) {
-            await DB.dbPut(s, item);
-          }
-        }
+
+      const result = await DB.restoreFromBackup(data);
+      if (result.success) {
+        UI.toast('✅ Restauration réussie ! Redémarrage du système...', 'success', 5000);
+        setTimeout(() => location.reload(), 2000);
       }
-      await DB.writeAudit('RESTORE_BACKUP', 'system', null, { file: file.name, date: data._exportDate });
-      UI.toast('Sauvegarde restaurée avec succès. Rechargement...', 'success', 3000);
-      setTimeout(() => location.reload(), 2000);
     } catch (err) {
-      UI.toast('Erreur de restauration : ' + err.message, 'error');
+      console.error('Erreur restauration:', err);
+      UI.toast('❌ Échec de la restauration : ' + err.message, 'error', 10000);
     }
   };
   input.click();
