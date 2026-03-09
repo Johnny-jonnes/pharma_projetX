@@ -47,7 +47,7 @@ async function getSupabaseClient() {
     const url = settings.find(s => s.key === 'supabase_url')?.value;
     const key = settings.find(s => s.key === 'supabase_key')?.value;
     if (url && key && window.supabase) {
-      _supabaseInstance = window.supabase.createClient(url, key);
+      _supabaseInstance = window.supabase.createClient(url.trim(), key.trim());
       return _supabaseInstance;
     }
   } catch (e) {
