@@ -437,13 +437,21 @@ async function syncToSupabase() {
           const payload = {};
           for (const [key, value] of Object.entries(item)) {
             if (!key.startsWith('_')) {
+              // Sensitive columns that MUST remain Strings (even if numeric)
+              const mustBeString = ['password', 'code', 'lotNumber', 'phone', 'dnpm'];
+
+              if (mustBeString.includes(key)) {
+                payload[key] = value ? String(value) : value;
+                continue;
+              }
+
               // Global BigInt safety for any numeric or session field
               if (typeof value === 'string') {
                 if (value.startsWith('session_')) {
                   // Extract numeric part from session_123456789
                   payload[key] = parseInt(value.replace('session_', '')) || 1;
                 } else if (/^\d+$/.test(value)) {
-                  // Only convert strings that are purely numeric to avoid breaking UUIDs/Codes
+                  // Only convert strings that are purely numeric TO integers
                   payload[key] = parseInt(value);
                 } else {
                   payload[key] = value;
