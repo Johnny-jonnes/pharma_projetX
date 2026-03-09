@@ -1671,19 +1671,38 @@ textarea.form-control {
 }
 
 .alert-high {
-  border-color: #FADBD8;
-  background: #FFF5F5;
+  border-color: var(--danger);
+  background: rgba(214, 59, 59, 0.1);
+  color: var(--danger);
 }
 
 .alert-medium {
-  border-color: #FDEBD0;
-  background: #FFFBF5;
+  border-color: var(--warning);
+  background: rgba(232, 145, 58, 0.1);
+  color: var(--warning);
 }
 
 .alert-low {
-  border-color: #D5F5E3;
-  background: #F5FFF8;
+  border-color: var(--success);
+  background: rgba(46, 175, 125, 0.1);
+  color: var(--success);
 }
+
+[data-theme="dark"] .alert-high {
+  background: rgba(214, 59, 59, 0.2);
+  color: #ff8a8a;
+}
+
+[data-theme="dark"] .alert-medium {
+  background: rgba(232, 145, 58, 0.2);
+  color: #ffb366;
+}
+
+[data-theme="dark"] .alert-low {
+  background: rgba(46, 175, 125, 0.2);
+  color: #4ade80;
+}
+
 
 .alert-dot {
   width: 8px;
@@ -2335,10 +2354,15 @@ textarea.form-control {
 }
 
 .modal-msg {
-  font-size: 14px;
+  font-size: 15px;
   margin-bottom: 24px;
   color: var(--text);
   white-space: pre-line;
+  line-height: 1.5;
+}
+
+[data-theme="dark"] .modal-msg {
+  color: var(--text) !important;
 }
 
 .modal-actions {
@@ -2346,6 +2370,7 @@ textarea.form-control {
   gap: 12px;
   justify-content: center;
 }
+
 
 /* ===== TOASTS ===== */
 #toast-container {
@@ -2361,19 +2386,29 @@ textarea.form-control {
 .toast {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
+  gap: 12px;
+  padding: 14px 20px;
   background: var(--surface);
-  border-radius: var(--radius-sm);
+  color: var(--text);
+  border-radius: var(--radius);
   box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border);
   border-left: 4px solid transparent;
-  font-size: 13px;
-  max-width: 360px;
+  font-size: 14px;
+  max-width: 400px;
   transform: translateX(110%);
   opacity: 0;
-  transition: all 0.3s ease;
-  min-width: 260px;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  min-width: 280px;
 }
+
+[data-theme="dark"] .toast {
+  background: var(--surface-2) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: var(--text) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
 
 .toast.show {
   transform: translateX(0);
