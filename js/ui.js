@@ -128,7 +128,10 @@ const UI = {
     const tbody = rows.map((row, ri) => {
       const cells = columns.map(c => {
         const val = typeof c.render === 'function' ? c.render(row, ri) : (row[c.key] ?? '—');
-        return `<td>${val}</td>`;
+        // data-label pour le card-view mobile (CSS ::before { content: attr(data-label) })
+        // Si pas de label (ex: colonne d'actions), data-label="" masque le pseudo-élément
+        const label = c.label || '';
+        return `<td data-label="${label}">${val}</td>`;
       }).join('');
       return `<tr ${options.onRowClick ? `class="clickable" data-idx="${ri}"` : ''}>${cells}</tr>`;
     }).join('');

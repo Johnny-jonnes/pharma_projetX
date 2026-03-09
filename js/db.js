@@ -265,7 +265,7 @@ function _scheduleSyncToSupabase() {
   _syncTimer = setTimeout(() => {
     _syncTimer = null;
     syncToSupabase().catch(() => { });
-  }, 5000); // Wait 5s after last write before syncing
+  }, 2000); // Réduit de 5s → 2s pour une réactivité cloud optimale
 }
 
 // Internal put that does NOT reset _synced and does NOT trigger sync
@@ -589,9 +589,126 @@ async function forceSyncAll() {
   return syncToSupabase();
 }
 
-function resetSupabaseClient() {
+/**
+ * AUTO-BACKUP : Sauvegarde automatique locale (localStorage) et périodique
+ * - Backup silencieux dans localStorage toutes les 30 minutes
+ * - Structure : pharma_backup_<date> = JSON de toutes les données
+ */
+async function autoBackupToStorage() {
+  try {
+    const stores = [
+      'products', 'lots', 'stock', 'movements', 'suppliers', 'purchaseOrders',
+      'sales', 'saleItems', 'patients', 'prescriptions', 'alerts',
+      'cashRegister', 'auditLog', 'users', 'settings', 'returns'
+    ];
 
+    const backup = {
+      version: window.APP_VERSION || '3.5.0',
+      exportedAt: new Date().toISOString(),
+      exportedBy: AppState.currentUser?.name || 'Système',
+      pharmacy: null,
+      data: {}
+    };
+
+    for (const s of stores) {
+      backup.data[s] = await dbGetAll(s);
+    }
+
+    // Récupérer le nom de la pharmacie pour le backup
+    const settings = backup.data.settings || [];
+    backup.pharmacy = settings.find(s => s.key === 'pharmacy_name')?.value || 'PharmaProjet';
+
+    // Stocker dans localStorage (backup silencieux)
+    const key = `pharma_auto_backup_${new Date().toISOString().split('T')[0]}`;
+    localStorage.setItem(key, JSON.stringify(backup));
+    localStorage.setItem('pharma_last_backup', new Date().toISOString());
+
+    // Nettoyer les vieux backups (garder seulement les 7 derniers jours)
+    const keysToDelete = Object.keys(localStorage)
+      .filter(k => k.startsWith('pharma_auto_backup_'))
+      .sort()
+      .reverse()
+      .slice(7);
+    keysToDelete.forEach(k => localStorage.removeItem(k));
+
+    console.log('[Backup] ✅ Sauvegarde automatique effectuée:', key);
+    return backup;
+  } catch (e) {
+    console.warn('[Backup] Échec backup automatique:', e);
+    return null;
+  }
+}
+
+/**
+ * BACKUP MANUEL : Télécharge un fichier JSON complet (déclenché par bouton)
+ */
+async function doBackup() {
+  try {
+    const backup = await autoBackupToStorage();
+    if (!backup) throw new Error('Échec de la génération du backup');
+
+    const json = JSON.stringify(backup, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const dateStr = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    a.href = url;
+    a.download = `pharmaprojet_backup_${dateStr}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    if (window.UI) UI.toast('💾 Sauvegarde téléchargée avec succès', 'success');
+    return true;
+  } catch (e) {
+    console.error('[Backup] Erreur export manuel:', e);
+    if (window.UI) UI.toast('Erreur lors de la sauvegarde : ' + e.message, 'error');
+    return false;
+  }
+}
+
+/**
+ * DÉMARRAGE AUTO-BACKUP : Lance le backup automatique périodique
+ * Appelé une fois au démarrage de l'app
+ */
+function startAutoBackup() {
+  // Backup initial au démarrage (après 10 secondes pour laisser l'app s'initialiser)
+  setTimeout(async () => {
+    await autoBackupToStorage();
+  }, 10000);
+
+  // Backup toutes les 30 minutes
+  setInterval(async () => {
+    await autoBackupToStorage();
+    // Si en ligne, synchroniser aussi vers le cloud
+    if (AppState.isOnline) {
+      syncToSupabase().catch(() => { });
+    }
+  }, 30 * 60 * 1000); // 30 minutes
+
+  console.log('[Backup] ✅ Auto-backup démarré (toutes les 30 min)');
+}
+
+/**
+ * AUTO-PULL : Synchronisation cloud → local automatique
+ * Déclenché toutes les 5 minutes si en ligne
+ */
+function startAutoPull() {
+  setInterval(async () => {
+    if (AppState.isOnline) {
+      try {
+        await pullFromSupabase();
+        console.log('[Sync] ⬇️ Pull automatique effectué');
+      } catch (e) {
+        console.warn('[Sync] Auto-pull échoué:', e);
+      }
+    }
+  }, 5 * 60 * 1000); // 5 minutes
+}
+
+function resetSupabaseClient() {
   _supabaseInstance = null;
 }
 
-window.DB = { initDB, dbAdd, dbPut, dbGet, dbGetAll, dbDelete, dbCount, writeAudit, seedDemoData, syncToSupabase, pullFromSupabase, resetSupabaseClient, forceSyncAll, trackInstallation, STORES, AppState };
+window.DB = { initDB, dbAdd, dbPut, dbGet, dbGetAll, dbDelete, dbCount, writeAudit, seedDemoData, syncToSupabase, pullFromSupabase, resetSupabaseClient, forceSyncAll, trackInstallation, STORES, AppState, doBackup, startAutoBackup, startAutoPull, autoBackupToStorage };

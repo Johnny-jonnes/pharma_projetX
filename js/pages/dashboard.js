@@ -43,10 +43,10 @@ async function renderDashboard(container) {
 
     const unreadAlerts = alerts.filter(a => a.status === 'unread');
 
-    // Monthly sales by day (last 14 days)
-    const last14 = [];
-    const last14Labels = [];
-    for (let d = 13; d >= 0; d--) {
+    // Monthly sales by day (last 15 days)
+    const last15 = [];
+    const last15Labels = [];
+    for (let d = 14; d >= 0; d--) {
       const day = new Date(today.getFullYear(), today.getMonth(), today.getDate() - d);
       const dayStart = day.getTime();
       const dayEnd = dayStart + 86400000;
@@ -60,8 +60,8 @@ async function renderDashboard(container) {
         return t >= dayStart && t < dayEnd && r.status === 'approved';
       }).reduce((a, r) => a + (r.refundAmount || 0), 0);
 
-      last14.push(daySales - dayReturns);
-      last14Labels.push(day.getDate() + '/' + (day.getMonth() + 1));
+      last15.push(daySales - dayReturns);
+      last15Labels.push(day.getDate() + '/' + (day.getMonth() + 1));
     }
 
     // Payment method breakdown
@@ -133,7 +133,7 @@ async function renderDashboard(container) {
       <div class="charts-row">
         <div class="chart-card">
           <div class="chart-header">
-            <h3 class="chart-title">Ventes des 14 derniers jours</h3>
+            <h3 class="chart-title">Ventes des 15 derniers jours</h3>
           </div>
           <canvas id="chart-sales" width="500" height="280"></canvas>
         </div>
@@ -219,8 +219,8 @@ async function renderDashboard(container) {
 
     // Draw charts
     requestAnimationFrame(() => {
-      Charts.line('chart-sales', last14Labels, [{
-        data: last14,
+      Charts.line('chart-sales', last15Labels, [{
+        data: last15,
         color: '#0B3D6F' // Bleu Institutionnel
       }], { title: '' });
 

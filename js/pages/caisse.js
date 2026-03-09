@@ -78,7 +78,16 @@ async function renderCaisse(container) {
       </div>
       <div class="header-actions">
         <button class="btn btn-secondary" onclick="openAddCashEntry()"><i data-lucide="plus"></i> Entrée/Sortie manuelle</button>
-        ${!todayClosure ? `<button class="btn btn-primary" onclick="openCaisseClose()"><i data-lucide="lock"></i> Clôturer la journée</button>` : `<span class="badge badge-success" style="padding:8px 16px"><i data-lucide="check-circle"></i> Journée clôturée</span>`}
+        ${['admin', 'pharmacien'].includes(DB.AppState.currentUser?.role)
+      ? (!todayClosure
+        ? `<button class="btn btn-primary" onclick="openCaisseClose()"><i data-lucide="lock"></i> Clôturer la journée</button>`
+        : `<span class="badge badge-success" style="padding:8px 16px"><i data-lucide="check-circle"></i> Journée clôturée</span>`
+      )
+      : (todayClosure
+        ? `<span class="badge badge-success" style="padding:8px 16px"><i data-lucide="check-circle"></i> Journée clôturée</span>`
+        : `<span class="badge badge-warning" style="padding:8px 16px"><i data-lucide="lock"></i> Clôture : pharmacien uniquement</span>`
+      )
+    }
       </div>
     </div>
 
@@ -116,9 +125,9 @@ async function renderCaisse(container) {
 
       <div class="payment-breakdown-grid" style="margin-top:20px">
         ${Object.entries(breakdown).filter(([, v]) => v.count > 0).map(([method, data]) => {
-    const icons = { cash: 'banknote', orange_money: 'smartphone', mtn_momo: 'smartphone', credit: 'file-text', transfer: 'landmark' };
-    const labels = { cash: 'Espèces', orange_money: 'Orange Money', mtn_momo: 'MTN MoMo', credit: 'Crédit', transfer: 'Virement' };
-    return `<div class="pay-breakdown-card">
+      const icons = { cash: 'banknote', orange_money: 'smartphone', mtn_momo: 'smartphone', credit: 'file-text', transfer: 'landmark' };
+      const labels = { cash: 'Espèces', orange_money: 'Orange Money', mtn_momo: 'MTN MoMo', credit: 'Crédit', transfer: 'Virement' };
+      return `<div class="pay-breakdown-card">
             <span class="pay-icon-lg"><i data-lucide="${icons[method] || 'credit-card'}"></i></span>
             <div>
               <div class="pay-bd-val">${UI.formatCurrency(data.total)}</div>
@@ -126,7 +135,7 @@ async function renderCaisse(container) {
               <div class="pay-bd-count">${data.count} vente(s)</div>
             </div>
           </div>`;
-  }).join('')}
+    }).join('')}
       </div>
 
       <!-- Today transactions list -->
@@ -219,15 +228,15 @@ async function renderCaisse(container) {
               <thead><tr><th>Date</th><th>Ventes Totales</th><th>Transactions</th><th>Clôturé par</th><th>Écart caisse</th></tr></thead>
               <tbody>
                 ${last7Closures.map(c => {
-    const ecart = (c.physicalCash || 0) - (c.expectedCash || 0);
-    return `<tr>
+      const ecart = (c.physicalCash || 0) - (c.expectedCash || 0);
+      return `<tr>
                   <td>${UI.formatDate(c.date)}</td>
                   <td><strong>${UI.formatCurrency(c.totalSales || 0)}</strong></td>
                   <td>${c.transactionCount || 0}</td>
                   <td>${c.closedBy || '—'}</td>
                   <td class="${ecart === 0 ? 'text-success' : ecart > 0 ? 'text-success' : 'text-danger'} font-bold">${ecart >= 0 ? '+' : ''}${UI.formatCurrency(ecart)}</td>
                 </tr>`;
-  }).join('')}
+    }).join('')}
               </tbody>
             </table>
           </div>`}
@@ -492,12 +501,20 @@ function calcClosureEcart() {
 }
 
 async function confirmCaisseClose() {
+  // Restriction : seul le pharmacien ou l'admin peut clôturer
+  const role = DB.AppState.currentUser?.role;
+  if (!['admin', 'pharmacien'].includes(role)) {
+    UI.toast('Seul(e) le/la pharmacien(ne) ou l\'administrateur peut clôturer la caisse.', 'error', 5000);
+    UI.closeModal();
+    return;
+  }
+
   const today = new Date().toISOString().split('T')[0];
   const physical = parseFloat(document.getElementById('closure-physical')?.value || 0);
   const opening = parseFloat(document.getElementById('closure-opening')?.value || 0);
   const note = document.getElementById('closure-note')?.value || '';
 
-  const ok = await UI.confirm(`Confirmer la clôture de caisse du ${today} ?\n\nCette action est irréversible.`);
+  const ok = await UI.confirm(`Confirmer la clôture de caisse du ${today} ?\n\nCette action est irréversible. Aucune vente ne pourra être enregistrée après la clôture.`);
   if (!ok) return;
 
   await DB.dbAdd('cashRegister', {
@@ -505,6 +522,7 @@ async function confirmCaisseClose() {
     date: today,
     closedAt: Date.now(),
     closedBy: DB.AppState.currentUser?.name,
+    closedByRole: role,
     openingFund: opening,
     expectedCash: window._expectedCash || 0,
     physicalCash: physical,
@@ -513,9 +531,9 @@ async function confirmCaisseClose() {
     note,
   });
 
-  await DB.writeAudit('CAISSE_CLOSURE', 'cashRegister', null, { date: today, physical, expected: window._expectedCash });
+  await DB.writeAudit('CAISSE_CLOSURE', 'cashRegister', null, { date: today, physical, expected: window._expectedCash, closedBy: DB.AppState.currentUser?.name });
   UI.closeModal();
-  UI.toast('Caisse clôturée avec succès', 'success');
+  UI.toast('Caisse clôturée avec succès. Les ventes sont bloquées pour aujourd\'hui.', 'success', 5000);
   Router.navigate('caisse');
 }
 

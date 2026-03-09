@@ -798,6 +798,19 @@ function mettreEnAttente() {
 async function validerVente() {
   if (!posCart.length) { UI.toast('Le panier est vide', 'warning'); return; }
 
+  // ── Vérification clôture de caisse ──
+  // Si la caisse est clôturée pour aujourd'hui, aucune vente n'est possible
+  const today = new Date().toISOString().split('T')[0];
+  const cashRegister = await DB.dbGetAll('cashRegister');
+  const todayClosure = cashRegister.find(c => c.date === today && c.type === 'closure');
+  if (todayClosure) {
+    UI.toast(
+      `🔒 Caisse clôturée — Aucune vente possible.\nClôture effectuée à ${UI.formatDateTime(todayClosure.closedAt)} par ${todayClosure.closedBy}.`,
+      'error', 7000
+    );
+    return;
+  }
+
   const method = getPayMethod();
   const total = getTotal();
   const disc = getDiscount();

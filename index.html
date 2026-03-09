@@ -17,8 +17,9 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
     rel="stylesheet">
-  <link rel="stylesheet" href="css/main.css?v=3.4.0">
-  <script>const APP_VERSION = '3.4.0';</script>
+  <link rel="stylesheet" href="css/main.css?v=3.5.0">
+  <link rel="stylesheet" href="css/mobile.css?v=3.5.0">
+  <script>const APP_VERSION = '3.5.0';</script>
 
   <!-- Native App Feel: Disable right-click and common reloads -->
   <script>
@@ -101,8 +102,8 @@
       <button class="topbar-btn" id="notif-btn" onclick="navigatePage('alerts')" title="Alertes">
         <i data-lucide="bell"></i><span class="notif-badge" id="notif-count" style="display:none">0</span>
       </button>
-      <button class="topbar-btn" onclick="doBackup ? doBackup() : UI.toast('Backup...','info')" title="Sauvegarde"><i
-          data-lucide="save"></i></button>
+      <button class="topbar-btn" onclick="DB.doBackup ? DB.doBackup() : UI.toast('Backup...','info')"
+        title="Sauvegarde"><i data-lucide="save"></i></button>
       <button class="topbar-btn" id="theme-toggle-btn" onclick="UI.toggleTheme()" title="Changer le thème"><i
           data-lucide="moon"></i></button>
       <button class="topbar-btn" id="topbar-settings-btn" onclick="navigatePage('settings')" title="Paramètres"><i
@@ -453,6 +454,10 @@
 
         updateNetworkStatus();
         setInterval(updateAlertBadge, 120000);
+
+        // ── Auto-backup (toutes les 30 min) et auto-pull cloud (toutes les 5 min) ──
+        if (DB.startAutoBackup) DB.startAutoBackup();
+        if (DB.startAutoPull) DB.startAutoPull();
       } catch (err) {
         console.error('Init failed:', err);
         document.getElementById('app-content').innerHTML =

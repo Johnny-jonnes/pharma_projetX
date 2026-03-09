@@ -1,0 +1,1023 @@
+/* ═══════════════════════════════════════════════════════════════
+   PHARMAPROJET — mobile.css  v3.5.0
+   Couche responsive mobile-first — additive sur main.css
+   Ne jamais modifier main.css directement pour le responsive.
+   ═══════════════════════════════════════════════════════════════
+
+   PLAN DU FICHIER
+   ──────────────
+   §0  Base & Reset mobile universel
+   §1  Breakpoint Mobile Principal  ≤ 767px
+       1.1  Variables CSS mobiles
+       1.2  Layout (sidebar / topbar / content)
+       1.3  Topbar compacte
+       1.4  Navigation / sidebar
+       1.5  Page headers
+       1.6  KPI Grid
+       1.7  Charts row
+       1.8  Tableaux → Card-view
+       1.9  Boutons & zones tactiles
+       1.10 Formulaires anti-zoom iOS
+       1.11 Modaux
+       1.12 POS (améliorations)
+       1.13 Toasts
+       1.14 Composants divers
+   §2  Micro-mobile  ≤ 374px
+   §3  Tablette  768px – 1023px
+   §4  PWA Standalone (safe-area)
+   ═══════════════════════════════════════════════════════════════ */
+
+
+/* ───────────────────────────────────────────────────────────────
+   §0  BASE UNIVERSELLE — s'applique à tous les écrans
+   ─────────────────────────────────────────────────────────────── */
+
+/* Empêche le scroll horizontal global */
+html, body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+/* Améliore le scroll sur iOS */
+* {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Règle safe-area universelle pour les table-wrappers */
+.table-wrapper {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+/* Empêche les images et médias de déborder */
+img, canvas, video, iframe {
+  max-width: 100%;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   §1  BREAKPOINT MOBILE PRINCIPAL — max-width: 767px
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 767px) {
+
+  /* ─────────────────────────────────────────────────────────────
+     §1.1  VARIABLES CSS MOBILES
+     ───────────────────────────────────────────────────────────── */
+  :root {
+    --topbar-h: 56px;
+    --content-padding: 14px;
+    --content-padding-top: 72px;
+    --tap-min: 44px;
+    --tap-comfortable: 48px;
+    --gap-mobile: 12px;
+    --gap-mobile-sm: 8px;
+    --font-size-page-title: 18px;
+    --font-size-kpi-value: 20px;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
+  }
+
+
+  /* ─────────────────────────────────────────────────────────────
+     §1.2  LAYOUT PRINCIPAL — Reset desktop, 0 margin-left
+     ───────────────────────────────────────────────────────────── */
+
+  /* Le contenu occupe tout l'écran */
+  #app-content {
+    margin-left: 0 !important;
+    padding: var(--content-padding-top) var(--content-padding) calc(24px + var(--safe-bottom)) !important;
+    overflow-x: hidden;
+    min-width: 0;
+  }
+
+  /* La topbar part du bord gauche */
+  #app-topbar {
+    left: 0 !important;
+    right: 0 !important;
+    padding: 0 12px !important;
+    height: var(--topbar-h) !important;
+    gap: 8px;
+  }
+
+
+  /* ─────────────────────────────────────────────────────────────
+     §1.3  TOPBAR — compacte et ergonomique
+     ───────────────────────────────────────────────────────────── */
+
+  /* Bouton hamburger → toujours visible */
+  .topbar-menu-btn {
+    display: flex !important;
+    width: var(--tap-min) !important;
+    height: var(--tap-min) !important;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: none;
+    background: none;
+    color: var(--text);
+    font-size: 20px;
+    cursor: pointer;
+    touch-action: manipulation;
+    border-radius: var(--radius-sm);
+  }
+
+  .topbar-menu-btn:active {
+    background: var(--bg);
+  }
+
+  /* Titre topbar — tronqué proprement */
+  .topbar-title {
+    font-size: 15px !important;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Topbar actions — icônes réduites, uniquement les essentielles */
+  .topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  /* Boutons topbar — taille tactile correcte */
+  .topbar-btn {
+    width: var(--tap-min) !important;
+    height: var(--tap-min) !important;
+    border-radius: var(--radius-sm) !important;
+    flex-shrink: 0;
+    touch-action: manipulation;
+  }
+
+  /* Masquer certains boutons topbar non-essentiels sur mobile
+     (réapprovisionnement, impression, sauvegarde) pour éviter l'overflow.
+     On garde : alertes, thème, settings (admin), PWA install */
+  #app-topbar > .topbar-actions > button:nth-child(2), /* refresh-cw */
+  #app-topbar > .topbar-actions > button:nth-child(3), /* printer */
+  #app-topbar > .topbar-actions > button:nth-child(5) { /* save */
+    display: none !important;
+  }
+
+  /* Barre de recherche topbar — masquée sur mobile (dans les pages) */
+  .topbar-search {
+    display: none !important;
+  }
+
+
+  /* ─────────────────────────────────────────────────────────────
+     §1.4  SIDEBAR — Drawer off-canvas amélioré
+     (La logique de base est déjà dans main.css §8842)
+     On ajoute les améliorations manquantes.
+     ───────────────────────────────────────────────────────────── */
+
+  /* Sidebar plus large sur les grands mobiles */
+  #app-sidebar {
+    width: min(280px, 85vw) !important;
+  }
+
+  /* Items nav — plus grands pour les doigts */
+  #app-sidebar .nav-item {
+    min-height: var(--tap-comfortable) !important;
+    padding: 12px 20px !important;
+    font-size: 14px !important;
+    touch-action: manipulation;
+  }
+
+  /* Sections de navigation */
+  #app-sidebar .nav-section {
+    padding: 20px 20px 6px !important;
+    font-size: 10px;
+  }
+
+  /* Safe area sur le footer sidebar */
+  #app-sidebar .sidebar-footer {
+    padding-bottom: calc(16px + var(--safe-bottom)) !important;
+  }
+
+  /* Overlay — empêche interaction avec l'arrière-plan */
+  #sidebar-overlay {
+    display: block !important;
+    touch-action: none;
+  }
+
+
+  /* ─────────────────────────────────────────────────────────────
+     §1.5  PAGE HEADERS — Stack vertical sur mobile
+     ───────────────────────────────────────────────────────────── */
+
+  .page-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    margin-bottom: 16px !important;
+  }
+
+  .page-title {
+    font-size: var(--font-size-page-title) !important;
+    line-height: 1.3;
+  }
+
+  .page-subtitle {
+    font-size: 12px;
+    margin-top: 2px;
+  }
+
+  /* Actions du header — prennent toute la largeur */
+  .header-actions {
+    width: 100%;
+    gap: 8px;
+  }
+
+  /* Boutons d'action dans le header — s'étirent sur mobile */
+  .header-actions .btn {
+    flex: 1;
+    justify-content: center;
+    min-height: var(--tap-min);
+  }
+
+  /* S'il y a plus de 2 boutons, on laisse le wrap naturel */
+  .header-actions.no-stretch .btn {
+    flex: none;
+  }
+
+
+  /* ─────────────────────────────────────────────────────────────
+     §1.6  KPI GRID — 2 colonnes sur mobile
+     ───────────────────────────────────────────────────────────── */
+
+  .kpi-grid,
+  .kpi-grid-3 {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: var(--gap-mobile) !important;
+    margin-bottom: 16px !important;
+  }
+
+  .kpi-card {
+    padding: 14px 12px !important;
+    gap: 10px !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+
+  .kpi-icon {
+    font-size: 24px !important;
+  }
+
+  .kpi-value {
+    font-size: var(--font-size-kpi-value) !important;
+    letter-spacing: -0.3px;
+  }
+
+  .kpi-label {
+    font-size: 11px !important;
+  }
+
+
+  /* ─────────────────────────────────────────────────────────────
+     §1.7  CHARTS ROW — Stack vertical
+     ───────────────────────────────────────────────────────────── */
+
+  .charts-row {
+    grid-template-columns: 1fr !important;
+    gap: var(--gap-mobile) !important;
+    margin-bottom: 16px !important;
+  }
+
+  .chart-wide,
+  .chart-narrow {
+    grid-column: 1 !important;
+  }
+
+  /* Les canvas charts s'adaptent à 100% de largeur */
+  .chart-card canvas {
+    width: 100% !important;
+    height: auto !important;
+    max-height: 220px;
+  }
+
+  .chart-card {
+    padding: 14px !important;
+  }
+
+
+  /* ─────────────────────────────────────────────────────────────
+     §1.8  TABLEAUX → CARD VIEW sur mobile
+     Utilise data-label=" " injecté par ui.js
+     ───────────────────────────────────────────────────────────── */
+
+  /* On cache l'en-tête du tableau */
+  .data-table thead {
+    display: none !important;
+  }
+
+  /* Le tableau devient un bloc */
+  .data-table {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .data-table tbody {
+    display: block !important;
+  }
+
+  /* Chaque ligne TR devient une carte */
+  .data-table tbody tr {
+    display: block !important;
+    background: var(--surface) !important;
+    border-radius: var(--radius) !important;
+    border: 1px solid var(--border) !important;
+    box-shadow: var(--shadow) !important;
+    margin-bottom: 10px !important;
+    padding: 4px 12px !important;
+    transition: box-shadow var(--transition);
+  }
+
+  .data-table tbody tr:hover {
+    box-shadow: var(--shadow-md) !important;
+    background: var(--surface) !important;
+  }
+
+  .data-table tbody tr:last-child {
+    border-bottom: 1px solid var(--border) !important;
+    margin-bottom: 0;
+  }
+
+  /* Chaque TD devient une ligne label : valeur */
+  .data-table tbody td {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 8px 0 !important;
+    border-bottom: 1px solid var(--border) !important;
+    font-size: 13px !important;
+    min-height: 36px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .data-table tbody td:last-child {
+    border-bottom: none !important;
+  }
+
+  /* Label via data-label */
+  .data-table tbody td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    flex-shrink: 0;
+    min-width: 80px;
+  }
+
+  /* Si data-label vide → TD s'affiche normalement (ex: boutons actions) */
+  .data-table tbody td[data-label=""]::before,
+  .data-table tbody td:not([data-label])::before {
+    display: none !important;
+  }
+
+  .data-table tbody td[data-label=""] {
+    justify-content: flex-end !important;
+    padding-top: 8px !important;
+    gap: 6px;
+  }
+
+  /* Wrapper du tableau — scroll horizontal désactivé en card mode */
+  .table-wrapper {
+    overflow-x: visible !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+  }
+
+  /* Pied de tableau */
+  .data-table tfoot {
+    display: block !important;
+  }
+
+  .data-table tfoot tr {
+    display: flex !important;
+    justify-content: flex-end !important;
+    padding: 10px 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .data-table tfoot td {
+    border-bottom: none !important;
+    font-weight: 700;
+  }
+
+
+  /* ─────────────────────────────────────────────────────────────
+     §1.9  BOUTONS & ZONES TACTILES
+     Apple HIG : minimum 44×44px
+     ───────────────────────────────────────────────────────────── */
+
+  /* Boutons standards — hauteur minimum */
+  .btn {
+    min-height: var(--tap-min) !important;
+    padding: 10px 16px !important;
+    font-size: 14px !important;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    border-radius: var(--radius-sm) !important;
+  }
+
+  /* Bouton large */
+  .btn-lg, .btn-xl {
+    min-height: var(--tap-comfortable) !important;
+    padding: 12px 20px !important;
+  }
+
+  /* Bouton petit — reste lisible mais zone tactile agrandie */
+  .btn-sm {
+    min-height: 36px !important;
+    padding: 7px 12px !important;
+    font-size: 12px !important;
+  }
+
+  /* Bouton extra-petit — zone tactile agrandie via padding/margin */
+  .btn-xs {
+    min-height: 32px !important;
+    padding: 5px 10px !important;
+    font-size: 11px !important;
+  }
+
+  /* Bouton icône */
+  .btn-icon {
+    width: var(--tap-min) !important;
+    height: var(--tap-min) !important;
+    border-radius: var(--radius-sm) !important;
+  }
+
+  /* Feedback tactile sur tous les boutons */
+  .btn:active {
+    transform: scale(0.97);
+    transition: transform 0.08s ease;
+  }
+
+  /* Tous les éléments interactifs */
+  button, a, input[type="button"], input[type="submit"], label[for] {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+
+  /* ─────────────────────────────────────────────────────────────
+     §1.10  FORMULAIRES — Anti-zoom iOS, ergonomie tactile
+     iOS zoome automatiquement sur les inputs < 16px font-size
+     ───────────────────────────────────────────────────────────── */
+
+  /* RÈGLE CRITIQUE : font-size ≥ 16px empêche l'auto-zoom iOS */
+  input, select, textarea {
+    font-size: 16px !important;
+    border-radius: var(--radius-sm) !important;
+    -webkit-appearance: none;
+    appearance: none;
+    touch-action: manipulation;
+  }
+
+  /* Hauteur minimale tactile */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select {
+    min-height: var(--tap-min) !important;
+    padding: 10px 12px !important;
+  }
+
+  /* Textarea */
+  textarea {
+    min-height: 88px;
+    resize: vertical;
+    padding: 12px !important;
+  }
+
+  /* Labels au-dessus des inputs */
+  .form-group label,
+  label {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  /* Grille de formulaires → 1 colonne */
+  .form-grid {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+
+  .form-row {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+
+  /* Checkboxes et radios — zone tactile */
+  input[type="checkbox"],
+  input[type="radio"] {
+    width: 20px !important;
+    height: 20px !important;
+    margin-right: 8px;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  /* Select natif — flèche visible */
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 40px !important;
+  }
+
+  /* Date/time inputs */
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"] {
+    min-height: var(--tap-min) !important;
+  }
+
+
+  /* ─────────────────────────────────────────────────────────────
+     §1.11  MODAUX — Plein écran sur mobile
+     ───────────────────────────────────────────────────────────── */
+
+  .modal-overlay {
+    padding: 0 !important;
+    align-items: flex-end !important; /* Sheet du bas */
+  }
+
+  .modal-box {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 20px 20px 0 0 !important;
+    margin: 0 !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: calc(20px + var(--safe-bottom)) !important;
+  }
+
+  /* Indicateur de glissement (sheet handle) */
+  .modal-box::before {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 4px;
+    background: var(--border-dark);
+    border-radius: 2px;
+    margin: 12px auto 0;
+  }
+
+  .modal-header {
+    padding: 16px 20px 12px !important;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .modal-title {
+    font-size: 16px !important;
+  }
+
+  .modal-body {
+    padding: 16px 20px !important;
+  }
+
+  .modal-footer {
+    padding: 12px 20px !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .modal-footer .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Modal grande taille → quasi plein écran */
+  .modal-large {
+    max-height: 95vh !important;
+  }
+
+  /* Confirm dialog centré */
+  .confirm-box {
+    border-radius: var(--radius) !important;
+    margin: auto 20px !important;
+    width: calc(100% - 40px) !important;
+  }
+
+  /* Le overlay confirm centre verticalement */
+  .modal-overlay:has(.confirm-box) {
+    align-items: center !important;
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse !important;
+    gap: 8px !important;
+  }
+
+  .modal-actions .btn {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+
+  /* ─────────────────────────────────────────────────────────────
+     §1.12  POS — Améliorations du point de vente
+     (base dans main.css lignes 8987–9053)
+     ───────────────────────────────────────────────────────────── */
+
+  /* Grille produits — 2 colonnes serrées */
+  .pos-grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  /* Carte produit POS */
+  .pos-card {
+    padding: 10px 8px !important;
+    touch-action: manipulation;
+    cursor: pointer;
+  }
+
+  .pos-card:active {
+    transform: scale(0.97);
+    transition: transform 0.08s ease;
+  }
+
+  /* Panneau panier — safe area bas */
+  .pos-cart-panel {
+    padding-bottom: calc(16px + var(--safe-bottom)) !important;
+  }
+
+  /* Recherche POS — grand sur mobile */
+  .pos-search input {
+    font-size: 16px !important;
+    min-height: var(--tap-min) !important;
+  }
+
+
+  /* ─────────────────────────────────────────────────────────────
+     §1.13  TOASTS — Repositionnement mobile
+     ───────────────────────────────────────────────────────────── */
+
+  #toast-container {
+    bottom: calc(16px + var(--safe-bottom)) !important;
+    top: auto !important;
+    left: var(--content-padding) !important;
+    right: var(--content-padding) !important;
+    max-width: 100% !important;
+  }
+
+  .toast {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: var(--radius) !important;
+    padding: 14px 16px !important;
+    font-size: 14px !important;
+  }
+
+
+  /* ─────────────────────────────────────────────────────────────
+     §1.14  COMPOSANTS DIVERS
+     ───────────────────────────────────────────────────────────── */
+
+  /* Cartes génériques */
+  .card-body {
+    padding: 14px !important;
+  }
+
+  /* Tabs / onglets */
+  .tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap !important;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    gap: 4px;
+    padding-bottom: 2px;
+  }
+
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab {
+    flex-shrink: 0;
+    white-space: nowrap;
+    min-height: var(--tap-min);
+    padding: 8px 16px !important;
+    font-size: 13px !important;
+  }
+
+  /* Filtres / Barre de recherche dans les pages */
+  .filter-bar {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .filter-bar input,
+  .filter-bar select {
+    width: 100% !important;
+  }
+
+  /* Stat/info boxes */
+  .info-grid,
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: var(--gap-mobile) !important;
+  }
+
+  /* Breadcrumb */
+  .breadcrumb {
+    font-size: 12px;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  /* Textes longs — évite les débordements */
+  p, li, td, th {
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  /* Spinners / loading */
+  .loading-state {
+    padding: 40px 20px !important;
+  }
+
+  /* Empty states */
+  .empty-state {
+    padding: 40px 20px !important;
+  }
+
+  /* Page sections — espacement réduit */
+  .section-header {
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  /* Grilles diverses (2 colonnes ou flex-wrap) */
+  .grid-2, .grid-3, .grid-4 {
+    grid-template-columns: 1fr !important;
+    gap: var(--gap-mobile) !important;
+  }
+
+  .grid-2 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* PWA Install Banner — repositionné */
+  #pwa-install-banner {
+    bottom: calc(12px + var(--safe-bottom)) !important;
+    left: var(--content-padding) !important;
+    right: var(--content-padding) !important;
+    max-width: 100% !important;
+    transform: none !important;
+    border-radius: var(--radius) !important;
+    padding: 12px 14px !important;
+  }
+
+
+} /* fin @media (max-width: 767px) */
+
+
+/* ═══════════════════════════════════════════════════════════════
+   §2  MICRO-MOBILE — max-width: 374px (iPhone SE, très petits Android)
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 374px) {
+
+  :root {
+    --content-padding: 10px;
+  }
+
+  /* KPI → 1 colonne sur très petits écrans */
+  .kpi-grid,
+  .kpi-grid-3 {
+    grid-template-columns: 1fr !important;
+  }
+
+  .kpi-card {
+    flex-direction: row !important;
+    align-items: center !important;
+    padding: 12px !important;
+  }
+
+  .page-title {
+    font-size: 16px !important;
+  }
+
+  /* POS grid → 2 colonnes serrées */
+  .pos-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  /* Topbar — encore moins d'espace */
+  .topbar-btn {
+    width: 38px !important;
+    height: 38px !important;
+  }
+
+  .topbar-title {
+    font-size: 14px !important;
+  }
+
+  /* Boutons — légèrement plus petits */
+  .btn {
+    font-size: 13px !important;
+    padding: 9px 12px !important;
+  }
+
+  /* Infos/stats en 1 colonne */
+  .info-grid,
+  .stats-grid,
+  .grid-2 {
+    grid-template-columns: 1fr !important;
+  }
+
+} /* fin @media (max-width: 374px) */
+
+
+/* ═══════════════════════════════════════════════════════════════
+   §3  TABLETTE — 768px – 1023px
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (min-width: 768px) and (max-width: 1023px) {
+
+  :root {
+    --sidebar-w: 220px;
+  }
+
+  /* Content padding légèrement réduit */
+  #app-content {
+    padding: calc(var(--topbar-h) + 20px) 20px 20px !important;
+    margin-left: var(--sidebar-w) !important;
+  }
+
+  #app-topbar {
+    left: var(--sidebar-w) !important;
+    padding: 0 20px !important;
+  }
+
+  /* KPI → 2 ou 3 colonnes selon espace */
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .kpi-grid-3 {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+
+  /* Charts → stack vertical */
+  .charts-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  .chart-wide,
+  .chart-narrow {
+    grid-column: 1 !important;
+  }
+
+  /* Boutons — légèrement plus grands que desktop */
+  .btn {
+    min-height: 40px;
+    touch-action: manipulation;
+  }
+
+  /* Sidebar — légèrement compactée un peu */
+  #app-sidebar {
+    width: var(--sidebar-w) !important;
+  }
+
+  .nav-item {
+    padding: 9px 16px !important;
+    font-size: 13px !important;
+  }
+
+  /* Tableaux — conservent le format table (pas card) */
+  /* Mais on ajoute un scroll contrôlé */
+  .table-wrapper {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Formulaires → 2 colonnes */
+  .form-grid {
+    flex-wrap: wrap !important;
+  }
+
+} /* fin @media tablette */
+
+
+/* ═══════════════════════════════════════════════════════════════
+   §4  PWA STANDALONE — Safe Area & Status Bar
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (display-mode: standalone) {
+
+  /* Topbar compensée pour la status bar système */
+  #app-topbar {
+    padding-top: env(safe-area-inset-top, 0px) !important;
+    height: calc(var(--topbar-h) + env(safe-area-inset-top, 0px)) !important;
+  }
+
+  /* Content compensé */
+  #app-content {
+    padding-top: calc(var(--topbar-h) + env(safe-area-inset-top, 0px) + 16px) !important;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)) !important;
+    padding-left: calc(var(--content-padding, 24px) + env(safe-area-inset-left, 0px)) !important;
+    padding-right: calc(var(--content-padding, 24px) + env(safe-area-inset-right, 0px)) !important;
+  }
+
+  /* Sidebar safe area */
+  #app-sidebar {
+    padding-top: env(safe-area-inset-top, 0px) !important;
+  }
+
+  /* Footer sidebar */
+  #app-sidebar .sidebar-footer {
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  /* POS Cart panel */
+  .pos-cart-panel {
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  /* Toast container */
+  #toast-container {
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  /* PWA Banner */
+  #pwa-install-banner {
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+} /* fin @media standalone */
+
+
+/* ═══════════════════════════════════════════════════════════════
+   §5  UTILITAIRES MOBILES GLOBAUX
+   (Pas dans media query — classes utilitaires toujours disponibles)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Classe helper pour masquer sur mobile */
+.hide-mobile {
+  display: initial;
+}
+
+.show-mobile {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .hide-mobile { display: none !important; }
+  .show-mobile { display: initial !important; }
+  .hide-tablet-down { display: none !important; }
+}
+
+@media (min-width: 768px) {
+  .hide-desktop { display: none !important; }
+}
+
+/* Texte tronqué sur mobile */
+.mobile-truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+@media (max-width: 767px) {
+  .mobile-truncate { max-width: 120px; }
+}
+
+/* Scroll horizontal contrôlé pour tableaux qui DOIVENT rester en table */
+.table-scroll-mobile {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+}
+
+/* Indicateur visuel de scroll possible */
+.table-scroll-mobile::after {
+  content: '';
+  display: block;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary) 0%, transparent 100%);
+  border-radius: 2px;
+  opacity: 0.3;
+  margin-top: 4px;
+}
