@@ -258,8 +258,9 @@ async function renderSettings(container) {
           </div>
           <div class="sync-repair-zone" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed rgba(0,0,0,0.1);">
              <div style="display:flex; flex-direction:column; gap:0.5rem">
-                <button class="btn btn-sm btn-secondary" onclick="DB.syncToSupabase()"><i data-lucide="cloud-lightning"></i> Synchronisation forcée immédiate</button>
-                <button class="btn btn-xs btn-outline-danger" onclick="repairSync()"><i data-lucide="wrench"></i> ⚙️ Réparer la Synchronisation Cloud (Comptes manquants)</button>
+                <button class="btn btn-sm btn-primary" onclick="triggerPull()"><i data-lucide="cloud-download"></i> Récupérer les données du Cloud (PULL)</button>
+                <button class="btn btn-sm btn-secondary" onclick="DB.syncToSupabase()"><i data-lucide="cloud-lightning"></i> Envoi forcé vers le Cloud (PUSH)</button>
+                <button class="btn btn-xs btn-outline-danger" onclick="repairSync()"><i data-lucide="wrench"></i> ⚙️ Réparer l'envoi Cloud (Comptes manquants)</button>
              </div>
           </div>
           <hr style="margin: 1rem 0; opacity: 0.1;">
@@ -620,6 +621,26 @@ async function repairSync() {
   }
 }
 
+async function triggerPull() {
+  const btn = event.currentTarget;
+  const originalText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="spinner-inline"></i> Récupération...';
+
+  try {
+    UI.toast('Début de la récupération des données...', 'info');
+    await DB.pullFromSupabase();
+    UI.toast('Données récupérées avec succès ! Vos catalogues sont à jour.', 'success');
+    setTimeout(() => location.reload(), 2000);
+  } catch (err) {
+    UI.toast('Erreur lors de la récupération : ' + err.message, 'error', 10000);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+  }
+}
+
+
 window.updatePharmacyDisplay = updatePharmacyDisplay;
 window.saveSupabaseConfig = saveSupabaseConfig;
 window.handleLogoUpload = handleLogoUpload;
@@ -634,6 +655,7 @@ window.saveSettings = saveSettings;
 window.doBackup = doBackup;
 window.restoreBackup = restoreBackup;
 window.repairSync = repairSync;
+window.triggerPull = triggerPull;
 
 Router.register('login', renderLogin);
 Router.register('settings', renderSettings);
