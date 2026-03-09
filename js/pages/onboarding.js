@@ -346,21 +346,26 @@ const Onboarding = {
 
         await DB.pullFromSupabase();
 
-        // Mark onboarding as done since we successfully pulled data
-        const settings = await DB.dbGetAll('settings');
-        const onboardingDone = settings.find(s => s.key === 'onboarding_done')?.value;
-        const hasPharmacyName = settings.find(s => s.key === 'pharmacy_name')?.value;
+        // Check if we actually got ANY data
+        const allSettings = await DB.dbGetAll('settings');
+        const allProducts = await DB.dbGetAll('products');
+        const allSales = await DB.dbGetAll('sales');
 
-        if (hasPharmacyName) {
+        const hasData = allSettings.length > 2 || allProducts.length > 0 || allSales.length > 0;
+
+        if (hasData) {
           await DB.dbPut('settings', { key: 'onboarding_done', value: true });
           UI.toast('Synchronisation réussie ! Vos données ont été récupérées.', 'success', 5000);
 
           document.getElementById('app-sidebar')?.style.removeProperty('display');
           document.getElementById('app-topbar')?.style.removeProperty('display');
+          document.getElementById('app-content').style.marginLeft = '';
+          document.getElementById('app-content').style.paddingTop = '';
+
           if (window.updatePharmacyDisplay) await updatePharmacyDisplay();
           Router.navigate('login');
         } else {
-          UI.toast('Configuration Supabase OK, mais aucune donnée de pharmacie trouvée sur le cloud.', 'warning');
+          UI.toast('Configuration Supabase OK, mais aucune donnée trouvée sur le cloud.', 'warning');
           this.render();
         }
       }
