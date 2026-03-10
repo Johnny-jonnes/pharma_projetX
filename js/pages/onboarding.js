@@ -355,6 +355,7 @@ const Onboarding = {
 
         if (hasData) {
           await DB.dbPut('settings', { key: 'onboarding_done', value: true });
+          localStorage.setItem('onboarding_done', 'true');
           UI.toast('Synchronisation réussie ! Vos données ont été récupérées.', 'success', 5000);
 
           document.getElementById('app-sidebar')?.style.removeProperty('display');

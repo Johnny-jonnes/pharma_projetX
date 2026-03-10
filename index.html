@@ -17,23 +17,9 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
     rel="stylesheet">
-  <link rel="stylesheet" href="css/main.css?v=3.5.0">
-  <link rel="stylesheet" href="css/mobile.css?v=3.5.0">
-  <script>const APP_VERSION = '3.5.0';</script>
-
-  <!-- Native App Feel: Disable right-click and common reloads -->
-  <script>
-    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-      document.addEventListener('contextmenu', e => e.preventDefault());
-      document.addEventListener('keydown', e => {
-        // Block F5, Ctrl+R, F12, Ctrl+Shift+I, Ctrl+U, Ctrl+S
-        if (e.key === 'F5' || e.key === 'F12' || (e.ctrlKey && (e.key === 'r' || e.key === 'R' || e.key === 'u' || e.key === 'U' || e.key === 's' || e.key === 'S')) ||
-          (e.ctrlKey && e.shiftKey && (e.key === 'i' || e.key === 'I'))) {
-          e.preventDefault();
-        }
-      });
-    }
-  </script>
+  <link rel="stylesheet" href="css/main.css?v=3.6.0">
+  <link rel="stylesheet" href="css/mobile.css?v=3.6.0">
+  <script>const APP_VERSION = '3.6.0-stable';</script>
   <meta name="theme-color" content="#1B4F72">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -120,28 +106,28 @@
 
   <div id="toast-container"></div>
 
-  <script src="js/db.js?v=3.4.0"></script>
-  <script src="js/auth.js?v=3.4.0"></script>
-  <script src="js/ui.js?v=3.4.0"></script>
-  <script src="js/mobile-money.js?v=3.4.0"></script>
-  <script src="js/pages/dashboard.js?v=3.4.0"></script>
-  <script src="js/pages/pos.js?v=3.4.0"></script>
-  <script src="js/pages/stock.js?v=3.4.0"></script>
-  <script src="js/pages/products.js?v=3.4.0"></script>
-  <script src="js/pages/sales.js?v=3.4.0"></script>
-  <script src="js/pages/returns.js?v=3.4.0"></script>
-  <script src="js/pages/settings.js?v=3.4.0"></script>
-  <script src="js/pages/prescriptions.js?v=3.4.0"></script>
-  <script src="js/pages/suppliers.js?v=3.4.0"></script>
-  <script src="js/pages/patients.js?v=3.4.0"></script>
-  <script src="js/pages/caisse.js?v=3.4.0"></script>
-  <script src="js/pages/traceability.js?v=3.4.0"></script>
-  <script src="js/pages/alerts-engine.js?v=3.4.0"></script>
-  <script src="js/pages/print.js?v=3.4.0"></script>
-  <script src="js/pages/onboarding.js?v=3.4.0"></script>
-  <script src="js/pages/metrics.js?v=3.4.0"></script>
-  <script src="js/ui/command-palette.js?v=3.4.0"></script>
-  <script src="js/ui/feedback.js?v=3.4.0"></script>
+  <script src="js/db.js?v=3.6.0"></script>
+  <script src="js/auth.js?v=3.6.0"></script>
+  <script src="js/ui.js?v=3.6.0"></script>
+  <script src="js/mobile-money.js?v=3.6.0"></script>
+  <script src="js/pages/dashboard.js?v=3.6.0"></script>
+  <script src="js/pages/pos.js?v=3.6.0"></script>
+  <script src="js/pages/stock.js?v=3.6.0"></script>
+  <script src="js/pages/products.js?v=3.6.0"></script>
+  <script src="js/pages/sales.js?v=3.6.0"></script>
+  <script src="js/pages/returns.js?v=3.6.0"></script>
+  <script src="js/pages/settings.js?v=3.6.0"></script>
+  <script src="js/pages/prescriptions.js?v=3.6.0"></script>
+  <script src="js/pages/suppliers.js?v=3.6.0"></script>
+  <script src="js/pages/patients.js?v=3.6.0"></script>
+  <script src="js/pages/caisse.js?v=3.6.0"></script>
+  <script src="js/pages/traceability.js?v=3.6.0"></script>
+  <script src="js/pages/alerts-engine.js?v=3.6.0"></script>
+  <script src="js/pages/print.js?v=3.6.0"></script>
+  <script src="js/pages/onboarding.js?v=3.6.0"></script>
+  <script src="js/pages/metrics.js?v=3.6.0"></script>
+  <script src="js/ui/command-palette.js?v=3.6.0"></script>
+  <script src="js/ui/feedback.js?v=3.6.0"></script>
 
   <script>
     const NAV_ITEMS = [
@@ -419,19 +405,28 @@
 
         // --- Check if pharmacy is already configured ---
         let settings = await DB.dbGetAll('settings');
-        let onboardingDone = settings.find(s => s.key === 'onboarding_done')?.value;
+        let onboardingDone = settings.find(s => s.key === 'onboarding_done')?.value || localStorage.getItem('onboarding_done') === 'true';
         const hasSupabase = settings.find(s => s.key === 'supabase_url')?.value;
 
-        // If Supabase configured but onboarding not done locally, attempt sync pull
-        if (!onboardingDone && hasSupabase && navigator.onLine) {
-          try {
+        // console.log('[App] Debug Onboarding:', { onboardingDone, hasSupabase, settingsCount: settings.length });
+
+        // If Supabase configured but onboarding not done locally
+        if (!onboardingDone && hasSupabase) {
+          console.log('[App] Supabase detected. Forcing onboarding_done to true.');
+          onboardingDone = true;
+          await DB.dbPut('settings', { key: 'onboarding_done', value: true });
+          localStorage.setItem('onboarding_done', 'true');
+
+          if (navigator.onLine) {
             const main = document.getElementById('app-content');
-            if (main) main.innerHTML = '<div class="loader-container"><div class="loader-spinner"></div><p>Synchronisation Cloud...</p></div>';
-            await DB.pullFromSupabase();
-            settings = await DB.dbGetAll('settings');
-            onboardingDone = settings.find(s => s.key === 'onboarding_done')?.value;
-          } catch (e) { console.warn('[App] Initial sync failed:', e); }
+            if (main) main.innerHTML = '<div class="loader-container"><div class="spinner"></div><p>Synchronisation Cloud...</p></div>';
+            DB.pullFromSupabase().catch(e => console.warn('[App] Background pull failed:', e));
+          }
         }
+
+        // Fresh check of onboarding status after potential pull
+        const finalSettings = await DB.dbGetAll('settings');
+        onboardingDone = finalSettings.find(s => s.key === 'onboarding_done')?.value || localStorage.getItem('onboarding_done') === 'true';
 
         if (!onboardingDone) {
           console.log('[App] Onboarding required.');

@@ -5,8 +5,30 @@
 const Auth = {
   async login(username, password) {
     const users = await DB.dbGetAll('users');
-    const user = users.find(u => String(u.username) === String(username) && String(u.password) === String(password) && u.active);
-    if (!user) return null;
+    const uInput = String(username || '').trim().toLowerCase();
+    const pInput = String(password || '').trim();
+
+    console.log('[Auth] Attempting login for:', uInput);
+    console.log('[Auth] Users in database:', users.map(u => ({
+      username: u.username,
+      pwd_len: String(u.password).length,
+      active: u.active
+    })));
+
+    const user = users.find(u => {
+      const dbUser = String(u.username || '').trim().toLowerCase();
+      const dbPass = String(u.password || '').trim();
+      return (dbUser === uInput && dbPass === pInput);
+    });
+
+    if (!user) {
+      console.warn('[Auth] Login failed: Credentials mismatch.');
+      return null;
+    }
+    if (!user.active) {
+      console.warn('[Auth] Login failed: Account is inactive.');
+      return null;
+    }
     const session = { id: 'session_' + Date.now(), userId: user.id, username: user.username, role: user.role, name: user.name, loginTime: Date.now() };
     await DB.dbPut('sessions', session);
     DB.AppState.currentUser = { ...user, sessionId: session.id };

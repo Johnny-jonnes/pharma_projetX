@@ -438,10 +438,13 @@ async function syncToSupabase() {
           for (const [key, value] of Object.entries(item)) {
             if (!key.startsWith('_')) {
               // Sensitive columns that MUST remain Strings (even if numeric)
-              const mustBeString = ['username', 'password', 'code', 'lotNumber', 'phone', 'dnpm'];
+              const mustBeString = [
+                'username', 'password', 'code', 'lotNumber', 'phone', 'dnpm',
+                'pharmacy_phone', 'pharmacy_dnpm', 'pharmacy_name', 'key', 'value'
+              ];
 
               if (mustBeString.includes(key)) {
-                payload[key] = value ? String(value) : value;
+                payload[key] = (value !== null && value !== undefined) ? String(value) : value;
                 continue;
               }
 
@@ -450,8 +453,9 @@ async function syncToSupabase() {
                 if (value.startsWith('session_')) {
                   // Extract numeric part from session_123456789
                   payload[key] = parseInt(value.replace('session_', '')) || 1;
-                } else if (/^\d+$/.test(value)) {
-                  // Only convert strings that are purely numeric TO integers
+                } else if (/^\d+$/.test(value) && !value.startsWith('0')) {
+                  // Only convert strings that are purely numeric TO integers IF they don't start with 0
+                  // (preserving leading zeros for codes, phones, and passwords)
                   payload[key] = parseInt(value);
                 } else {
                   payload[key] = value;
@@ -535,52 +539,73 @@ async function pullFromSupabase() {
       if (data && data.length > 0) {
 
         for (const item of data) {
-          // Meta-data transformation: map back to local convention
-          const localItem = { ...item, _synced: true, _updatedAt: item.updatedAt || Date.now() };
+          try {
+            // Meta-data transformation: map back to local convention
+            const localItem = { ...item, _synced: true, _updatedAt: item.updatedAt || Date.now() };
 
-          // CRITICAL: Force sensitive fields to String to prevent numeric breakage
-          const mustBeString = ['username', 'password', 'code', 'lotNumber', 'phone', 'dnpm'];
-          for (const key of mustBeString) {
-            if (localItem[key] !== undefined && localItem[key] !== null) {
-              localItem[key] = String(localItem[key]);
+            // CRITICAL: Force sensitive fields to String to prevent numeric breakage
+            const mustBeString = [
+              'username', 'password', 'code', 'lotNumber', 'phone', 'dnpm',
+              'pharmacy_phone', 'pharmacy_dnpm', 'pharmacy_name', 'key', 'value'
+            ];
+            for (const key of Object.keys(localItem)) {
+              if (mustBeString.includes(key) || (storeName === 'settings' && key === 'value')) {
+                if (localItem[key] !== undefined && localItem[key] !== null) {
+                  localItem[key] = String(localItem[key]);
+                }
+              }
             }
-          }
 
-          // CRITICAL: Handle unique constraints
-          if (storeName === 'products' && localItem.code) {
-            const existing = await dbGetAll('products', 'code', localItem.code);
-            if (existing.length > 0) {
-              await _dbPutRaw(storeName, { ...existing[0], ...localItem });
-              continue;
+            // CRITICAL: Handle unique constraints to avoid ConstraintError
+            if (storeName === 'products' && localItem.code) {
+              const existing = await dbGetAll('products', 'code', localItem.code);
+              if (existing.length > 0) {
+                // IMPORTANT: preserve local ID to update existing record instead of creating conflict
+                await _dbPutRaw(storeName, { ...localItem, id: existing[0].id });
+                continue;
+              }
             }
-          }
-          if (storeName === 'settings' && localItem.key) {
-            await _dbPutRaw(storeName, localItem);
-            continue;
-          }
-          if (storeName === 'users' && localItem.username) {
-            const existing = await dbGetAll('users', 'username', localItem.username);
-            if (existing.length > 0) {
-              const localUser = existing[0];
-              // PROTECTION : Ne pas écraser un admin local plus récent ou identique
-              // (évite que le pull n'écrase le password défini lors de l'onboarding)
-              if (localUser.username === 'admin' && (localUser.updatedAt || 0) >= (localItem.updatedAt || 0)) {
-
-                // On garde les infos sensibles locales mais on peut merger d'autres champs non sensibles si besoin
-                await _dbPutRaw(storeName, { ...localItem, ...localUser });
+            if (storeName === 'stock' && localItem.productId) {
+              const existing = await dbGetAll('stock', 'productId', localItem.productId);
+              if (existing.length > 0) {
+                await _dbPutRaw(storeName, { ...localItem, id: existing[0].id });
+                continue;
+              }
+            }
+            if (storeName === 'settings' && localItem.key) {
+              const existing = await DB.dbGet('settings', localItem.key);
+              if (existing) {
+                console.log(`[Sync] Updating setting: ${localItem.key}`);
+                await _dbPutRaw(storeName, localItem);
               } else {
-                await _dbPutRaw(storeName, { ...localUser, ...localItem });
+                console.log(`[Sync] Adding new setting: ${localItem.key}`);
+                await _dbPutRaw(storeName, localItem);
               }
               continue;
             }
-          }
+            if (storeName === 'users' && localItem.username) {
+              const existing = await dbGetAll('users', 'username', localItem.username);
+              if (existing.length > 0) {
+                // Cloud/Supabase version MUST overwrite local user (especially for passwords)
+                await _dbPutRaw(storeName, { ...localItem, id: existing[0].id });
+                continue;
+              }
+            }
 
-          // Fallback to standard put
-          await _dbPutRaw(storeName, localItem);
+            // Fallback to standard put
+            await _dbPutRaw(storeName, localItem);
+          } catch (itemError) {
+            console.warn(`[Sync] Failed to pull item for store ${storeName}:`, itemError, item);
+            // We continue to next item
+          }
         }
       }
     }
 
+    // Final refresh of display if settings were updated
+    if (window.updatePharmacyDisplay) {
+      await window.updatePharmacyDisplay();
+    }
   } catch (e) {
     console.error('[Sync] Pull failed:', e);
   }

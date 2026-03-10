@@ -106,6 +106,7 @@ async function handleLogin(event) {
       // Navigate to dashboard
       initSidebar();
       updateTopbar();
+      if (window.updatePharmacyDisplay) await updatePharmacyDisplay();
       Router.navigate('dashboard');
       UI.toast(`Bienvenue, ${user.name} !`, 'success');
     } else {
