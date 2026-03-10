@@ -441,7 +441,7 @@ async function syncToSupabase() {
               const mustBeString = ['username', 'password', 'code', 'lotNumber', 'phone', 'dnpm'];
 
               if (mustBeString.includes(key)) {
-                payload[key] = value ? String(value).trim() : value;
+                payload[key] = value ? String(value) : value;
                 continue;
               }
 
@@ -542,7 +542,7 @@ async function pullFromSupabase() {
           const mustBeString = ['username', 'password', 'code', 'lotNumber', 'phone', 'dnpm'];
           for (const key of mustBeString) {
             if (localItem[key] !== undefined && localItem[key] !== null) {
-              localItem[key] = String(localItem[key]).trim();
+              localItem[key] = String(localItem[key]);
             }
           }
 
