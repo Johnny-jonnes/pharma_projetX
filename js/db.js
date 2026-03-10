@@ -438,10 +438,10 @@ async function syncToSupabase() {
           for (const [key, value] of Object.entries(item)) {
             if (!key.startsWith('_')) {
               // Sensitive columns that MUST remain Strings (even if numeric)
-              const mustBeString = ['password', 'code', 'lotNumber', 'phone', 'dnpm'];
+              const mustBeString = ['username', 'password', 'code', 'lotNumber', 'phone', 'dnpm'];
 
               if (mustBeString.includes(key)) {
-                payload[key] = value ? String(value) : value;
+                payload[key] = value ? String(value).trim() : value;
                 continue;
               }
 
@@ -539,10 +539,10 @@ async function pullFromSupabase() {
           const localItem = { ...item, _synced: true, _updatedAt: item.updatedAt || Date.now() };
 
           // CRITICAL: Force sensitive fields to String to prevent numeric breakage
-          const mustBeString = ['password', 'code', 'lotNumber', 'phone', 'dnpm'];
+          const mustBeString = ['username', 'password', 'code', 'lotNumber', 'phone', 'dnpm'];
           for (const key of mustBeString) {
             if (localItem[key] !== undefined && localItem[key] !== null) {
-              localItem[key] = String(localItem[key]);
+              localItem[key] = String(localItem[key]).trim();
             }
           }
 
