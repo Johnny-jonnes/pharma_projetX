@@ -55,16 +55,22 @@ CREATE TABLE products (
 -- 2. TABLE LOTS — Gestion des lots
 -- ═══════════════════════════════════════════════════════════════
 CREATE TABLE lots (
-  id                BIGINT PRIMARY KEY,
-  "productId"       BIGINT,
-  "lotNumber"       TEXT,
-  "expiryDate"      TEXT,
-  quantity          INTEGER DEFAULT 0,
-  "initialQuantity" INTEGER DEFAULT 0,
-  "supplierId"      BIGINT,
-  "receiptDate"     TEXT,
-  status            TEXT DEFAULT 'active',
-  "updatedAt"       BIGINT
+  id                      BIGINT PRIMARY KEY,
+  "productId"             BIGINT,
+  "lotNumber"             TEXT,
+  "expiryDate"            TEXT,
+  quantity                INTEGER DEFAULT 0,
+  "initialQuantity"       INTEGER DEFAULT 0,
+  "supplierId"            BIGINT,
+  "receiptDate"           TEXT,
+  status                  TEXT DEFAULT 'active',
+  "updatedAt"             BIGINT,
+  "destroyedQty"          INTEGER DEFAULT 0,
+  "destructionDate"       TEXT,
+  "destructionReason"     TEXT,
+  "destructionMethod"     TEXT,
+  "destructionWitnesses"  TEXT,
+  "destructionBy"         TEXT
 );
 
 -- ═══════════════════════════════════════════════════════════════
@@ -208,6 +214,7 @@ CREATE TABLE alerts (
   status        TEXT DEFAULT 'unread',
   date          BIGINT,
   priority      TEXT DEFAULT 'medium',
+  "lotId"       BIGINT,
   "updatedAt"   BIGINT
 );
 
@@ -311,5 +318,21 @@ BEGIN
 END $$;
 
 -- ═══════════════════════════════════════════════════════════════
--- ✅ TERMINÉ — Toutes les tables sont prêtes. v3.4.0-stable
+-- 18. MIGRATION — Ajout colonnes manquantes (v3.6.0)
+-- Exécuter ce bloc si la base existe déjà (ALTER TABLE).
+-- ═══════════════════════════════════════════════════════════════
+
+-- Colonnes destruction dans lots
+ALTER TABLE lots ADD COLUMN IF NOT EXISTS "destroyedQty" INTEGER DEFAULT 0;
+ALTER TABLE lots ADD COLUMN IF NOT EXISTS "destructionDate" TEXT;
+ALTER TABLE lots ADD COLUMN IF NOT EXISTS "destructionReason" TEXT;
+ALTER TABLE lots ADD COLUMN IF NOT EXISTS "destructionMethod" TEXT;
+ALTER TABLE lots ADD COLUMN IF NOT EXISTS "destructionWitnesses" TEXT;
+ALTER TABLE lots ADD COLUMN IF NOT EXISTS "destructionBy" TEXT;
+
+-- Colonne lotId dans alerts
+ALTER TABLE alerts ADD COLUMN IF NOT EXISTS "lotId" BIGINT;
+
+-- ═══════════════════════════════════════════════════════════════
+-- ✅ TERMINÉ — Toutes les tables sont prêtes. v3.6.0-stable
 -- ═══════════════════════════════════════════════════════════════

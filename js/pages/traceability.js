@@ -58,6 +58,10 @@ async function renderTraceability(container) {
       <button class="tab-btn" data-tab="destruction" onclick="switchTraceTab(this,'destruction')"><i data-lucide="trash-2"></i> Destruction</button>
       ${DB.AppState.currentUser?.role === 'admin' ? `
       <button class="tab-btn" data-tab="audit" onclick="switchTraceTab(this,'audit');loadAuditTab()"><i data-lucide="clipboard-list"></i> Journal d'Audit</button>` : ''}
+      ${['admin','pharmacien'].includes(DB.AppState.currentUser?.role) ? `
+      <button class="tab-btn" data-tab="report" onclick="switchTraceTab(this,'report')"><i data-lucide="file-bar-chart"></i> Rapport</button>
+      <button class="tab-btn" data-tab="compliance" onclick="switchTraceTab(this,'compliance');loadComplianceTab()"><i data-lucide="check-square"></i> Conformité</button>
+      <button class="tab-btn" data-tab="planning" onclick="switchTraceTab(this,'planning');loadPlanningTab()"><i data-lucide="calendar-clock"></i> Planification</button>` : ''}
     </div>
 
     <!-- Tab: Expirations -->
@@ -182,6 +186,57 @@ async function renderTraceability(container) {
       </div>
       <div id="audit-log-container">Chargement...</div>
     </div>
+
+    <!-- Tab: Rapport d'Audit -->
+    ${['admin','pharmacien'].includes(DB.AppState.currentUser?.role) ? `
+    <div id="tab-report" class="tab-content" style="display:none">
+      <div class="info-box" style="margin-bottom:20px;background:rgba(46,134,193,0.05);border-left:4px solid var(--primary-color);padding:15px;border-radius:0 8px 8px 0;">
+        <h4 style="margin-top:0;color:var(--primary-color);display:flex;align-items:center;gap:8px;">
+          <i data-lucide="file-bar-chart"></i> Générer un Rapport d'Audit
+        </h4>
+        <p class="text-sm text-muted" style="margin-bottom:0">
+          Compilez les actions du journal d'audit sur une période donnée en un rapport structuré, imprimable et exportable en PDF.
+        </p>
+      </div>
+      <div class="audit-report-config" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:20px;">
+        <div class="form-group" style="margin-bottom:0;min-width:160px;">
+          <label>Date de début</label>
+          <input type="date" id="report-date-start" class="form-control" value="${new Date(Date.now() - 30*24*60*60*1000).toISOString().split('T')[0]}">
+        </div>
+        <div class="form-group" style="margin-bottom:0;min-width:160px;">
+          <label>Date de fin</label>
+          <input type="date" id="report-date-end" class="form-control" value="${new Date().toISOString().split('T')[0]}">
+        </div>
+        <div class="form-group" style="margin-bottom:0;min-width:160px;">
+          <label>Type d'action</label>
+          <select id="report-action-filter" class="form-control">
+            <option value="">Toutes les actions</option>
+            <option value="STOCK_ENTRY">Entrées stock</option>
+            <option value="SALE">Ventes</option>
+            <option value="LOT_RECALL">Rappels lot</option>
+            <option value="LOT_DESTRUCTION">Destructions</option>
+            <option value="PV_REPORT">Pharmacovigilance</option>
+            <option value="LOGIN">Connexions</option>
+            <option value="SAVE_SETTINGS">Paramètres</option>
+            <option value="RETURN_PROCESSED">Retours</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="generateAuditReport()"><i data-lucide="bar-chart-3"></i> Générer le rapport</button>
+      </div>
+      <div id="audit-report-output"></div>
+    </div>` : ''}
+
+    <!-- Tab: Conformité -->
+    ${['admin','pharmacien'].includes(DB.AppState.currentUser?.role) ? `
+    <div id="tab-compliance" class="tab-content" style="display:none">
+      <div id="compliance-container">Chargement...</div>
+    </div>` : ''}
+
+    <!-- Tab: Planification -->
+    ${['admin','pharmacien'].includes(DB.AppState.currentUser?.role) ? `
+    <div id="tab-planning" class="tab-content" style="display:none">
+      <div id="planning-container">Chargement...</div>
+    </div>` : ''}
   `;
 
   window._traceProductMap = productMap;
@@ -786,6 +841,18 @@ function formatAuditDetails(log) {
       return `Signalement d'effet indésirable (ANSS) pour <strong>${d.drug}</strong>. Gravité : <span class="badge badge-danger">${sevLabel}</span>.`;
     case 'RETURN_PROCESSED':
       return `<strong>RETOUR CLIENT</strong> : Vente #<strong>${String(d.saleId).padStart(6, '0')}</strong>. Montant remboursé : <strong>${UI.formatCurrency(d.refundAmount)}</strong>. Motif : ${d.reason}.`;
+    case 'COMPLIANCE_CHECK':
+      return `<strong>Évaluation de conformité</strong> — BPD : <span class="badge ${(d.bpdScore||0)>=80?'badge-success':'badge-warning'}">${d.bpdScore||0}%</span> · DNPM : <span class="badge ${(d.dnpmScore||0)>=80?'badge-success':'badge-warning'}">${d.dnpmScore||0}%</span> · Global : <strong>${d.globalScore||0}%</strong>.`;
+    case 'AUDIT_PLANNED':
+      return `Audit planifié : <strong>${d.title || '—'}</strong> (${d.auditType || 'Général'}) prévu le ${UI.formatDate(d.plannedDate)}. Responsable : ${d.responsible || '—'}.`;
+    case 'AUDIT_STARTED':
+      return `Audit démarré : <strong>${d.title || '—'}</strong> (${d.auditType || 'Général'}).`;
+    case 'AUDIT_COMPLETED':
+      return `Audit terminé avec succès : <strong>${d.title || '—'}</strong> (${d.auditType || 'Général'}).`;
+    case 'AUDIT_CANCELLED':
+      return `Audit annulé : <strong>${d.title || '—'}</strong> (${d.auditType || 'Général'}).`;
+    case 'AUDIT_REPORT_GENERATED':
+      return `Rapport d'audit généré pour la période <strong>${d.period || '—'}</strong>. ${d.entriesCount || 0} entrée(s) compilée(s).`;
     default:
       // Si on ne connaît pas l'action, on essaie de construire une phrase générique
       if (d.name || d.productName) return `Action sur <strong>${d.name || d.productName}</strong>.`;
@@ -813,6 +880,12 @@ function renderAuditTable(data) {
     CASH_ENTRY: ['banknote', 'Mouv. Caisse', 'badge-info'],
     CAISSE_CLOSURE: ['lock', 'Clôture Caisse', 'badge-neutral'],
     DEBT_REFUND: ['check-circle', 'Réglt Dette', 'badge-success'],
+    COMPLIANCE_CHECK: ['check-square', 'Conformité', 'badge-success'],
+    AUDIT_PLANNED: ['calendar-clock', 'Audit Planifié', 'badge-info'],
+    AUDIT_STARTED: ['play', 'Audit Démarré', 'badge-warning'],
+    AUDIT_COMPLETED: ['check-circle', 'Audit Terminé', 'badge-success'],
+    AUDIT_CANCELLED: ['x-circle', 'Audit Annulé', 'badge-danger'],
+    AUDIT_REPORT_GENERATED: ['file-bar-chart', 'Rapport Généré', 'badge-info'],
   };
 
   if (data.length === 0) {
@@ -1075,3 +1148,608 @@ window.ANSSGateway = ANSSGateway;
 window.previewPVReport = previewPVReport;
 window.submitPVReport = submitPVReport;
 window.printPVReport = printPVReport;
+
+// ═══════════════════════════════════════════════════════════════════
+// FEATURE 1 — Génération de Rapports d'Audit
+// ═══════════════════════════════════════════════════════════════════
+
+async function generateAuditReport() {
+  const container = document.getElementById('audit-report-output');
+  if (!container) return;
+
+  const startDate = document.getElementById('report-date-start')?.value;
+  const endDate = document.getElementById('report-date-end')?.value;
+  const actionFilter = document.getElementById('report-action-filter')?.value;
+
+  if (!startDate || !endDate) {
+    UI.toast('Veuillez sélectionner une période', 'warning');
+    return;
+  }
+
+  UI.loading(container, 'Génération du rapport en cours...');
+
+  const allAudit = await DB.dbGetAll('auditLog');
+  const startTs = new Date(startDate).getTime();
+  const endTs = new Date(endDate + 'T23:59:59').getTime();
+
+  let filtered = allAudit.filter(log => {
+    const ts = log.timestamp || 0;
+    return ts >= startTs && ts <= endTs;
+  });
+
+  if (actionFilter) {
+    filtered = filtered.filter(log => log.action === actionFilter);
+  }
+
+  filtered.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+  // Statistiques par type d'action
+  const actionStats = {};
+  filtered.forEach(log => {
+    const act = log.action || 'INCONNU';
+    actionStats[act] = (actionStats[act] || 0) + 1;
+  });
+
+  // Utilisateurs actifs
+  const userStats = {};
+  filtered.forEach(log => {
+    const user = log.username || 'Système';
+    userStats[user] = (userStats[user] || 0) + 1;
+  });
+
+  // Labels d'actions
+  const actionLabels = {
+    STOCK_ENTRY: 'Entrée Stock', SALE: 'Vente', SAVE_SETTINGS: 'Configuration',
+    RETURN_PROCESSED: 'Retour Client', ADD_USER: 'Ajout Utilisateur', EDIT_USER: 'Modif Utilisateur',
+    LOT_RECALL: 'Rappel Lot', LOT_DESTRUCTION: 'Destruction', PV_REPORT: 'Pharmacovigilance',
+    LOGIN: 'Connexion', LOGOUT: 'Déconnexion', CASH_ENTRY: 'Mouv. Caisse',
+    CAISSE_CLOSURE: 'Clôture Caisse', DEBT_REFUND: 'Réglt Dette', RESTORE_BACKUP: 'Restauration',
+    COMPLIANCE_CHECK: 'Audit Conformité', AUDIT_PLANNED: 'Audit Planifié',
+    AUDIT_STARTED: 'Audit Démarré', AUDIT_COMPLETED: 'Audit Terminé',
+    AUDIT_REPORT_GENERATED: 'Rapport Généré',
+  };
+
+  // Charger infos pharmacie
+  const settings = await DB.dbGetAll('settings');
+  const gs = k => settings.find(s => s.key === k)?.value;
+  const pharmacyName = gs('pharmacy_name') || 'PharmaProjet';
+  const pharmacyAddress = gs('pharmacy_address') || '';
+  const pharmacyPhone = gs('pharmacy_phone') || '';
+
+  container.innerHTML = `
+    <div class="audit-report-printable" id="audit-report-printable">
+      <div class="audit-report-header">
+        <div class="audit-report-logo">
+          <i data-lucide="shield-check" style="width:32px;height:32px"></i>
+          <div>
+            <h2 style="margin:0;font-size:20px">${pharmacyName}</h2>
+            <p class="text-sm text-muted" style="margin:0">${pharmacyAddress}${pharmacyPhone ? ' · ' + pharmacyPhone : ''}</p>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <h3 style="margin:0;color:var(--primary-color)">Rapport d'Audit</h3>
+          <p class="text-sm text-muted" style="margin:4px 0 0">Du ${UI.formatDate(startDate)} au ${UI.formatDate(endDate)}</p>
+          <p class="text-sm text-muted" style="margin:2px 0 0">Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'})}</p>
+        </div>
+      </div>
+
+      <div class="audit-report-summary">
+        <div class="audit-report-stat-card">
+          <div class="audit-report-stat-val">${filtered.length}</div>
+          <div class="audit-report-stat-lbl">Actions enregistrées</div>
+        </div>
+        <div class="audit-report-stat-card">
+          <div class="audit-report-stat-val">${Object.keys(actionStats).length}</div>
+          <div class="audit-report-stat-lbl">Types d'actions</div>
+        </div>
+        <div class="audit-report-stat-card">
+          <div class="audit-report-stat-val">${Object.keys(userStats).length}</div>
+          <div class="audit-report-stat-lbl">Utilisateurs actifs</div>
+        </div>
+        <div class="audit-report-stat-card">
+          <div class="audit-report-stat-val">${Math.ceil((endTs - startTs) / (1000*60*60*24))}</div>
+          <div class="audit-report-stat-lbl">Jours couverts</div>
+        </div>
+      </div>
+
+      <h4 class="audit-report-section-title"><i data-lucide="pie-chart"></i> Répartition par type d'action</h4>
+      <div class="audit-report-breakdown">
+        ${Object.entries(actionStats).sort((a, b) => b[1] - a[1]).map(([action, count]) => {
+          const pct = filtered.length > 0 ? ((count / filtered.length) * 100).toFixed(1) : 0;
+          return `<div class="audit-report-breakdown-row">
+            <span class="audit-report-breakdown-label">${actionLabels[action] || action}</span>
+            <div class="audit-report-breakdown-bar-bg"><div class="audit-report-breakdown-bar" style="width:${pct}%"></div></div>
+            <span class="audit-report-breakdown-count">${count} <span class="text-muted">(${pct}%)</span></span>
+          </div>`;
+        }).join('')}
+      </div>
+
+      <h4 class="audit-report-section-title"><i data-lucide="users"></i> Activité par utilisateur</h4>
+      <div class="audit-report-users">
+        ${Object.entries(userStats).sort((a, b) => b[1] - a[1]).map(([user, count]) => `
+          <div class="audit-report-user-chip">
+            <span class="audit-report-user-avatar">${(user || '?').charAt(0).toUpperCase()}</span>
+            <span><strong>${user}</strong></span>
+            <span class="badge badge-neutral">${count} action(s)</span>
+          </div>
+        `).join('')}
+      </div>
+
+      <h4 class="audit-report-section-title"><i data-lucide="list"></i> Journal détaillé (${Math.min(filtered.length, 200)} entrées)</h4>
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead><tr><th>Date / Heure</th><th>Utilisateur</th><th>Action</th><th>Détails</th></tr></thead>
+          <tbody>
+            ${filtered.slice(0, 200).map(log => `
+              <tr>
+                <td class="text-sm" style="white-space:nowrap">${UI.formatDateTime(log.timestamp)}</td>
+                <td><code>${log.username || '—'}</code></td>
+                <td><span class="badge badge-neutral">${actionLabels[log.action] || log.action}</span></td>
+                <td class="text-sm">${formatAuditDetails(log)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="audit-report-footer">
+        <p>Ce rapport est généré automatiquement par ${pharmacyName} — PharmaProjet. Il constitue un document de traçabilité au sens des Bonnes Pratiques de Dispensation (BPD) et de la réglementation DNPM.</p>
+        <p><strong>Pharmacien responsable :</strong> ${DB.AppState.currentUser?.name || '—'} · <strong>Ref :</strong> RPT-${Date.now()}</p>
+      </div>
+    </div>
+
+    <div class="audit-report-actions" style="display:flex;gap:12px;margin-top:20px;justify-content:center">
+      <button class="btn btn-primary" onclick="printAuditReport()"><i data-lucide="printer"></i> Imprimer / PDF</button>
+      <button class="btn btn-secondary" onclick="document.getElementById('audit-report-output').innerHTML=''"><i data-lucide="x"></i> Fermer</button>
+    </div>
+  `;
+
+  // Enregistrer dans l'audit
+  await DB.writeAudit('AUDIT_REPORT_GENERATED', 'audit', null, {
+    period: `${startDate} → ${endDate}`,
+    actionFilter: actionFilter || 'toutes',
+    entriesCount: filtered.length,
+  });
+
+  if (window.lucide) lucide.createIcons();
+}
+
+function printAuditReport() {
+  const report = document.getElementById('audit-report-printable');
+  if (!report) return;
+  const printWindow = window.open('', '_blank');
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html lang="fr">
+    <head>
+      <meta charset="UTF-8">
+      <title>Rapport d'Audit — PharmaProjet</title>
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+      <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Inter',system-ui,sans-serif; color:#1e293b; padding:30px; font-size:12px; line-height:1.5; }
+        h2 { font-size:18px; } h3 { font-size:15px; } h4 { font-size:13px; margin:20px 0 10px; display:flex; align-items:center; gap:6px; color:#1B4F72; }
+        .text-sm { font-size:11px; } .text-muted { color:#64748b; }
+        table { width:100%; border-collapse:collapse; font-size:11px; margin-top:8px; }
+        th, td { padding:6px 8px; border:1px solid #e2e8f0; text-align:left; }
+        th { background:#f1f5f9; font-weight:600; }
+        .badge { display:inline-block; padding:2px 8px; border-radius:4px; font-size:10px; background:#f1f5f9; }
+        code { background:#f1f5f9; padding:1px 4px; border-radius:3px; font-size:10px; }
+        .audit-report-header { display:flex; justify-content:space-between; align-items:center; padding-bottom:16px; border-bottom:2px solid #1B4F72; margin-bottom:20px; }
+        .audit-report-logo { display:flex; align-items:center; gap:12px; }
+        .audit-report-summary { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:16px 0; }
+        .audit-report-stat-card { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px; text-align:center; }
+        .audit-report-stat-val { font-size:24px; font-weight:700; color:#1B4F72; }
+        .audit-report-stat-lbl { font-size:10px; color:#64748b; margin-top:2px; }
+        .audit-report-breakdown-row { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+        .audit-report-breakdown-label { min-width:140px; font-size:11px; font-weight:500; }
+        .audit-report-breakdown-bar-bg { flex:1; height:14px; background:#e2e8f0; border-radius:7px; overflow:hidden; }
+        .audit-report-breakdown-bar { height:100%; background:linear-gradient(90deg,#1B6FAE,#2EAF7D); border-radius:7px; }
+        .audit-report-breakdown-count { min-width:80px; text-align:right; font-size:11px; font-weight:600; }
+        .audit-report-users { display:flex; flex-wrap:wrap; gap:8px; }
+        .audit-report-user-chip { display:flex; align-items:center; gap:8px; padding:6px 12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; }
+        .audit-report-user-avatar { width:24px; height:24px; border-radius:50%; background:#1B4F72; color:white; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; }
+        .audit-report-footer { margin-top:30px; padding-top:16px; border-top:1px solid #e2e8f0; font-size:10px; color:#64748b; }
+        svg, i { display:none !important; }
+        @page { margin: 15mm; }
+      </style>
+    </head>
+    <body>${report.innerHTML}</body>
+    </html>
+  `);
+  printWindow.document.close();
+  setTimeout(() => { printWindow.print(); }, 500);
+}
+
+window.generateAuditReport = generateAuditReport;
+window.printAuditReport = printAuditReport;
+
+// ═══════════════════════════════════════════════════════════════════
+// FEATURE 2 — Checklists de Conformité (BPD & DNPM)
+// ═══════════════════════════════════════════════════════════════════
+
+const COMPLIANCE_CHECKLISTS = {
+  bpd: {
+    title: 'Bonnes Pratiques de Dispensation (BPD)',
+    icon: 'heart-pulse',
+    color: '#2EAF7D',
+    items: [
+      { id: 'bpd_1', text: "Vérification de l'identité du patient et de l'ordonnance" },
+      { id: 'bpd_2', text: "Analyse pharmaceutique de l'ordonnance avant dispensation" },
+      { id: 'bpd_3', text: "Vérification des interactions médicamenteuses" },
+      { id: 'bpd_4', text: "Vérification des posologies et durées de traitement" },
+      { id: 'bpd_5', text: "Conseil au patient sur la prise des médicaments" },
+      { id: 'bpd_6', text: "Traçabilité des dispensations (lot → patient)" },
+      { id: 'bpd_7', text: "Conservation adéquate des médicaments (T°, humidité)" },
+      { id: 'bpd_8', text: "Gestion des stupéfiants selon la réglementation" },
+      { id: 'bpd_9', text: "Registre des ordonnances tenu à jour" },
+      { id: 'bpd_10', text: "Formation continue du personnel officinal" },
+    ]
+  },
+  dnpm: {
+    title: 'Conformité DNPM (Direction Nationale de la Pharmacie)',
+    icon: 'building-2',
+    color: '#1B6FAE',
+    items: [
+      { id: 'dnpm_1', text: "Licence DNPM valide et affichée" },
+      { id: 'dnpm_2', text: "Pharmacien titulaire présent aux heures d'ouverture" },
+      { id: 'dnpm_3', text: "Registre de pharmacovigilance tenu à jour" },
+      { id: 'dnpm_4', text: "Procédure de rappel de lot documentée" },
+      { id: 'dnpm_5', text: "Registre de destruction des périmés à jour" },
+      { id: 'dnpm_6', text: "Approvisionnement auprès de fournisseurs agréés" },
+      { id: 'dnpm_7', text: "Lutte contre les médicaments contrefaits active" },
+      { id: 'dnpm_8', text: "Rapport annuel d'activité préparé" },
+    ]
+  }
+};
+
+async function loadComplianceTab() {
+  const container = document.getElementById('compliance-container');
+  if (!container) return;
+
+  // Charger l'historique des évaluations
+  const allAudit = await DB.dbGetAll('auditLog');
+  const complianceHistory = allAudit
+    .filter(l => l.action === 'COMPLIANCE_CHECK')
+    .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+    .slice(0, 10);
+
+  container.innerHTML = `
+    <div class="info-box" style="margin-bottom:20px;background:rgba(46,175,125,0.05);border-left:4px solid #2EAF7D;padding:15px;border-radius:0 8px 8px 0;">
+      <h4 style="margin-top:0;color:#2EAF7D;display:flex;align-items:center;gap:8px;">
+        <i data-lucide="check-square"></i> Évaluation de Conformité
+      </h4>
+      <p class="text-sm text-muted" style="margin-bottom:0">
+        Effectuez un auto-audit en cochant les points de contrôle ci-dessous. Les résultats sont sauvegardés dans le journal d'audit pour démontrer la conformité réglementaire de votre officine.
+      </p>
+    </div>
+
+    <div class="compliance-checklists">
+      ${Object.entries(COMPLIANCE_CHECKLISTS).map(([key, checklist]) => `
+        <div class="compliance-card" id="compliance-card-${key}">
+          <div class="compliance-card-header" style="border-left-color:${checklist.color}">
+            <div>
+              <h4 style="margin:0;display:flex;align-items:center;gap:8px;color:${checklist.color}">
+                <i data-lucide="${checklist.icon}"></i> ${checklist.title}
+              </h4>
+              <p class="text-sm text-muted" style="margin:4px 0 0">${checklist.items.length} points de contrôle</p>
+            </div>
+            <div class="compliance-score" id="compliance-score-${key}">
+              <div class="compliance-score-circle" style="--score-color:${checklist.color}">
+                <span id="compliance-pct-${key}">0%</span>
+              </div>
+              <span class="text-sm text-muted">Conformité</span>
+            </div>
+          </div>
+          <div class="compliance-items">
+            ${checklist.items.map((item, idx) => `
+              <label class="compliance-item" for="${item.id}">
+                <input type="checkbox" id="${item.id}" class="compliance-checkbox" data-checklist="${key}" onchange="updateComplianceScore('${key}')">
+                <span class="compliance-checkmark"></span>
+                <span class="compliance-text">${item.text}</span>
+              </label>
+            `).join('')}
+          </div>
+          <div class="compliance-comment-zone">
+            <textarea id="compliance-notes-${key}" class="form-control" rows="2" placeholder="Observations / commentaires pour cette section..."></textarea>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+
+    <div style="display:flex;gap:12px;margin-top:20px;justify-content:center">
+      <button class="btn btn-primary" onclick="saveComplianceCheck()"><i data-lucide="save"></i> Sauvegarder l'évaluation</button>
+      <button class="btn btn-secondary" onclick="toggleComplianceHistory()"><i data-lucide="history"></i> Historique</button>
+    </div>
+
+    <div id="compliance-history" style="display:none;margin-top:20px">
+      <h4 class="section-subtitle">Historique des évaluations</h4>
+      ${complianceHistory.length === 0
+        ? '<div class="empty-state-small"><i data-lucide="clipboard-list"></i> Aucune évaluation enregistrée</div>'
+        : `<div class="table-wrapper"><table class="data-table">
+            <thead><tr><th>Date</th><th>Évaluateur</th><th>BPD</th><th>DNPM</th><th>Score global</th></tr></thead>
+            <tbody>
+              ${complianceHistory.map(log => {
+                const d = log.details || {};
+                return `<tr>
+                  <td>${UI.formatDateTime(log.timestamp)}</td>
+                  <td><code>${log.username || '—'}</code></td>
+                  <td><span class="badge ${(d.bpdScore || 0) >= 80 ? 'badge-success' : (d.bpdScore || 0) >= 50 ? 'badge-warning' : 'badge-danger'}">${d.bpdScore || 0}%</span></td>
+                  <td><span class="badge ${(d.dnpmScore || 0) >= 80 ? 'badge-success' : (d.dnpmScore || 0) >= 50 ? 'badge-warning' : 'badge-danger'}">${d.dnpmScore || 0}%</span></td>
+                  <td><strong>${d.globalScore || 0}%</strong></td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table></div>`
+      }
+    </div>
+  `;
+  if (window.lucide) lucide.createIcons();
+}
+
+function updateComplianceScore(checklistKey) {
+  const checklist = COMPLIANCE_CHECKLISTS[checklistKey];
+  if (!checklist) return;
+  const checked = checklist.items.filter(item =>
+    document.getElementById(item.id)?.checked
+  ).length;
+  const pct = Math.round((checked / checklist.items.length) * 100);
+  const pctEl = document.getElementById(`compliance-pct-${checklistKey}`);
+  if (pctEl) pctEl.textContent = pct + '%';
+
+  const scoreCircle = pctEl?.parentElement;
+  if (scoreCircle) {
+    scoreCircle.style.setProperty('--score-pct', pct);
+    scoreCircle.className = `compliance-score-circle ${pct >= 80 ? 'score-good' : pct >= 50 ? 'score-medium' : 'score-low'}`;
+  }
+}
+
+async function saveComplianceCheck() {
+  const results = {};
+  let totalChecked = 0;
+  let totalItems = 0;
+
+  Object.entries(COMPLIANCE_CHECKLISTS).forEach(([key, checklist]) => {
+    const checked = checklist.items.filter(item =>
+      document.getElementById(item.id)?.checked
+    );
+    const notes = document.getElementById(`compliance-notes-${key}`)?.value || '';
+
+    results[key] = {
+      checked: checked.map(i => i.id),
+      unchecked: checklist.items.filter(i => !document.getElementById(i.id)?.checked).map(i => i.text),
+      score: Math.round((checked.length / checklist.items.length) * 100),
+      notes,
+    };
+
+    totalChecked += checked.length;
+    totalItems += checklist.items.length;
+  });
+
+  const globalScore = totalItems > 0 ? Math.round((totalChecked / totalItems) * 100) : 0;
+
+  const ok = await UI.confirm(
+    `Sauvegarder cette évaluation de conformité ?\n\n` +
+    `• BPD : ${results.bpd?.score || 0}%\n` +
+    `• DNPM : ${results.dnpm?.score || 0}%\n` +
+    `• Score global : ${globalScore}%\n\n` +
+    `Cette action sera tracée dans le journal d'audit.`
+  );
+  if (!ok) return;
+
+  await DB.writeAudit('COMPLIANCE_CHECK', 'compliance', null, {
+    bpdScore: results.bpd?.score || 0,
+    dnpmScore: results.dnpm?.score || 0,
+    globalScore,
+    bpdUnchecked: results.bpd?.unchecked || [],
+    dnpmUnchecked: results.dnpm?.unchecked || [],
+    bpdNotes: results.bpd?.notes || '',
+    dnpmNotes: results.dnpm?.notes || '',
+    evaluator: DB.AppState.currentUser?.name,
+  });
+
+  UI.toast(`✅ Évaluation sauvegardée — Score global : ${globalScore}%`, 'success', 5000);
+  loadComplianceTab();
+}
+
+function toggleComplianceHistory() {
+  const el = document.getElementById('compliance-history');
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+window.loadComplianceTab = loadComplianceTab;
+window.updateComplianceScore = updateComplianceScore;
+window.saveComplianceCheck = saveComplianceCheck;
+window.toggleComplianceHistory = toggleComplianceHistory;
+
+// ═══════════════════════════════════════════════════════════════════
+// FEATURE 3 — Planification d'Audits Internes
+// ═══════════════════════════════════════════════════════════════════
+
+async function loadPlanningTab() {
+  const container = document.getElementById('planning-container');
+  if (!container) return;
+
+  const allAudit = await DB.dbGetAll('auditLog');
+  const plannedAudits = allAudit
+    .filter(l => ['AUDIT_PLANNED', 'AUDIT_STARTED', 'AUDIT_COMPLETED', 'AUDIT_CANCELLED'].includes(l.action))
+    .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+  // Grouper par auditId pour avoir le dernier statut
+  const auditMap = {};
+  plannedAudits.forEach(log => {
+    const id = log.details?.auditId;
+    if (id && !auditMap[id]) {
+      auditMap[id] = log;
+    }
+  });
+  const audits = Object.values(auditMap).sort((a, b) => {
+    const da = new Date(a.details?.plannedDate || 0);
+    const db2 = new Date(b.details?.plannedDate || 0);
+    return da - db2;
+  });
+
+  const today = new Date().toISOString().split('T')[0];
+
+  const statusLabels = {
+    AUDIT_PLANNED: ['clock', 'Planifié', 'badge-info'],
+    AUDIT_STARTED: ['play', 'En cours', 'badge-warning'],
+    AUDIT_COMPLETED: ['check-circle', 'Terminé', 'badge-success'],
+    AUDIT_CANCELLED: ['x-circle', 'Annulé', 'badge-danger'],
+  };
+
+  container.innerHTML = `
+    <div class="info-box" style="margin-bottom:20px;background:rgba(27,79,114,0.05);border-left:4px solid #1B4F72;padding:15px;border-radius:0 8px 8px 0;">
+      <h4 style="margin-top:0;color:var(--primary-color);display:flex;align-items:center;gap:8px;">
+        <i data-lucide="calendar-clock"></i> Planification des Audits Internes
+      </h4>
+      <p class="text-sm text-muted" style="margin-bottom:0">
+        Planifiez vos audits internes, suivez leur statut et assurez la conformité de votre officine. Un audit bien planifié est la clé d'une amélioration continue.
+      </p>
+    </div>
+
+    <div style="margin-bottom:20px">
+      <button class="btn btn-primary" onclick="showPlanAuditForm()"><i data-lucide="plus"></i> Planifier un audit</button>
+    </div>
+
+    ${audits.length === 0
+      ? '<div class="empty-state-small"><i data-lucide="calendar"></i> Aucun audit planifié. Commencez par planifier votre premier audit interne.</div>'
+      : `<div class="planning-cards">
+          ${audits.map(log => {
+            const d = log.details || {};
+            const [icon, label, cls] = statusLabels[log.action] || ['info', '?', 'badge-neutral'];
+            const plannedDate = d.plannedDate || '';
+            const daysUntil = plannedDate ? Math.ceil((new Date(plannedDate) - new Date()) / (1000*60*60*24)) : null;
+            const isUrgent = daysUntil !== null && daysUntil <= 7 && daysUntil >= 0 && log.action === 'AUDIT_PLANNED';
+            const isOverdue = daysUntil !== null && daysUntil < 0 && log.action === 'AUDIT_PLANNED';
+
+            return `<div class="planning-card ${isOverdue ? 'planning-card-overdue' : isUrgent ? 'planning-card-urgent' : ''}">
+              <div class="planning-card-header">
+                <div>
+                  <h4 style="margin:0;font-size:15px">${d.title || 'Audit sans titre'}</h4>
+                  <p class="text-sm text-muted" style="margin:4px 0 0">${d.auditType || 'Général'} · Responsable : <strong>${d.responsible || '—'}</strong></p>
+                </div>
+                <span class="badge ${cls}"><i data-lucide="${icon}"></i> ${label}</span>
+              </div>
+              <div class="planning-card-body">
+                <div class="planning-card-detail">
+                  <i data-lucide="calendar"></i>
+                  <span>Date prévue : <strong>${UI.formatDate(plannedDate)}</strong></span>
+                  ${isOverdue ? '<span class="badge badge-danger">En retard</span>' : ''}
+                  ${isUrgent ? '<span class="badge badge-warning">Sous 7 jours</span>' : ''}
+                  ${daysUntil !== null && daysUntil > 7 && log.action === 'AUDIT_PLANNED' ? `<span class="badge badge-neutral">J-${daysUntil}</span>` : ''}
+                </div>
+                ${d.notes ? `<p class="text-sm text-muted" style="margin-top:8px"><i data-lucide="message-square" style="width:12px;height:12px;vertical-align:middle"></i> ${d.notes}</p>` : ''}
+              </div>
+              ${log.action !== 'AUDIT_COMPLETED' && log.action !== 'AUDIT_CANCELLED' ? `
+              <div class="planning-card-actions">
+                ${log.action === 'AUDIT_PLANNED' ? `<button class="btn btn-xs btn-primary" onclick="updateAuditStatus('${d.auditId}','AUDIT_STARTED','${d.title}','${plannedDate}','${d.responsible}','${(d.notes||'').replace(/'/g,"\\'")}','${d.auditType}')"><i data-lucide="play"></i> Démarrer</button>` : ''}
+                ${log.action === 'AUDIT_STARTED' ? `<button class="btn btn-xs btn-success" onclick="updateAuditStatus('${d.auditId}','AUDIT_COMPLETED','${d.title}','${plannedDate}','${d.responsible}','${(d.notes||'').replace(/'/g,"\\'")}','${d.auditType}')"><i data-lucide="check-circle"></i> Terminer</button>` : ''}
+                <button class="btn btn-xs btn-danger" onclick="updateAuditStatus('${d.auditId}','AUDIT_CANCELLED','${d.title}','${plannedDate}','${d.responsible}','${(d.notes||'').replace(/'/g,"\\'")}','${d.auditType}')"><i data-lucide="x"></i> Annuler</button>
+              </div>` : ''}
+            </div>`;
+          }).join('')}
+        </div>`
+    }
+  `;
+  if (window.lucide) lucide.createIcons();
+}
+
+function showPlanAuditForm() {
+  const today = new Date().toISOString().split('T')[0];
+  UI.modal('<i data-lucide="calendar-plus" class="modal-icon-inline"></i> Planifier un Audit Interne', `
+    <form id="plan-audit-form" class="form-grid">
+      <div class="form-group">
+        <label>Titre de l'audit *</label>
+        <input type="text" name="title" class="form-control" required placeholder="Ex: Audit BPD trimestriel, Vérification des stocks...">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Type d'audit *</label>
+          <select name="auditType" class="form-control" required>
+            <option value="BPD">Bonnes Pratiques de Dispensation</option>
+            <option value="DNPM">Conformité DNPM</option>
+            <option value="Stock">Inventaire / Stock</option>
+            <option value="Hygiène">Hygiène & Sécurité</option>
+            <option value="RH">Ressources Humaines</option>
+            <option value="Financier">Audit Financier</option>
+            <option value="Général">Audit Général</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Date prévue *</label>
+          <input type="date" name="plannedDate" class="form-control" required min="${today}">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Responsable / Auditeur *</label>
+        <input type="text" name="responsible" class="form-control" required value="${DB.AppState.currentUser?.name || ''}" placeholder="Nom du responsable">
+      </div>
+      <div class="form-group">
+        <label>Notes / Objectifs</label>
+        <textarea name="notes" class="form-control" rows="3" placeholder="Décrivez les objectifs de cet audit, les zones à couvrir..."></textarea>
+      </div>
+    </form>
+  `, {
+    size: 'large',
+    footer: `
+      <button class="btn btn-secondary" onclick="UI.closeModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="submitPlanAudit()"><i data-lucide="calendar-plus"></i> Planifier</button>
+    `
+  });
+  if (window.lucide) lucide.createIcons();
+}
+
+async function submitPlanAudit() {
+  const form = document.getElementById('plan-audit-form');
+  if (!form?.checkValidity()) { form?.reportValidity(); return; }
+  const data = Object.fromEntries(new FormData(form));
+  const auditId = 'AUD-' + Date.now();
+
+  await DB.writeAudit('AUDIT_PLANNED', 'audit', null, {
+    auditId,
+    title: data.title,
+    auditType: data.auditType,
+    plannedDate: data.plannedDate,
+    responsible: data.responsible,
+    notes: data.notes,
+  });
+
+  UI.closeModal();
+  UI.toast(`📅 Audit "${data.title}" planifié pour le ${UI.formatDate(data.plannedDate)}`, 'success', 5000);
+  loadPlanningTab();
+}
+
+async function updateAuditStatus(auditId, newAction, title, plannedDate, responsible, notes, auditType) {
+  const actionLabels = {
+    AUDIT_STARTED: 'démarrer',
+    AUDIT_COMPLETED: 'marquer comme terminé',
+    AUDIT_CANCELLED: 'annuler',
+  };
+
+  const ok = await UI.confirm(`Voulez-vous ${actionLabels[newAction] || 'modifier'} cet audit ?\n\n"${title}"`);
+  if (!ok) return;
+
+  await DB.writeAudit(newAction, 'audit', null, {
+    auditId,
+    title,
+    auditType,
+    plannedDate,
+    responsible,
+    notes,
+  });
+
+  const toastMessages = {
+    AUDIT_STARTED: `▶️ Audit "${title}" démarré`,
+    AUDIT_COMPLETED: `✅ Audit "${title}" terminé avec succès`,
+    AUDIT_CANCELLED: `❌ Audit "${title}" annulé`,
+  };
+
+  UI.toast(toastMessages[newAction] || 'Statut mis à jour', 'success', 4000);
+  loadPlanningTab();
+}
+
+window.loadPlanningTab = loadPlanningTab;
+window.showPlanAuditForm = showPlanAuditForm;
+window.submitPlanAudit = submitPlanAudit;
+window.updateAuditStatus = updateAuditStatus;

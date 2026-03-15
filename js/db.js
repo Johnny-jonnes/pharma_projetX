@@ -479,23 +479,49 @@ async function syncToSupabase() {
           return payload;
         });
 
-        const { error } = await sb
-          .from(storeName === 'users' ? 'app_users' : storeName)
-          .upsert(payloads, {
-            onConflict: storeName === 'settings' ? 'key' : 'id',
-            ignoreDuplicates: false
-          });
+        // --- Resilient upsert: retry once stripping unknown columns ---
+        let currentPayloads = payloads;
+        let retries = 0;
+        const maxRetries = 3;
+        let lastError = null;
 
-        if (!error) {
-          for (const item of pending) {
-            item._synced = true;
-            await _dbPutRaw(storeName, item);
+        while (retries <= maxRetries) {
+          const { error } = await sb
+            .from(storeName === 'users' ? 'app_users' : storeName)
+            .upsert(currentPayloads, {
+              onConflict: storeName === 'settings' ? 'key' : 'id',
+              ignoreDuplicates: false
+            });
+
+          if (!error) {
+            for (const item of pending) {
+              item._synced = true;
+              await _dbPutRaw(storeName, item);
+            }
+            lastError = null;
+            break;
           }
 
-        } else {
-          console.error(`[Sync] ❌ Error in ${storeName}:`, error.message || error);
+          // Check if it's a missing column error — strip column and retry
+          const colMatch = (error.message || '').match(/Could not find the '([^']+)' column/);
+          if (colMatch && retries < maxRetries) {
+            const badCol = colMatch[1];
+            console.warn(`[Sync] ⚠️ ${storeName}: stripping unknown column '${badCol}' and retrying...`);
+            currentPayloads = currentPayloads.map(p => {
+              const { [badCol]: _, ...rest } = p;
+              return rest;
+            });
+            retries++;
+          } else {
+            lastError = error;
+            break;
+          }
+        }
+
+        if (lastError) {
+          console.error(`[Sync] ❌ Error in ${storeName}:`, lastError.message || lastError);
           if (AppState.currentPage === 'settings') {
-            UI.toast(`Sync failed for ${storeName}: ${error.message}`, 'error');
+            UI.toast(`Sync failed for ${storeName}: ${lastError.message}`, 'error');
           }
         }
       } catch (storeError) {

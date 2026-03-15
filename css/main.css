@@ -9111,3 +9111,468 @@ kbd {
 .table-wrapper {
   -webkit-overflow-scrolling: touch;
 }
+
+/* ═══════════════════════════════════════════════
+   AUDIT REPORT — Rapport d'audit imprimable
+   ═══════════════════════════════════════════════ */
+
+.audit-report-printable {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+.audit-report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 20px;
+  border-bottom: 3px solid var(--primary-color, #1B4F72);
+  margin-bottom: 24px;
+}
+
+.audit-report-logo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.audit-report-logo i {
+  color: var(--primary-color, #1B4F72);
+}
+
+.audit-report-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin: 20px 0;
+}
+
+.audit-report-stat-card {
+  background: var(--bg, #f8fafc);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  text-align: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.audit-report-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.audit-report-stat-val {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--primary-color, #1B4F72);
+  line-height: 1.1;
+}
+
+.audit-report-stat-lbl {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.audit-report-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--primary-color, #1B4F72);
+  font-size: 14px;
+  font-weight: 700;
+  margin: 28px 0 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.audit-report-section-title i {
+  width: 18px;
+  height: 18px;
+}
+
+.audit-report-breakdown {
+  margin-bottom: 20px;
+}
+
+.audit-report-breakdown-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  padding: 4px 0;
+}
+
+.audit-report-breakdown-label {
+  min-width: 160px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.audit-report-breakdown-bar-bg {
+  flex: 1;
+  height: 16px;
+  background: var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.audit-report-breakdown-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #1B6FAE, #2EAF7D);
+  border-radius: 8px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 2px;
+}
+
+.audit-report-breakdown-count {
+  min-width: 90px;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.audit-report-users {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.audit-report-user-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: var(--bg, #f8fafc);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: transform 0.2s;
+}
+
+.audit-report-user-chip:hover {
+  transform: translateY(-1px);
+}
+
+.audit-report-user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1B4F72, #2EAF7D);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.audit-report-footer {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 2px solid var(--border);
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+
+/* ═══════════════════════════════════════════════
+   COMPLIANCE — Checklists de conformité
+   ═══════════════════════════════════════════════ */
+
+.compliance-checklists {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.compliance-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+
+.compliance-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 20px;
+  background: var(--bg, #f8fafc);
+  border-bottom: 1px solid var(--border);
+  border-left: 4px solid var(--primary-color);
+}
+
+.compliance-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.compliance-score-circle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 4px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text-muted);
+  transition: all 0.4s ease;
+}
+
+.compliance-score-circle.score-good {
+  border-color: #2EAF7D;
+  color: #2EAF7D;
+  background: rgba(46, 175, 125, 0.08);
+}
+
+.compliance-score-circle.score-medium {
+  border-color: #f5b041;
+  color: #f5b041;
+  background: rgba(245, 176, 65, 0.08);
+}
+
+.compliance-score-circle.score-low {
+  border-color: #e74c3c;
+  color: #e74c3c;
+  background: rgba(231, 76, 60, 0.08);
+}
+
+.compliance-items {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.compliance-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.compliance-item:hover {
+  background: var(--bg, #f8fafc);
+}
+
+.compliance-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  border: 2px solid var(--border);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.compliance-checkbox:checked {
+  background: linear-gradient(135deg, #1B6FAE, #2EAF7D);
+  border-color: #2EAF7D;
+}
+
+.compliance-checkbox:checked::after {
+  content: '✓';
+  color: white;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.compliance-checkmark {
+  display: none;
+}
+
+.compliance-text {
+  flex: 1;
+  line-height: 1.4;
+}
+
+.compliance-checkbox:checked ~ .compliance-text {
+  color: #2EAF7D;
+  text-decoration: line-through;
+  text-decoration-color: rgba(46, 175, 125, 0.4);
+}
+
+.compliance-comment-zone {
+  padding: 0 20px 16px;
+}
+
+.compliance-comment-zone textarea {
+  font-size: 12px;
+  resize: vertical;
+}
+
+/* ═══════════════════════════════════════════════
+   PLANNING — Planification d'audits
+   ═══════════════════════════════════════════════ */
+
+.planning-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.planning-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.planning-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+}
+
+.planning-card-urgent {
+  border-left: 4px solid #f5b041;
+  background: rgba(245, 176, 65, 0.03);
+}
+
+.planning-card-overdue {
+  border-left: 4px solid #e74c3c;
+  background: rgba(231, 76, 60, 0.03);
+}
+
+.planning-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 16px 20px 0;
+  gap: 12px;
+}
+
+.planning-card-body {
+  padding: 12px 20px;
+}
+
+.planning-card-detail {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+
+.planning-card-detail i {
+  width: 16px;
+  height: 16px;
+  color: var(--text-muted);
+}
+
+.planning-card-actions {
+  display: flex;
+  gap: 8px;
+  padding: 0 20px 16px;
+  flex-wrap: wrap;
+}
+
+/* ═══════════════════════════════════════════════
+   DARK MODE — Audit features
+   ═══════════════════════════════════════════════ */
+
+[data-theme="dark"] .audit-report-printable {
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .audit-report-stat-card,
+[data-theme="dark"] .audit-report-user-chip {
+  background: var(--bg);
+}
+
+[data-theme="dark"] .compliance-card {
+  background: var(--surface);
+}
+
+[data-theme="dark"] .compliance-card-header {
+  background: var(--bg);
+}
+
+[data-theme="dark"] .compliance-item:hover {
+  background: var(--bg);
+}
+
+[data-theme="dark"] .planning-card {
+  background: var(--surface);
+}
+
+[data-theme="dark"] .planning-card-urgent {
+  background: rgba(245, 176, 65, 0.06);
+}
+
+[data-theme="dark"] .planning-card-overdue {
+  background: rgba(231, 76, 60, 0.06);
+}
+
+/* ═══════════════════════════════════════════════
+   RESPONSIVE — Audit features
+   ═══════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .audit-report-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .audit-report-header {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+
+  .audit-report-header > div:last-child {
+    text-align: center;
+  }
+
+  .audit-report-logo {
+    justify-content: center;
+  }
+
+  .audit-report-breakdown-label {
+    min-width: 100px;
+    font-size: 11px;
+  }
+
+  .compliance-card-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .compliance-score {
+    flex-direction: row;
+    gap: 12px;
+  }
+
+  .planning-card-header {
+    flex-direction: column;
+  }
+
+  .audit-report-config {
+    flex-direction: column !important;
+  }
+}
