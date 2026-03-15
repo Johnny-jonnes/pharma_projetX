@@ -853,6 +853,12 @@ function formatAuditDetails(log) {
       return `Audit annulé : <strong>${d.title || '—'}</strong> (${d.auditType || 'Général'}).`;
     case 'AUDIT_REPORT_GENERATED':
       return `Rapport d'audit généré pour la période <strong>${d.period || '—'}</strong>. ${d.entriesCount || 0} entrée(s) compilée(s).`;
+    case 'CREATE_ORDER':
+      return `Création du bon de commande #<strong>${String(log.entityId).padStart(6, '0')}</strong> pour le fournisseur ${d.supplierName || '—'}. Montant estimé : <strong>${UI.formatCurrency(d.totalAmount || 0)}</strong>.`;
+    case 'RECEIVE_ORDER':
+      return `Réception de la commande #<strong>${String(log.entityId).padStart(6, '0')}</strong>. Articles reçus : ${d.receivedItemsCount || 0}/${d.totalItemsCount || 0}.`;
+    case 'BULK_IMPORT':
+      return `Importation massive de données (${d.type || 'produits'}). ${d.count || 0} entrées traitées avec succès.`;
     default:
       // Si on ne connaît pas l'action, on essaie de construire une phrase générique
       if (d.name || d.productName) return `Action sur <strong>${d.name || d.productName}</strong>.`;
@@ -886,6 +892,9 @@ function renderAuditTable(data) {
     AUDIT_COMPLETED: ['check-circle', 'Audit Terminé', 'badge-success'],
     AUDIT_CANCELLED: ['x-circle', 'Audit Annulé', 'badge-danger'],
     AUDIT_REPORT_GENERATED: ['file-bar-chart', 'Rapport Généré', 'badge-info'],
+    RECEIVE_ORDER: ['truck', 'Commande Reçue', 'badge-success'],
+    CREATE_ORDER: ['file-plus', 'Commande Créée', 'badge-info'],
+    BULK_IMPORT: ['upload-cloud', 'Import Massif', 'badge-warning'],
   };
 
   if (data.length === 0) {
@@ -1206,7 +1215,8 @@ async function generateAuditReport() {
     CAISSE_CLOSURE: 'Clôture Caisse', DEBT_REFUND: 'Réglt Dette', RESTORE_BACKUP: 'Restauration',
     COMPLIANCE_CHECK: 'Audit Conformité', AUDIT_PLANNED: 'Audit Planifié',
     AUDIT_STARTED: 'Audit Démarré', AUDIT_COMPLETED: 'Audit Terminé',
-    AUDIT_REPORT_GENERATED: 'Rapport Généré',
+    AUDIT_CANCELLED: 'Audit Annulé', AUDIT_REPORT_GENERATED: 'Rapport Généré',
+    RECEIVE_ORDER: 'Commande Reçue', CREATE_ORDER: 'Commande Créée', BULK_IMPORT: 'Import Massif',
   };
 
   // Charger infos pharmacie
