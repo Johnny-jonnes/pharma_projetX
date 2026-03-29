@@ -21,8 +21,8 @@ async function renderDashboard(container) {
     const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).getTime();
 
-    const todaySales = sales.filter(s => new Date(s.date).getTime() >= startOfDay && s.status === 'completed');
-    const monthSales = sales.filter(s => new Date(s.date).getTime() >= startOfMonth && s.status === 'completed');
+    const todaySales = sales.filter(s => new Date(s.date).getTime() >= startOfDay && ['completed', 'paid'].includes(s.status));
+    const monthSales = sales.filter(s => new Date(s.date).getTime() >= startOfMonth && ['completed', 'paid'].includes(s.status));
     const todayReturns = allReturns.filter(r => new Date(r.date).getTime() >= startOfDay && r.status === 'approved');
     const monthReturns = allReturns.filter(r => new Date(r.date).getTime() >= startOfMonth && r.status === 'approved');
 
@@ -52,7 +52,7 @@ async function renderDashboard(container) {
       const dayEnd = dayStart + 86400000;
       const daySales = sales.filter(s => {
         const t = new Date(s.date).getTime();
-        return t >= dayStart && t < dayEnd && s.status === 'completed';
+        return t >= dayStart && t < dayEnd && ['completed', 'paid'].includes(s.status);
       }).reduce((a, s) => a + s.total, 0);
 
       const dayReturns = allReturns.filter(r => {

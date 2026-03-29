@@ -267,7 +267,7 @@ async function renderReports(container) {
   for (let m = 5; m >= 0; m--) {
     const d = new Date(today.getFullYear(), today.getMonth() - m, 1);
     const end = new Date(today.getFullYear(), today.getMonth() - m + 1, 0, 23, 59, 59);
-    const ms = sales.filter(s => { const sd = new Date(s.date); return sd >= d && sd <= end && s.status === 'completed'; });
+    const ms = sales.filter(s => { const sd = new Date(s.date); return sd >= d && sd <= end && ['completed', 'paid'].includes(s.status); });
     const rs = allReturns.filter(r => { const rd = new Date(r.date); return rd >= d && rd <= end && r.status === 'approved'; });
 
     const rev = ms.reduce((a, s) => a + s.total, 0) - rs.reduce((a, r) => a + (r.refundAmount || 0), 0);

@@ -19,7 +19,7 @@ async function renderMetrics(container) {
 
     const approvedReturns = returns.filter(r => r.status === 'approved');
     const totalRefunds = approvedReturns.reduce((a, r) => a + (r.refundAmount || 0), 0);
-    const totalRevenue = sales.filter(s => s.status === 'completed').reduce((a, s) => a + s.total, 0) - totalRefunds;
+    const totalRevenue = sales.filter(s => ['completed', 'paid'].includes(s.status)).reduce((a, s) => a + s.total, 0) - totalRefunds;
     const totalTransactions = sales.length;
     const avgBasket = totalTransactions > 0 ? (totalRevenue / totalTransactions).toFixed(0) : 0;
 

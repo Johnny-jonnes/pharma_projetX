@@ -859,6 +859,34 @@ function formatAuditDetails(log) {
       return `Réception de la commande #<strong>${String(log.entityId).padStart(6, '0')}</strong>. Articles reçus : ${d.receivedItemsCount || 0}/${d.totalItemsCount || 0}.`;
     case 'BULK_IMPORT':
       return `Importation massive de données (${d.type || 'produits'}). ${d.count || 0} entrées traitées avec succès.`;
+    case 'ADD_SUPPLIER':
+      return `Ajout du fournisseur <strong>${d.name || '—'}</strong> au répertoire.`;
+    case 'SEND_ORDER':
+      return `Envoi du bon de commande #<strong>${String(log.entityId).padStart(6, '0')}</strong> au fournisseur.`;
+    case 'INVENTORY':
+      return `Inventaire réalisé. ${d.adjustments || 0} ajustement(s) effectué(s).`;
+    case 'ADD_PRODUCT':
+      return `Ajout du produit <strong>${d.name || '—'}</strong> au catalogue.`;
+    case 'EDIT_PRODUCT':
+      return `Modification du produit <strong>${d.name || '—'}</strong>.`;
+    case 'DEACTIVATE_PRODUCT':
+      return `Désactivation du produit <strong>${d.name || '—'}</strong>.`;
+    case 'ADD_PRESCRIPTION':
+      return `Enregistrement de l'ordonnance pour <strong>${d.patientName || '—'}</strong> (${d.itemCount || 0} médicament(s)). Dr ${d.doctorName || '—'}.`;
+    case 'VALIDATE_PRESCRIPTION':
+      return `Validation de l'ordonnance #<strong>${String(log.entityId).padStart(6, '0')}</strong>.`;
+    case 'DISPENSE_PRESCRIPTION':
+      return `Dispensation de l'ordonnance pour <strong>${d.patientName || '—'}</strong>.`;
+    case 'VIEW_PATIENT':
+      return `Consultation du dossier patient <strong>${d.patientName || '—'}</strong>.`;
+    case 'ADD_PATIENT':
+      return `Enregistrement du patient <strong>${d.name || '—'}</strong>.`;
+    case 'EDIT_PATIENT':
+      return `Modification du dossier patient <strong>${d.name || '—'}</strong>.`;
+    case 'AUTO_ORDER':
+      return `Commande automatique générée : ${d.itemCount || 0} article(s) pour un total de <strong>${UI.formatCurrency(d.totalAmount || 0)}</strong>.`;
+    case 'RESTORE_ZERO_LOSS':
+      return `Restauration de données système effectuée.`;
     default:
       // Si on ne connaît pas l'action, on essaie de construire une phrase générique
       if (d.name || d.productName) return `Action sur <strong>${d.name || d.productName}</strong>.`;
@@ -895,6 +923,20 @@ function renderAuditTable(data) {
     RECEIVE_ORDER: ['truck', 'Commande Reçue', 'badge-success'],
     CREATE_ORDER: ['file-plus', 'Commande Créée', 'badge-info'],
     BULK_IMPORT: ['upload-cloud', 'Import Massif', 'badge-warning'],
+    ADD_SUPPLIER: ['truck', 'Ajout Fournisseur', 'badge-info'],
+    SEND_ORDER: ['send', 'Envoi Commande', 'badge-info'],
+    INVENTORY: ['clipboard-check', 'Inventaire', 'badge-warning'],
+    ADD_PRODUCT: ['plus-circle', 'Ajout Produit', 'badge-success'],
+    EDIT_PRODUCT: ['edit-3', 'Modif Produit', 'badge-neutral'],
+    DEACTIVATE_PRODUCT: ['x-circle', 'Désactivation Produit', 'badge-danger'],
+    ADD_PRESCRIPTION: ['file-plus', 'Ajout Ordonnance', 'badge-info'],
+    VALIDATE_PRESCRIPTION: ['file-check', 'Validation Ordonnance', 'badge-success'],
+    DISPENSE_PRESCRIPTION: ['pill', 'Dispensation', 'badge-success'],
+    VIEW_PATIENT: ['eye', 'Consultation Patient', 'badge-neutral'],
+    ADD_PATIENT: ['user-plus', 'Ajout Patient', 'badge-info'],
+    EDIT_PATIENT: ['user-cog', 'Modif Patient', 'badge-neutral'],
+    AUTO_ORDER: ['zap', 'Commande Auto', 'badge-warning'],
+    RESTORE_ZERO_LOSS: ['shield', 'Restauration Données', 'badge-warning'],
   };
 
   if (data.length === 0) {
