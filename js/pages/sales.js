@@ -340,9 +340,23 @@ async function renderReports(container) {
       <div class="kpi-card kpi-orange">
         <div class="kpi-icon"><i data-lucide="bar-chart-3"></i></div>
         <div class="kpi-content">
-          <div class="kpi-value">${monthRevenues.length > 1 && monthRevenues[monthRevenues.length - 2] > 0 ?
-      ((monthRevenues[monthRevenues.length - 1] - monthRevenues[monthRevenues.length - 2]) / monthRevenues[monthRevenues.length - 2] * 100).toFixed(1) + '%' : '—'}</div>
+          <div class="kpi-value">${(() => {
+      const curr = monthRevenues[monthRevenues.length - 1] || 0;
+      const prev = monthRevenues[monthRevenues.length - 2] || 0;
+      if (prev > 0) return ((curr - prev) / prev * 100).toFixed(1) + '%';
+      if (curr > 0) return '↑ Nouveau';
+      return '0%';
+    })()}</div>
           <div class="kpi-label">Évolution vs mois précédent</div>
+          <div class="kpi-sub">${(() => {
+      const curr = monthRevenues[monthRevenues.length - 1] || 0;
+      const prev = monthRevenues[monthRevenues.length - 2] || 0;
+      if (prev > 0 && curr > prev) return '📈 En hausse';
+      if (prev > 0 && curr < prev) return '📉 En baisse';
+      if (prev > 0 && curr === prev) return '➡️ Stable';
+      if (prev === 0 && curr > 0) return 'Aucune donnée mois passé';
+      return 'Pas de ventes';
+    })()}</div>
         </div>
       </div>
       <div class="kpi-card kpi-green">
