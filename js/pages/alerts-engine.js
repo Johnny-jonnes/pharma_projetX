@@ -273,7 +273,7 @@ async function renderReorderSuggestions(container) {
         <p class="page-subtitle">Basé sur la consommation des 30 derniers jours</p>
       </div>
       <div class="header-actions">
-        <button class="btn btn-primary" onclick="createOrderFromSuggestions()"><i data-lucide="clipboard-list"></i> Créer BC automatique</button>
+        <button class="btn btn-secondary" onclick="Router.navigate('purchase-orders')"><i data-lucide="file-text"></i> Bons de Commande</button>
       </div>
     </div>
 
@@ -382,7 +382,7 @@ async function quickOrder(productId, productName) {
     UI.toast('Ajoutez d\'abord un fournisseur', 'warning');
     return;
   }
-  await showNewOrder(suppliers[0].id, suppliers[0].name);
+  await showNewOrder(suppliers[0].id, suppliers[0].name, productId);
 }
 
 window.AlertsEngine = AlertsEngine;

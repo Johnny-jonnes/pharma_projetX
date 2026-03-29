@@ -220,7 +220,7 @@ async function viewSupplierDetail(supId) {
             <td><code>${o.orderNumber || o.id}</code></td>
             <td>${UI.formatDate(o.date)}</td>
             <td>${UI.formatCurrency(o.totalAmount || 0)}</td>
-            <td><span class="badge badge-${o.status === 'received' ? 'success' : o.status === 'sent' ? 'info' : 'warning'}">${o.status}</span></td>
+            <td><span class="badge badge-${o.status === 'received' ? 'success' : o.status === 'sent' ? 'info' : o.status === 'cancelled' ? 'danger' : 'warning'}">${({pending:'Brouillon',sent:'Envoyée',partial:'Partielle',received:'Reçue',cancelled:'Annulée'})[o.status] || o.status}</span></td>
           </tr>`).join('')}</tbody>
         </table>`}
     </div>
@@ -333,7 +333,7 @@ function filterOrders() {
   if (window.lucide) lucide.createIcons();
 }
 
-async function showNewOrder(supplierId, supplierName) {
+async function showNewOrder(supplierId, supplierName, preselectedProductId) {
   const products = window._allProducts || await DB.dbGetAll('products');
   const suppliers = await DB.dbGetAll('suppliers');
 
@@ -381,6 +381,26 @@ async function showNewOrder(supplierId, supplierName) {
   if (window.lucide) lucide.createIcons();
   window._orderItemCounter = 0;
   window._allProducts = products;
+
+  // Auto-ajouter le produit pré-sélectionné s'il est fourni
+  if (preselectedProductId) {
+    const pid = parseInt(preselectedProductId);
+    addOrderItem();
+    // Sélectionner automatiquement le produit dans le premier item ajouté
+    setTimeout(() => {
+      const sel = document.getElementById('order-prod-0');
+      if (sel) {
+        sel.value = String(pid);
+        // Déclencher la mise à jour du prix et du total
+        const opt = sel.options[sel.selectedIndex];
+        if (opt && opt.dataset.price) {
+          const priceInput = document.getElementById('order-price-0');
+          if (priceInput) priceInput.value = opt.dataset.price;
+        }
+        updateOrderTotal();
+      }
+    }, 100);
+  }
 }
 
 function showNewOrderForm() {
@@ -634,7 +654,7 @@ async function viewOrder(orderId) {
     <div class="detail-row"><span>Fournisseur</span><span><strong>${sup?.name || '—'}</strong></span></div>
     <div class="detail-row"><span>Date</span><span>${UI.formatDate(order.date)}</span></div>
     <div class="detail-row"><span>Livraison prévue</span><span>${order.expectedDate ? UI.formatDate(order.expectedDate) : '—'}</span></div>
-    <div class="detail-row"><span>Statut</span><span><span class="badge badge-${order.status === 'received' ? 'success' : 'warning'}">${order.status === 'received' ? 'Reçue' : (order.status === 'pending' ? 'Brouillon' : order.status)}</span></span></div>
+    <div class="detail-row"><span>Statut</span><span><span class="badge badge-${order.status === 'received' ? 'success' : order.status === 'sent' ? 'info' : order.status === 'cancelled' ? 'danger' : order.status === 'partial' ? 'warning' : 'neutral'}">${({pending:'Brouillon',sent:'Envoyée',partial:'Partielle',received:'Reçue',cancelled:'Annulée'})[order.status] || order.status}</span></span></div>
     <h4 style="margin:16px 0 8px">Articles</h4>
     <table class="data-table">
       <thead><tr><th>Produit</th><th>Qté commandée</th><th>Prix unit.</th><th>Total</th><th>Lot reçu</th></tr></thead>

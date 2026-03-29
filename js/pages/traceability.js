@@ -781,8 +781,10 @@ async function loadAuditTab() {
 
   container.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Chargement...</p></div>';
 
-  _auditData = await DB.dbGetAll('auditLog');
-  _auditData.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+  // Charger les 200 dernières entrées au lieu de tout charger (performance)
+  _auditData = await DB.dbGetRecent('auditLog', 'timestamp', 200);
+  _auditPageSize = 50;
+  _auditCurrentPage = 0;
   renderAuditTable(_auditData);
 }
 
@@ -945,13 +947,20 @@ function renderAuditTable(data) {
     return;
   }
 
+  // Pagination : afficher par tranches pour la performance
+  const pageSize = window._auditPageSize || 50;
+  const currentPage = window._auditCurrentPage || 0;
+  const endIdx = Math.min((currentPage + 1) * pageSize, data.length);
+  const displayData = data.slice(0, endIdx);
+  const hasMore = endIdx < data.length;
+
   container.innerHTML = `
-    <p class="text-muted text-sm" style="margin-bottom:8px">${data.length} entrée(s) trouvée(s)</p>
+    <p class="text-muted text-sm" style="margin-bottom:8px">${data.length} entrée(s) — Affichage ${displayData.length} sur ${data.length}</p>
     <div class="table-wrapper">
       <table class="data-table">
         <thead><tr><th>Date / Heure</th><th>Utilisateur</th><th>Action</th><th>Détails</th></tr></thead>
         <tbody>
-          ${data.slice(0, 100).map(log => {
+          ${displayData.map(log => {
     const [icon, label, cls] = actionLabels[log.action] || ['info', log.action, 'badge-neutral'];
     const humanDetails = formatAuditDetails(log);
     return `<tr>
@@ -964,9 +973,24 @@ function renderAuditTable(data) {
         </tbody>
       </table>
     </div>
-    ${data.length > 100 ? '<p class="text-muted text-sm" style="margin-top:8px">Affichage limité aux 100 dernières entrées</p>' : ''}
+    ${hasMore ? `<div style="text-align:center;margin-top:12px"><button class="btn btn-secondary" onclick="loadMoreAudit()"><i data-lucide="chevron-down"></i> Charger plus (${data.length - endIdx} restantes)</button></div>` : ''}
   `;
   if (window.lucide) lucide.createIcons();
+}
+
+function loadMoreAudit() {
+  window._auditCurrentPage = (window._auditCurrentPage || 0) + 1;
+  const text = (document.getElementById('audit-filter-text')?.value || '').toLowerCase();
+  const action = document.getElementById('audit-filter-action')?.value || '';
+  let filtered = _auditData;
+  if (action) filtered = filtered.filter(l => l.action === action);
+  if (text) filtered = filtered.filter(l =>
+    (l.action || '').toLowerCase().includes(text) ||
+    (l.username || '').toLowerCase().includes(text) ||
+    (l.entity || '').toLowerCase().includes(text) ||
+    JSON.stringify(l.details || {}).toLowerCase().includes(text)
+  );
+  renderAuditTable(filtered);
 }
 
 window.switchTraceTab = switchTraceTab;
@@ -985,6 +1009,7 @@ window.blockExpiredLots = blockExpiredLots;
 window.promoteLot = promoteLot;
 window.loadAuditTab = loadAuditTab;
 window.filterAuditLog = filterAuditLog;
+window.loadMoreAudit = loadMoreAudit;
 
 Router.register('traceability', renderTraceability);
 

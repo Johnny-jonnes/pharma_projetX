@@ -98,10 +98,29 @@ const Router = {
   render(page, params) {
     const main = document.getElementById('app-content');
     if (!main) return;
+
+    // Nettoyage mémoire des données temporaires de la page précédente
+    const tempKeys = ['_stockData', '_salesData', '_saleItemsData', '_ordersData', '_ordersSupplierMap', '_ordersProducts',
+      '_reorderSuggestions', '_inventoryItems', '_traceProductMap', '_traceLots', '_traceMovements',
+      '_tracePrescriptions', '_tracePatients', '_currentReceiveOrder', '_allProducts'];
+    tempKeys.forEach(k => { try { delete window[k]; } catch(e) {} });
+
     const fn = this.routes[page];
     if (fn) {
       main.innerHTML = '';
-      fn(main, params);
+      try {
+        const result = fn(main, params);
+        // Si la fonction retourne une Promise, capturer les erreurs async
+        if (result && typeof result.catch === 'function') {
+          result.catch(err => {
+            console.error(`[Router] Erreur async dans "${page}":`, err);
+            main.innerHTML = `<div class="empty-state"><div style="font-size:48px;margin-bottom:16px">⚠️</div><h2>Erreur de chargement</h2><p style="color:var(--text-muted);margin:8px 0">${err.message || 'Erreur inconnue'}</p><button class="btn btn-primary" style="margin-top:12px" onclick="Router.navigate('${page}')">Réessayer</button><button class="btn btn-secondary" style="margin-top:12px;margin-left:8px" onclick="Router.navigate('dashboard')">Tableau de bord</button></div>`;
+          });
+        }
+      } catch (err) {
+        console.error(`[Router] Erreur dans "${page}":`, err);
+        main.innerHTML = `<div class="empty-state"><div style="font-size:48px;margin-bottom:16px">⚠️</div><h2>Erreur de chargement</h2><p style="color:var(--text-muted);margin:8px 0">${err.message || 'Erreur inconnue'}</p><button class="btn btn-primary" style="margin-top:12px" onclick="Router.navigate('${page}')">Réessayer</button><button class="btn btn-secondary" style="margin-top:12px;margin-left:8px" onclick="Router.navigate('dashboard')">Tableau de bord</button></div>`;
+      }
     } else {
       main.innerHTML = `<div class="empty-state"><h2>Page introuvable : ${page}</h2></div>`;
     }

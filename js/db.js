@@ -308,28 +308,71 @@ async function dbPut(storeName, data) {
 }
 
 async function dbGet(storeName, id) {
+  if (!db) await initDB();
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(storeName, 'readonly');
-    const store = tx.objectStore(storeName);
-    const req = store.get(id);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
+    try {
+      const tx = db.transaction(storeName, 'readonly');
+      const store = tx.objectStore(storeName);
+      const req = store.get(id);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => { console.error(`[DB] Erreur get ${storeName}/${id}:`, req.error); resolve(null); };
+    } catch (e) {
+      console.error(`[DB] Exception dans dbGet(${storeName}, ${id}):`, e);
+      resolve(null);
+    }
   });
 }
 
 async function dbGetAll(storeName, indexName, query) {
+  if (!db) { console.warn('[DB] Base non initialisée, tentative de reconnexion...'); await initDB(); }
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(storeName, 'readonly');
-    const store = tx.objectStore(storeName);
-    let req;
-    if (indexName && query !== undefined) {
-      const index = store.index(indexName);
-      req = index.getAll(query);
-    } else {
-      req = store.getAll();
+    try {
+      const tx = db.transaction(storeName, 'readonly');
+      const store = tx.objectStore(storeName);
+      let req;
+      if (indexName && query !== undefined) {
+        const index = store.index(indexName);
+        req = index.getAll(query);
+      } else {
+        req = store.getAll();
+      }
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => { console.error(`[DB] Erreur lecture ${storeName}:`, req.error); resolve([]); };
+      tx.onerror = () => { console.error(`[DB] Transaction erreur ${storeName}`); resolve([]); };
+    } catch (e) {
+      console.error(`[DB] Exception dans dbGetAll(${storeName}):`, e);
+      resolve([]); // Ne jamais rejeter pour éviter les cascades d'erreurs
     }
-    req.onsuccess = () => resolve(req.result || []);
-    req.onerror = () => reject(req.error);
+  });
+}
+
+/**
+ * Chargement paginé par curseur pour les stores très volumineux (audit, mouvements)
+ * Retourne les N derniers éléments triés par index décroissant
+ */
+async function dbGetRecent(storeName, indexName, limit = 200) {
+  if (!db) await initDB();
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(storeName, 'readonly');
+      const store = tx.objectStore(storeName);
+      const source = indexName ? store.index(indexName) : store;
+      const results = [];
+      const cursorReq = source.openCursor(null, 'prev'); // Du plus récent au plus ancien
+      cursorReq.onsuccess = (e) => {
+        const cursor = e.target.result;
+        if (cursor && results.length < limit) {
+          results.push(cursor.value);
+          cursor.continue();
+        } else {
+          resolve(results);
+        }
+      };
+      cursorReq.onerror = () => resolve([]);
+    } catch (e) {
+      console.error(`[DB] Erreur curseur ${storeName}:`, e);
+      resolve([]);
+    }
   });
 }
 
@@ -849,4 +892,31 @@ function resetSupabaseClient() {
   _supabaseInstance = null;
 }
 
-window.DB = { initDB, dbAdd, dbPut, dbGet, dbGetAll, dbDelete, dbCount, writeAudit, seedDemoData, syncToSupabase, pullFromSupabase, resetSupabaseClient, forceSyncAll, trackInstallation, STORES, AppState, doBackup, startAutoBackup, startAutoPull, autoBackupToStorage, restoreFromBackup };
+// ═══════════════════════════════════════════════════════════════════
+// GLOBAL ERROR HANDLERS — Protection contre les crashes silencieux
+// ═══════════════════════════════════════════════════════════════════
+window.addEventListener('error', function(event) {
+  console.error('[GLOBAL ERROR]', event.message, event.filename, event.lineno);
+  // Ne pas afficher de toast pour les erreurs de scripts externes (CDN)
+  if (event.filename && !event.filename.includes(location.hostname) && !event.filename.includes('localhost')) return;
+  if (window.UI && UI.toast) {
+    UI.toast('Erreur système détectée — L\'application continue de fonctionner', 'warning', 3000);
+  }
+});
+
+window.addEventListener('unhandledrejection', function(event) {
+  console.error('[UNHANDLED PROMISE]', event.reason);
+  // Empêcher la propagation pour éviter les crashes
+  event.preventDefault();
+});
+
+// Protection IndexedDB — reconnexion automatique si la connexion est perdue
+if (typeof indexedDB !== 'undefined') {
+  const _origTransaction = IDBDatabase.prototype.transaction;
+  // On ne surcharge pas pour garder la stabilité, mais on surveille
+  window.addEventListener('beforeunload', () => {
+    if (db) { try { db.close(); } catch(e) {} }
+  });
+}
+
+window.DB = { initDB, dbAdd, dbPut, dbGet, dbGetAll, dbGetRecent, dbDelete, dbCount, writeAudit, seedDemoData, syncToSupabase, pullFromSupabase, resetSupabaseClient, forceSyncAll, trackInstallation, STORES, AppState, doBackup, startAutoBackup, startAutoPull, autoBackupToStorage, restoreFromBackup };
