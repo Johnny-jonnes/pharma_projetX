@@ -525,7 +525,7 @@ async function syncToSupabase() {
         // --- Resilient upsert: retry once stripping unknown columns ---
         let currentPayloads = payloads;
         let retries = 0;
-        const maxRetries = 3;
+        const maxRetries = 10; // Enough to strip all unknown columns (purchaseOrders has 7+)
         let lastError = null;
 
         while (retries <= maxRetries) {

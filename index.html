@@ -123,6 +123,7 @@
   <script src="js/pages/caisse.js?v=4.0.0"></script>
   <script src="js/pages/traceability.js?v=4.0.0"></script>
   <script src="js/pages/alerts-engine.js?v=4.0.0"></script>
+  <script src="js/pages/alerts.js?v=4.0.0"></script>
   <script src="js/pages/print.js?v=4.0.0"></script>
   <script src="js/pages/onboarding.js?v=4.0.0"></script>
   <script src="js/pages/metrics.js?v=4.0.0"></script>
@@ -289,36 +290,7 @@
     Router.register('metrics', (container) => renderMetrics(container));
     Router.register('onboarding', (container) => renderOnboarding(container));
 
-    Router.register('alerts', async (container) => {
-      UI.loading(container, 'Chargement des alertes...');
-      const alerts = await DB.dbGetAll('alerts');
-      const sorted = alerts.sort((a, b) => {
-        const pri = { critical: 4, high: 3, medium: 2, low: 1 };
-        if (a.status !== b.status) return a.status === 'unread' ? -1 : 1;
-        return (pri[b.priority] || 0) - (pri[a.priority] || 0) || b.date - a.date;
-      });
-      const typeMap = {
-        LOW_STOCK: { icon: 'package-2', label: 'Stock bas', cls: 'badge-warning' }, EXPIRY_SOON: { icon: 'clock', label: 'Expiration proche', cls: 'badge-warning' },
-        EXPIRY_CRITICAL: { icon: 'alert-octagon', label: 'Critique', cls: 'badge-danger' }, RUPTURE: { icon: 'x-circle', label: 'Rupture', cls: 'badge-danger' },
-        LOT_RECALL: { icon: 'alert-triangle', label: 'Rappel lot', cls: 'badge-danger' }, ORDER_LATE: { icon: 'truck', label: 'Commande retard', cls: 'badge-warning' },
-        CAISSE_REMINDER: { icon: 'banknote', label: 'Caisse', cls: 'badge-info' }, NON_CONFORMITY: { icon: 'shield-alert', label: 'Non-conformité', cls: 'badge-danger' },
-        PHARMACOVIGILANCE: { icon: 'microscope', label: 'Pharmacovig.', cls: 'badge-purple' },
-      };
-      container.innerHTML = '<div class="page-header"><div><h1 class="page-title">Alertes Système</h1><p class="page-subtitle">'
-        + alerts.filter(a => a.status === 'unread').length + ' alerte(s) non lue(s)</p></div>'
-        + '<button class="btn btn-secondary" onclick="clearAllAlerts()"><i data-lucide="check-check"></i> Tout marquer lu</button></div>';
-      const tc = document.createElement('div');
-      container.appendChild(tc);
-      UI.table(tc, [
-        { label: 'Type', render: r => { const t = typeMap[r.type] || { icon: 'info', label: 'Info', cls: 'badge-neutral' }; return '<span class="badge ' + t.cls + '"><i data-lucide="' + t.icon + '"></i> ' + t.label + '</span>'; } },
-        { label: 'Message', render: r => '<span style="font-weight:' + (r.status === 'unread' ? '600' : '400') + '">' + r.message + '</span>' },
-        { label: 'Date', render: r => UI.formatDateTime(r.date) },
-        { label: 'Priorité', render: r => { const p = { critical: ['alert-octagon', 'badge-danger', 'Critique'], high: ['alert-triangle', 'badge-danger', 'Haute'], medium: ['info', 'badge-warning', 'Moyenne'], low: ['info', 'badge-neutral', 'Basse'] }; const [ic, cl, lb] = p[r.priority] || ['circle', 'badge-neutral', r.priority || '—']; return '<span class="badge ' + cl + '"><i data-lucide="' + ic + '"></i> ' + lb + '</span>'; } },
-        { label: 'Statut', render: r => '<span class="badge badge-' + (r.status === 'unread' ? 'warning' : 'neutral') + '">' + (r.status === 'unread' ? 'Non lu' : 'Lu') + '</span>' },
-        { label: '', render: r => r.status === 'unread' ? '<button class="btn btn-xs btn-secondary" onclick="dismissAlertItem(' + r.id + ')"><i data-lucide="check"></i></button>' : '—' },
-      ], sorted, { emptyMessage: 'Aucune alerte', emptyIcon: 'bell' });
-      await updateAlertBadge();
-    });
+    // Route 'alerts' enregistrée dans js/pages/alerts.js
 
     async function clearAllAlerts() {
       const all = await DB.dbGetAll('alerts');

@@ -124,10 +124,17 @@ CREATE TABLE suppliers (
 CREATE TABLE "purchaseOrders" (
   id              BIGINT PRIMARY KEY,
   "supplierId"    BIGINT,
+  "orderNumber"   TEXT,
   status          TEXT DEFAULT 'draft',
   date            TEXT,
+  "expectedDate"  TEXT,
   "totalAmount"   NUMERIC DEFAULT 0,
   items           JSONB,
+  note            TEXT,
+  "createdBy"     BIGINT,
+  "receivedAt"    TEXT,
+  "receiveNote"   TEXT,
+  "hasNonConformity" BOOLEAN DEFAULT false,
   "updatedAt"     BIGINT
 );
 
@@ -334,5 +341,19 @@ ALTER TABLE lots ADD COLUMN IF NOT EXISTS "destructionBy" TEXT;
 ALTER TABLE alerts ADD COLUMN IF NOT EXISTS "lotId" BIGINT;
 
 -- ═══════════════════════════════════════════════════════════════
--- ✅ TERMINÉ — Toutes les tables sont prêtes. v3.6.0-stable
+-- 19. MIGRATION — Colonnes manquantes purchaseOrders (v4.0.1)
+-- Fix sync errors: ces colonnes sont utilisées localement
+-- mais n'existaient pas dans le schéma Supabase original.
+-- ═══════════════════════════════════════════════════════════════
+
+ALTER TABLE "purchaseOrders" ADD COLUMN IF NOT EXISTS "orderNumber" TEXT;
+ALTER TABLE "purchaseOrders" ADD COLUMN IF NOT EXISTS "expectedDate" TEXT;
+ALTER TABLE "purchaseOrders" ADD COLUMN IF NOT EXISTS note TEXT;
+ALTER TABLE "purchaseOrders" ADD COLUMN IF NOT EXISTS "createdBy" BIGINT;
+ALTER TABLE "purchaseOrders" ADD COLUMN IF NOT EXISTS "receivedAt" TEXT;
+ALTER TABLE "purchaseOrders" ADD COLUMN IF NOT EXISTS "receiveNote" TEXT;
+ALTER TABLE "purchaseOrders" ADD COLUMN IF NOT EXISTS "hasNonConformity" BOOLEAN DEFAULT false;
+
+-- ═══════════════════════════════════════════════════════════════
+-- ✅ TERMINÉ — Toutes les tables sont prêtes. v4.0.1-stable
 -- ═══════════════════════════════════════════════════════════════
