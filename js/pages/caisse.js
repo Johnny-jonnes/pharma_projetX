@@ -13,8 +13,8 @@ async function renderCaisse(container) {
     DB.dbGetAll('returns'),
   ]);
 
-  // Today's sales breakdown
-  const todaySales = sales.filter(s => s.date && s.date.startsWith(today) && s.status === 'completed');
+  // Today's sales breakdown (completed sales made today)
+  const todaySales = sales.filter(s => s.date && s.date.startsWith(today) && ['completed', 'paid'].includes(s.status));
 
   const breakdown = {
     cash: { count: 0, total: 0 },
@@ -30,6 +30,15 @@ async function renderCaisse(container) {
     breakdown[m].total += s.total || 0;
   });
 
+  // Debt payments received today (sales from older dates but paid today)
+  const debtPaymentsToday = cashRegister.filter(c => c.date === today && c.type === 'debt_in');
+  const debtByMethod = { cash: 0, orange_money: 0, mtn_momo: 0, transfer: 0 };
+  debtPaymentsToday.forEach(d => {
+    const m = d.paymentMethod || 'cash';
+    debtByMethod[m] = (debtByMethod[m] || 0) + d.amount;
+  });
+  const totalDebtIn = debtPaymentsToday.reduce((a, d) => a + d.amount, 0);
+
   // Subtract today's returns from breakdown and gross total
   const todayReturns = returns.filter(r => r.date && r.date.startsWith(today) && r.status === 'approved');
   todayReturns.forEach(r => {
@@ -39,23 +48,35 @@ async function renderCaisse(container) {
     }
   });
 
-  const grandTotal = Object.values(breakdown).reduce((a, b) => a + b.total, 0);
+  const grandTotal = Object.values(breakdown).reduce((a, b) => a + b.total, 0) + totalDebtIn;
   const totalDiscounts = todaySales.reduce((a, s) => a + (s.discount || 0), 0);
 
   // Real Monthly Turnover calculation (Net: Sales - Returns)
   const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
-  const monthlySales = sales.filter(s => s.date && s.date >= startOfMonth && s.status === 'completed');
+  const monthlySales = sales.filter(s => s.date && s.date >= startOfMonth && ['completed', 'paid'].includes(s.status));
   const monthlyReturns = returns.filter(r => r.date && r.date >= startOfMonth && r.status === 'approved');
 
   const monthlyTurnover = monthlySales.reduce((a, s) => a + (s.total || 0), 0) -
     monthlyReturns.reduce((a, r) => a + (r.refundAmount || 0), 0);
 
-  // Current theoretical cash balance
+  // Movements
   const manualIn = cashRegister.filter(c => c.date === today && c.type === 'manual_in').reduce((a, c) => a + c.amount, 0);
   const manualOut = cashRegister.filter(c => c.date === today && c.type === 'manual_out').reduce((a, c) => a + c.amount, 0);
   const returnOut = cashRegister.filter(c => c.date === today && c.type === 'return_out').reduce((a, c) => a + c.amount, 0);
+
+  // Per-method sales breakdown for detail
   const cashSales = todaySales.filter(s => (s.paymentMethod || 'cash') === 'cash').reduce((a, s) => a + s.total, 0);
-  const currentCashBalance = cashSales + manualIn - manualOut - returnOut;
+  const omSales = todaySales.filter(s => s.paymentMethod === 'orange_money').reduce((a, s) => a + s.total, 0);
+  const mtnSales = todaySales.filter(s => s.paymentMethod === 'mtn_momo').reduce((a, s) => a + s.total, 0);
+  const transferSales = todaySales.filter(s => s.paymentMethod === 'transfer').reduce((a, s) => a + s.total, 0);
+  const creditSales = todaySales.filter(s => s.paymentMethod === 'credit').reduce((a, s) => a + s.total, 0);
+
+  // Theoretical balances by channel
+  const cashBalance = cashSales + (debtByMethod.cash || 0) + manualIn - manualOut - returnOut;
+  const omBalance = omSales + (debtByMethod.orange_money || 0);
+  const mtnBalance = mtnSales + (debtByMethod.mtn_momo || 0);
+  const transferBalance = transferSales + (debtByMethod.transfer || 0);
+  const totalBalance = cashBalance + omBalance + mtnBalance + transferBalance;
 
   // Check if today is already closed
   const todayClosure = cashRegister.find(c => c.date === today && c.type === 'closure');
@@ -108,9 +129,9 @@ async function renderCaisse(container) {
         <div class="caisse-total-card balance-card">
           <div class="caisse-total-icon" style="background: var(--success-color)"><i data-lucide="wallet"></i></div>
           <div>
-            <div class="caisse-total-val" id="current-cash-display">${UI.formatCurrency(currentCashBalance)}</div>
-            <div class="caisse-total-label">Solde Espèces Théorique</div>
-            <div class="caisse-total-sub">Cumul ventes + entrées - sorties</div>
+            <div class="caisse-total-val" id="current-cash-display">${UI.formatCurrency(totalBalance)}</div>
+            <div class="caisse-total-label">Solde Total Théorique</div>
+            <div class="caisse-total-sub">Tous canaux confondus</div>
           </div>
         </div>
         <div class="caisse-total-card">
@@ -118,7 +139,7 @@ async function renderCaisse(container) {
           <div>
             <div class="caisse-total-val">${UI.formatCurrency(grandTotal)}</div>
             <div class="caisse-total-label">Recette Totale Journée</div>
-            <div class="caisse-total-sub">${todaySales.length} transactions · ${todayReturns.length ? `Net: -${UI.formatCurrency(todayReturns.reduce((a, r) => a + r.refundAmount, 0))} retours` : `${UI.formatCurrency(totalDiscounts)} de remises`}</div>
+            <div class="caisse-total-sub">${todaySales.length} ventes${debtPaymentsToday.length ? ` · ${debtPaymentsToday.length} dette(s) encaissée(s)` : ''}${todayReturns.length ? ` · ${todayReturns.length} retour(s)` : ''}</div>
           </div>
         </div>
       </div>
@@ -158,49 +179,104 @@ async function renderCaisse(container) {
 
     <!-- Tab: Balance Detail -->
     <div id="tab-caisse-detail" class="tab-content" style="display:none">
-      <div class="dash-panel" style="border-left: 4px solid var(--success-color)">
-        <div class="panel-header" style="padding-bottom:12px">
-          <h3 class="panel-title" style="color:var(--success-color)"><i data-lucide="calculator"></i> Justification de l'argent en caisse</h3>
-        </div>
-        <div style="display:flex; flex-wrap:wrap; gap:32px; padding:20px 0; border-bottom: 1px solid var(--border); margin-bottom: 20px;">
-          <div class="calc-item">
-            <div class="text-xs text-muted font-bold uppercase tracking-wider">VENTES ESPÈCES</div>
-            <div class="text-2xl font-bold text-success">+ ${UI.formatCurrency(cashSales)}</div>
-            <div class="text-xs text-muted">Ventes payées en "Cash" aujourd'hui</div>
-          </div>
-          <div class="calc-item" style="font-size: 28px; align-self: center; opacity: 0.3">+</div>
-          <div class="calc-item">
-            <div class="text-xs text-muted font-bold uppercase tracking-wider">ENTRÉES MANUELLES</div>
-            <div class="text-2xl font-bold text-success">+ ${UI.formatCurrency(manualIn)}</div>
-            <div class="text-xs text-muted">Fonds initiaux, dépôts, etc.</div>
-          </div>
-          <div class="calc-item" style="font-size: 28px; align-self: center; opacity: 0.3">-</div>
-          <div class="calc-item">
-            <div class="text-xs text-muted font-bold uppercase tracking-wider">SORTIES MANUELLES</div>
-            <div class="text-2xl font-bold text-danger">- ${UI.formatCurrency(manualOut)}</div>
-            <div class="text-xs text-muted">Achats, retraits, frais...</div>
-          </div>
-          <div class="calc-item" style="font-size: 28px; align-self: center; opacity: 0.3">-</div>
-          <div class="calc-item">
-            <div class="text-xs text-muted font-bold uppercase tracking-wider">REMBOURSEMENTS RETOURS</div>
-            <div class="text-2xl font-bold text-danger">- ${UI.formatCurrency(returnOut)}</div>
-            <div class="text-xs text-muted">Médicaments retournés ce jour</div>
-          </div>
-          <div class="calc-item" style="font-size: 28px; align-self: center; opacity: 0.3">=</div>
-          <div class="calc-item">
-            <div class="text-xs text-muted font-bold uppercase tracking-wider">SOLDE THÉORIQUE</div>
-            <div class="text-3xl font-bold" style="color:var(--success-color)">${UI.formatCurrency(currentCashBalance)}</div>
-            <div class="text-xs text-muted">Argent réel attendu dans le tiroir</div>
-          </div>
+      <div class="dash-panel">
+        <div class="panel-header" style="border-bottom: 1px solid var(--border); padding-bottom:16px; margin-bottom:20px;">
+          <h3 class="panel-title"><i data-lucide="calculator"></i> Détail Avancé des Recettes et Flux Financiers</h3>
         </div>
         
-        <div style="background: var(--surface-2); padding: 16px; border-radius: 8px; border: 1px dashed var(--border);">
-          <p class="text-sm text-muted" style="line-height: 1.6;">
-            <i data-lucide="info" style="width:16px; height:16px; margin-right:6px; vertical-align: middle; color: var(--info);"></i>
-            <strong>Note importante :</strong> Votre Chiffre d'Affaires du mois est de <strong>${UI.formatCurrency(monthlyTurnover)}</strong>. 
-            Ce montant inclut les paiements numériques (Orange Money, MTN) et les ventes à crédit. 
-            Seuls les encaissements physiques sont pris en compte dans le <strong>Solde Théorique</strong> ci-dessus.
-          </p>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-bottom: 24px;">
+          
+          <!-- Bloc Espèces -->
+          <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:16px; box-shadow:var(--shadow-sm);">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px; color:var(--text);">
+              <div style="background:rgba(243, 156, 18, 0.1); color:#F39C12; padding:6px; border-radius:6px;"><i data-lucide="banknote" style="width:20px;height:20px;"></i></div>
+              <h4 style="margin:0; font-size:15px; font-weight:600;">Caisse Espèces (Tiroir)</h4>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px; font-size:13px;">
+              <div style="display:flex; justify-content:space-between;">
+                <span class="text-muted">+ Ventes directes</span> <strong class="text-success">${UI.formatCurrency(cashSales)}</strong>
+              </div>
+              <div style="display:flex; justify-content:space-between;">
+                <span class="text-muted">+ Encaissements dettes</span> <strong class="text-success">${UI.formatCurrency(debtByMethod.cash || 0)}</strong>
+              </div>
+              <div style="display:flex; justify-content:space-between;">
+                <span class="text-muted">+ Entrées manuelles</span> <strong class="text-success">${UI.formatCurrency(manualIn)}</strong>
+              </div>
+              <div style="display:flex; justify-content:space-between;">
+                <span class="text-muted">- Sorties manuelles</span> <strong class="text-danger">-${UI.formatCurrency(manualOut)}</strong>
+              </div>
+              <div style="display:flex; justify-content:space-between; padding-bottom:8px; border-bottom:1px solid var(--border);">
+                <span class="text-muted">- Retours remboursés</span> <strong class="text-danger">-${UI.formatCurrency(returnOut)}</strong>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+                <span style="font-weight:600; font-size:14px;">Total Attendu Tiroir</span>
+                <strong style="font-size:18px; color:var(--success-color);">${UI.formatCurrency(cashBalance)}</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bloc Mobile Money -->
+          <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:16px; box-shadow:var(--shadow-sm);">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px; color:var(--text);">
+              <div style="background:rgba(231, 76, 60, 0.1); color:#E74C3C; padding:6px; border-radius:6px;"><i data-lucide="smartphone" style="width:20px;height:20px;"></i></div>
+              <h4 style="margin:0; font-size:15px; font-weight:600;">Paiements Numériques</h4>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px; font-size:13px;">
+              <div style="display:flex; justify-content:space-between;">
+                <span class="text-muted">Ventes Orange Money</span> <strong class="text-success">${UI.formatCurrency(omSales)}</strong>
+              </div>
+              <div style="display:flex; justify-content:space-between;">
+                <span class="text-muted">Dettes Orange Money</span> <strong class="text-success">${UI.formatCurrency(debtByMethod.orange_money || 0)}</strong>
+              </div>
+              <div style="display:flex; justify-content:space-between;">
+                <span class="text-muted">Ventes MTN MoMo</span> <strong class="text-success">${UI.formatCurrency(mtnSales)}</strong>
+              </div>
+              <div style="display:flex; justify-content:space-between; padding-bottom:8px; border-bottom:1px solid var(--border);">
+                <span class="text-muted">Dettes MTN MoMo</span> <strong class="text-success">${UI.formatCurrency(debtByMethod.mtn_momo || 0)}</strong>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+                <span style="font-weight:600; font-size:14px;">Total Comptes Numériques</span>
+                <strong style="font-size:18px; color:var(--success-color);">${UI.formatCurrency(omBalance + mtnBalance)}</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bloc Banque & Crédit -->
+          <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:16px; box-shadow:var(--shadow-sm);">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px; color:var(--text);">
+              <div style="background:rgba(46, 204, 113, 0.1); color:#2ECC71; padding:6px; border-radius:6px;"><i data-lucide="landmark" style="width:20px;height:20px;"></i></div>
+              <h4 style="margin:0; font-size:15px; font-weight:600;">Banque & Crédits Récents</h4>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px; font-size:13px;">
+              <div style="display:flex; justify-content:space-between;">
+                <span class="text-muted">Ventes par virement</span> <strong class="text-success">${UI.formatCurrency(transferSales)}</strong>
+              </div>
+              <div style="display:flex; justify-content:space-between; padding-bottom:8px; border-bottom:1px solid var(--border);">
+                <span class="text-muted">Dettes réglées virement</span> <strong class="text-success">${UI.formatCurrency(debtByMethod.transfer || 0)}</strong>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px; margin-bottom:12px;">
+                <span style="font-weight:600; font-size:14px;">Total Banque Attendus</span>
+                <strong style="font-size:16px; color:var(--success-color);">${UI.formatCurrency(transferBalance)}</strong>
+              </div>
+              <div style="background:rgba(52, 152, 219, 0.1); border-radius:6px; padding:10px;">
+                <div style="display:flex; justify-content:space-between; color:#3498DB; margin-bottom:4px;">
+                  <span style="font-weight:600;"><i data-lucide="file-text" style="width:14px;height:14px;vertical-align:text-bottom;margin-right:4px;"></i>Nouvelles dettes du jour</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:16px; font-weight:bold; color:#2980B9;">
+                  <span>${breakdown.credit?.count || 0} dossier(s)</span>
+                  <span>${UI.formatCurrency(creditSales)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background: rgba(46,175,125,0.05); padding: 16px 20px; border-radius: 8px; border: 1px dashed var(--success-color); display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:13px; color:var(--text-muted); text-transform:uppercase; font-weight:700; letter-spacing:0.5px;">Recette Globale Multi-Canaux</div>
+            <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">Espèces + Mobile Money + Banque</div>
+          </div>
+          <div style="font-size:28px; font-weight:800; color:var(--success-color);">${UI.formatCurrency(totalBalance)}</div>
         </div>
       </div>
     </div>

@@ -425,19 +425,89 @@ async function renderReports(container) {
 }
 
 async function settleDebt(saleId) {
-  const ok = await UI.confirm('Confirmer le remboursement de cette dette ?\n\nLa vente sera marquée comme réglée.');
+  const sale = await DB.dbGet('sales', saleId);
+  if (!sale) { UI.toast('Vente introuvable', 'error'); return; }
+
+  // Show modal to choose payment method for the debt settlement
+  UI.modal('<i data-lucide="check-circle" class="modal-icon-inline"></i> Encaisser la dette', `
+    <div class="form-grid">
+      <div class="info-box-small" style="margin-bottom:16px; background:rgba(46,175,125,0.08); border:1px solid rgba(46,175,125,0.2); border-radius:8px; padding:14px;">
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:4px;">Montant de la dette</div>
+        <div style="font-size:24px;font-weight:800;color:var(--success)">${UI.formatCurrency(sale.total)}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Patient : <strong>${sale.patientName || 'Non renseigné'}</strong> · Vente #${String(saleId).padStart(6, '0')}</div>
+      </div>
+      <div class="form-group">
+        <label>Comment le patient règle-t-il ? *</label>
+        <div class="pay-methods-grid" id="debt-pay-methods">
+          <button type="button" class="pay-method-btn active" data-method="cash" onclick="selectDebtPayMethod(this)">
+            <i data-lucide="banknote"></i> Espèces
+          </button>
+          <button type="button" class="pay-method-btn" data-method="orange_money" onclick="selectDebtPayMethod(this)">
+            <i data-lucide="smartphone"></i> Orange Money
+          </button>
+          <button type="button" class="pay-method-btn" data-method="mtn_momo" onclick="selectDebtPayMethod(this)">
+            <i data-lucide="smartphone"></i> MTN MoMo
+          </button>
+          <button type="button" class="pay-method-btn" data-method="transfer" onclick="selectDebtPayMethod(this)">
+            <i data-lucide="landmark"></i> Virement
+          </button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Référence de paiement (optionnel)</label>
+        <input type="text" id="debt-pay-ref" class="form-control" placeholder="N° transaction, reçu, etc.">
+      </div>
+    </div>
+  `, {
+    footer: `
+      <button class="btn btn-secondary" onclick="UI.closeModal()">Annuler</button>
+      <button class="btn btn-success" onclick="confirmSettleDebt(${saleId})"><i data-lucide="check-circle"></i> Confirmer l'encaissement</button>
+    `
+  });
+  if (window.lucide) lucide.createIcons();
+}
+
+function selectDebtPayMethod(btn) {
+  btn.closest('.pay-methods-grid').querySelectorAll('.pay-method-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+async function confirmSettleDebt(saleId) {
+  const methodBtn = document.querySelector('#debt-pay-methods .pay-method-btn.active');
+  const paymentMethod = methodBtn ? methodBtn.dataset.method : 'cash';
+  const reference = document.getElementById('debt-pay-ref')?.value || '';
+
+  const ok = await UI.confirm('Confirmer l\'encaissement de cette dette ?\n\nLa vente sera marquée comme réglée.');
   if (!ok) return;
 
   try {
     const sale = await DB.dbGet('sales', saleId);
     if (!sale) throw new Error('Vente introuvable');
 
+    const today = new Date().toISOString().split('T')[0];
+
+    // 1. Update the sale status
     sale.status = 'paid';
     sale.paidAt = Date.now();
+    sale.paidDate = today;
+    sale.paidMethod = paymentMethod;
     await DB.dbPut('sales', sale);
 
-    // Audit trace
-    await DB.writeAudit('DEBT_REFUND', 'sales', saleId, { amount: sale.total, patient: sale.patientName });
+    // 2. Record payment in cashRegister so it appears in today's caisse
+    await DB.dbAdd('cashRegister', {
+      type: 'debt_in',
+      amount: sale.total,
+      paymentMethod: paymentMethod,
+      reason: `Règlement dette — Vente #${String(saleId).padStart(6, '0')}${sale.patientName ? ' · ' + sale.patientName : ''}`,
+      reference: reference,
+      saleId: saleId,
+      date: today,
+      timestamp: Date.now(),
+      userId: DB.AppState.currentUser?.id,
+    });
+
+    // 3. Audit trace
+    await DB.writeAudit('DEBT_REFUND', 'sales', saleId, { amount: sale.total, patient: sale.patientName, paymentMethod });
 
     UI.toast('Dette réglée avec succès !', 'success');
     UI.closeModal();
@@ -446,6 +516,8 @@ async function settleDebt(saleId) {
     if (Router.currentPage === 'sales') {
       const container = document.getElementById('app-content');
       await renderSales(container);
+    } else if (Router.currentPage === 'caisse') {
+      Router.navigate('caisse');
     }
 
     // Trigger Sync if online
@@ -463,6 +535,8 @@ window.filterSales = filterSales;
 window.viewSaleDetail = viewSaleDetail;
 window.exportSales = exportSales;
 window.settleDebt = settleDebt;
+window.selectDebtPayMethod = selectDebtPayMethod;
+window.confirmSettleDebt = confirmSettleDebt;
 
 Router.register('sales', renderSales);
 Router.register('reports', renderReports);
