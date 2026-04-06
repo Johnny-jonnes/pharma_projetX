@@ -71,53 +71,69 @@ async function renderMetrics(container) {
         </div>
       </div>
 
-      <div class="metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 24px;">
-        <div class="metric-card elite-card" style="background: linear-gradient(135deg, rgba(46, 204, 113, 0.1), rgba(46, 204, 113, 0.05)); border: 1px solid rgba(46, 204, 113, 0.2);">
-          <div class="metric-icon" style="background: var(--success-color); color: white;"><i data-lucide="trending-up"></i></div>
-          <div class="metric-content">
-            <span class="metric-label">CA Cumulé Net</span>
-            <span class="metric-value font-bold" style="color: var(--success-color); font-size: 1.5rem;">${UI.formatCurrency(totalRevenue)}</span>
+      <div class="metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 24px;">
+        <!-- Card 1 -->
+        <div class="metric-card elite-card" style="padding: 24px; display: flex; align-items: center; gap: 16px; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-sm); border-radius: 12px; transition: transform 0.2s;">
+          <div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(46, 204, 113, 0.1); color: var(--success-color); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <i data-lucide="trending-up" style="width: 28px; height: 28px;"></i>
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">CA Cumulé Net</div>
+            <div style="font-size: 24px; font-weight: 800; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${UI.formatCurrency(totalRevenue)}</div>
           </div>
         </div>
         
-        <div class="metric-card elite-card">
-          <div class="metric-icon secondary"><i data-lucide="shopping-bag"></i></div>
-          <div class="metric-content">
-            <span class="metric-label">Panier Moyen</span>
-            <span class="metric-value font-bold" style="font-size: 1.5rem;">${UI.formatCurrency(avgBasket)}</span>
+        <!-- Card 2 -->
+        <div class="metric-card elite-card" style="padding: 24px; display: flex; align-items: center; gap: 16px; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-sm); border-radius: 12px; transition: transform 0.2s;">
+          <div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(52, 152, 219, 0.1); color: #3498DB; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <i data-lucide="shopping-bag" style="width: 28px; height: 28px;"></i>
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Panier Moyen</div>
+            <div style="font-size: 24px; font-weight: 800; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${UI.formatCurrency(avgBasket)}</div>
           </div>
         </div>
 
-        <div class="metric-card elite-card">
-          <div class="metric-icon warning"><i data-lucide="activity"></i></div>
-          <div class="metric-content">
-            <span class="metric-label">Marge Globale</span>
-            <span class="metric-value font-bold" style="font-size: 1.5rem; color: #F39C12;">${globalMargin}%</span>
+        <!-- Card 3 -->
+        <div class="metric-card elite-card" style="padding: 24px; display: flex; align-items: center; gap: 16px; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-sm); border-radius: 12px; transition: transform 0.2s;">
+          <div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(243, 156, 18, 0.1); color: #F39C12; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <i data-lucide="activity" style="width: 28px; height: 28px;"></i>
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Marge Globale</div>
+            <div style="font-size: 24px; font-weight: 800; color: #F39C12; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${globalMargin}%</div>
           </div>
         </div>
 
-        <div class="metric-card elite-card" style="background: linear-gradient(135deg, rgba(231, 76, 60, 0.1), rgba(231, 76, 60, 0.05)); border: 1px solid rgba(231, 76, 60, 0.2);">
-          <div class="metric-icon danger" style="background: var(--danger-color); color: white;"><i data-lucide="alert-triangle"></i></div>
-          <div class="metric-content">
-            <span class="metric-label">Rupture Stock</span>
-            <span class="metric-value font-bold" style="color: var(--danger-color); font-size: 1.5rem;">${outOfStock}</span>
+        <!-- Card 4 -->
+        <div class="metric-card elite-card" style="padding: 24px; display: flex; align-items: center; gap: 16px; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-sm); border-radius: 12px; transition: transform 0.2s;">
+          <div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(231, 76, 60, 0.1); color: var(--danger-color); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <i data-lucide="alert-triangle" style="width: 28px; height: 28px;"></i>
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Rupture Stock</div>
+            <div style="font-size: 24px; font-weight: 800; color: var(--danger-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${outOfStock}</div>
           </div>
         </div>
       </div>
 
-      <div class="charts-row" style="margin-bottom: 24px;">
-        <div class="chart-card dash-panel flex-2" style="padding: 20px;">
-          <div class="chart-header">
-            <h3 class="chart-title"><i data-lucide="activity"></i> Tendance des Ventes (7 Derniers Jours)</h3>
+      <div class="charts-row" style="margin-bottom: 24px; display: flex; flex-wrap: wrap; gap: 24px;">
+        <div class="chart-card dash-panel" style="flex: 2; min-width: 400px; padding: 24px; background: var(--surface); border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-sm);">
+          <div class="chart-header" style="margin-bottom: 16px;">
+            <h3 class="chart-title" style="display: flex; align-items: center; gap: 8px; font-size: 16px;"><i data-lucide="activity" style="color: var(--primary-color);"></i> Tendance des Ventes (7 Derniers Jours)</h3>
           </div>
-          <canvas id="chart-metrics-trend" width="600" height="280"></canvas>
+          <div style="width: 100%; height: 260px; display: flex; justify-content: center; align-items: center;">
+            <canvas id="chart-metrics-trend" width="600" height="260" style="max-width: 100%; object-fit: contain;"></canvas>
+          </div>
         </div>
 
-        <div class="chart-card dash-panel flex-1" style="padding: 20px;">
-          <div class="chart-header">
-            <h3 class="chart-title"><i data-lucide="pie-chart"></i> Répartition Financière</h3>
+        <div class="chart-card dash-panel" style="flex: 1; min-width: 300px; padding: 24px; background: var(--surface); border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-sm);">
+          <div class="chart-header" style="margin-bottom: 16px;">
+            <h3 class="chart-title" style="display: flex; align-items: center; gap: 8px; font-size: 16px;"><i data-lucide="pie-chart" style="color: #3498DB;"></i> Répartition Financière</h3>
           </div>
-          <canvas id="chart-metrics-donut" width="300" height="280"></canvas>
+          <div style="width: 100%; height: 260px; display: flex; justify-content: center; align-items: center;">
+            <canvas id="chart-metrics-donut" width="450" height="260" style="max-width: 100%; object-fit: contain; margin-left: -20px;"></canvas>
+          </div>
         </div>
       </div>
 
