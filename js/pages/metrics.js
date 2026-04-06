@@ -187,12 +187,12 @@ async function renderMetrics(container) {
         </div>
 
         <!-- Card 6 : Créances -->
-        <div class="metric-card elite-card" style="padding: 24px; display: flex; align-items: center; gap: 16px; background: var(--surface); border: 1px solid ${totalCreances > 0 ? 'var(--danger-color)' : 'var(--border)'}; box-shadow: var(--shadow-sm); border-radius: 12px; transition: transform 0.2s;">
+        <div class="metric-card elite-card" style="padding: 24px; display: flex; align-items: center; gap: 16px; background: var(--surface); border: 1px solid ${totalCreances > 0 ? 'var(--danger-color)' : 'var(--border)'}; box-shadow: var(--shadow-sm); border-radius: 12px; transition: transform 0.2s; cursor: pointer;" onclick="Router.navigate('sales'); setTimeout(() => { let el = document.getElementById('sales-pay'); if(el){ el.value = 'credit'; if(window.filterSales) window.filterSales(); } }, 200);" title="Cliquez pour consulter le registre des dettes">
           <div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(231, 76, 60, 0.08); color: #e74c3c; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
             <i data-lucide="file-clock" style="width: 28px; height: 28px;"></i>
           </div>
           <div style="flex: 1; min-width: 0;">
-            <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Créances en Cours</div>
+            <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Créances en Cours <i data-lucide="external-link" style="width: 12px; height: 12px; margin-left: 4px; opacity: 0.7;"></i></div>
             <div style="font-size: 24px; font-weight: 800; color: ${totalCreances > 0 ? '#e74c3c' : 'var(--success-color)'}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${totalCreances > 0 ? UI.formatCurrency(totalCreances) : '✔ Aucune'}</div>
             <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">${unpaidCredits.length > 0 ? unpaidCredits.length + ' dette(s) impayée(s)' : 'Tout est réglé'}</div>
           </div>
