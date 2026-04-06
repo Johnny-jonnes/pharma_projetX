@@ -24,6 +24,12 @@ async function renderMetrics(container) {
     const totalTransactions = completedSales.length;
     const avgBasket = totalTransactions > 0 ? (totalRevenue / totalTransactions).toFixed(0) : 0;
 
+    // First usage / App creation date
+    const firstSale = [...sales].sort((a,b) => new Date(a.date) - new Date(b.date))[0];
+    const startedUsingDate = firstSale ? new Date(firstSale.date).toLocaleDateString('fr-FR', {
+      day: 'numeric', month: 'long', year: 'numeric'
+    }) : "Aujourd'hui";
+
     // Usage activity
     const last30Days = new Date();
     last30Days.setDate(last30Days.getDate() - 30);
@@ -68,6 +74,35 @@ async function renderMetrics(container) {
         <div>
           <h1 class="page-title">Tableau de Bord Exécutif</h1>
           <p class="page-subtitle">Indicateurs de Performance Clés (KPI)</p>
+        </div>
+      </div>
+
+      <!-- Hero Impact Card -->
+      <div class="elite-card impact-card" style="padding: 32px; background: linear-gradient(135deg, var(--primary-color), var(--success-color)); color: white; border-radius: 16px; margin-bottom: 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; box-shadow: 0 15px 35px rgba(46, 204, 113, 0.25); position: relative; overflow: hidden;">
+        <!-- Decor pattern -->
+        <div style="position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: rgba(255,255,255,0.1); border-radius: 50%; blur(10px);"></div>
+        <div style="position: absolute; bottom: -30px; left: 20%; width: 100px; height: 100px; background: rgba(255,255,255,0.05); border-radius: 50%; blur(5px);"></div>
+        
+        <div style="z-index: 1;">
+          <div style="font-size: 13px; text-transform: uppercase; font-weight: 700; letter-spacing: 1.5px; color: rgba(255,255,255,0.85); margin-bottom: 8px; display:flex; align-items:center; gap:8px;">
+            <i data-lucide="award" style="width: 18px; height: 18px;"></i>
+            Valeur nette générée via PharmaProjet
+          </div>
+          <div style="display: flex; align-items: baseline; gap: 12px; margin-top: 4px;">
+            <span style="font-size: 42px; font-weight: 900; line-height: 1;">${UI.formatCurrency(totalProfit)}</span>
+          </div>
+          <div style="font-size: 14px; margin-top: 10px; color: rgba(255,255,255,0.9); display:flex; align-items:center; gap:6px;">
+            <i data-lucide="trending-up" style="width:16px; height: 16px;"></i>
+            C'est votre bénéfice brut dégagé depuis l'installation
+          </div>
+        </div>
+        <div style="z-index: 1; text-align: right; padding-left: 32px; border-left: 1px solid rgba(255,255,255,0.25);">
+          <div style="font-size: 13px; color: rgba(255,255,255,0.8); margin-bottom: 4px; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">Utilisé au quotidien depuis le</div>
+          <div style="font-size: 20px; font-weight: bold; margin-bottom: 6px;">${startedUsingDate}</div>
+          <div style="font-size: 14px; font-weight: 500; background: rgba(255,255,255,0.2); display: inline-block; padding: 4px 12px; border-radius: 20px;">
+            <i data-lucide="check-circle" style="width:14px;height:14px;vertical-align:text-bottom;"></i>
+            ${totalTransactions} transactions conclues
+          </div>
         </div>
       </div>
 
@@ -127,12 +162,12 @@ async function renderMetrics(container) {
           </div>
         </div>
 
-        <div class="chart-card dash-panel" style="flex: 1; min-width: 300px; padding: 24px; background: var(--surface); border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-sm);">
+        <div class="chart-card dash-panel" style="flex: 1; min-width: 350px; padding: 24px; background: var(--surface); border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); display: flex; flex-direction: column;">
           <div class="chart-header" style="margin-bottom: 16px;">
             <h3 class="chart-title" style="display: flex; align-items: center; gap: 8px; font-size: 16px;"><i data-lucide="pie-chart" style="color: #3498DB;"></i> Répartition Financière</h3>
           </div>
-          <div style="width: 100%; display: flex; justify-content: center; align-items: center;">
-            <canvas id="chart-metrics-donut" width="500" height="260" style="width: 100%; height: auto; max-width: 500px; object-fit: contain;"></canvas>
+          <div style="flex: 1; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; position: relative;">
+            <canvas id="custom-giant-donut" width="500" height="300" style="width: 100%; height: 100%; max-height: 280px; object-fit: contain;"></canvas>
           </div>
         </div>
       </div>
@@ -188,8 +223,8 @@ async function renderMetrics(container) {
         { data: trendData, color: UI.getThemeColor('--primary-color') || '#2980b9' }
       ]);
       
-      // Donut Chart (Répartition: COGS vs Profit vs Refunds)
-      Charts.donut('chart-metrics-donut', 
+      // Giant Custom Donut Chart (Bypass ui.js limited canvas sizes)
+      drawGiantDonut('custom-giant-donut', 
         ['Coût Achats', 'Bénéfice Net', 'Remboursements'], 
         [totalCOGS, Math.max(0, totalProfit), Math.max(0, totalRefunds)], 
         ['#3498db', '#2ecc71', '#e74c3c']
@@ -200,6 +235,86 @@ async function renderMetrics(container) {
     console.error(err);
     container.innerHTML = `<div class="error-state">Erreur d'analyse : ${err.message}</div>`;
   }
+}
+
+function drawGiantDonut(canvasId, labels, data, colors) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  
+  // Utiliser tout l'espace possible: Rayon énorme, centré sur la gauche / centre
+  const total = data.reduce((a, b) => a + b, 0);
+  
+  // On place le cercle au tiers gauche pour laisser la place à droite pour le texte
+  const cx = w * 0.35; 
+  const cy = h * 0.50; 
+  // Rayon très grand
+  const R = Math.min(w * 0.6, h) * 0.45; 
+  const r = R * 0.6; // Trou au milieu
+  
+  ctx.clearRect(0, 0, w, h);
+  
+  if (total === 0) {
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '14px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('Aucune donnée', cx, cy);
+    return;
+  }
+  
+  let startAngle = -Math.PI / 2;
+  data.forEach((val, i) => {
+    const slice = (val / total) * 2 * Math.PI;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, R, startAngle, startAngle + slice);
+    ctx.closePath();
+    ctx.fillStyle = colors[i % colors.length];
+    ctx.fill();
+    ctx.strokeStyle = UI.getThemeColor('--surface') || '#fff';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    startAngle += slice;
+  });
+  
+  // Center hole
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, 2 * Math.PI);
+  ctx.fillStyle = UI.getThemeColor('--surface') || '#fff'; 
+  ctx.fill();
+  
+  // Center text (Large)
+  ctx.fillStyle = UI.getThemeColor('--text') || '#000';
+  ctx.font = 'bold 22px system-ui';
+  ctx.textAlign = 'center';
+  ctx.fillText(total.toLocaleString('fr-FR'), cx, cy + 8);
+  ctx.font = '14px system-ui';
+  ctx.fillStyle = UI.getThemeColor('--text-muted') || '#666';
+  ctx.fillText('Chiffre brut', cx, cy + 28);
+  
+  // Legend (Right Side) Large and readable
+  labels.forEach((label, i) => {
+    const lx = w * 0.75; 
+    const ly = (h * 0.30) + (i * 35); // Légende bien espacée et centrée verticalement
+    
+    // Pastille de couleur plus grande
+    ctx.fillStyle = colors[i % colors.length];
+    ctx.beginPath();
+    ctx.roundRect(lx - 25, ly - 14, 16, 16, 4);
+    ctx.fill();
+    
+    ctx.fillStyle = UI.getThemeColor('--text') || '#000';
+    ctx.font = '600 13px system-ui';
+    ctx.textAlign = 'left';
+    ctx.fillText(label, lx, ly - 6);
+    
+    // Pourcentage en dessous
+    const pct = total > 0 ? ((data[i] / total) * 100).toFixed(1) : 0;
+    ctx.fillStyle = UI.getThemeColor('--text-muted') || '#666';
+    ctx.font = '500 12px system-ui';
+    ctx.fillText(`\${pct}%`, lx, ly + 10);
+  });
 }
 
 function getTopProducts(items) {
