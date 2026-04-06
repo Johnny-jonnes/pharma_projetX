@@ -24,8 +24,9 @@ async function renderMetrics(container) {
     const totalTransactions = completedSales.length;
     const avgBasket = totalTransactions > 0 ? (totalRevenue / totalTransactions).toFixed(0) : 0;
 
-    // First usage / App creation date
-    const firstSale = [...sales].sort((a,b) => new Date(a.date) - new Date(b.date))[0];
+    // First usage / App creation date (ignoring any test data before 2026)
+    const realSales = sales.filter(s => new Date(s.date).getFullYear() >= 2026);
+    const firstSale = [...realSales].sort((a,b) => new Date(a.date) - new Date(b.date))[0];
     const startedUsingDate = firstSale ? new Date(firstSale.date).toLocaleDateString('fr-FR', {
       day: 'numeric', month: 'long', year: 'numeric'
     }) : "Aujourd'hui";
