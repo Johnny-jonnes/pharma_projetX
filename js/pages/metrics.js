@@ -194,7 +194,7 @@ async function renderMetrics(container) {
           <div style="flex: 1; min-width: 0;">
             <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Créances en Cours</div>
             <div style="font-size: 24px; font-weight: 800; color: ${totalCreances > 0 ? '#e74c3c' : 'var(--success-color)'}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${totalCreances > 0 ? UI.formatCurrency(totalCreances) : '✔ Aucune'}</div>
-            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">${unpaidCredits.length} dette(s) impayée(s)</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">${unpaidCredits.length > 0 ? unpaidCredits.length + ' dette(s) impayée(s)' : 'Tout est réglé'}</div>
           </div>
         </div>
 
@@ -228,12 +228,12 @@ async function renderMetrics(container) {
           </div>
         </div>
 
-        <div class="chart-card dash-panel" style="flex: 1; min-width: 350px; padding: 24px; background: var(--surface); border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); display: flex; flex-direction: column;">
+        <div class="chart-card dash-panel" style="flex: 1; min-width: 450px; padding: 24px; background: var(--surface); border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); display: flex; flex-direction: column;">
           <style>
             .donut-hover-item:hover {
-              transform: scale(1.1) translateX(15px);
+              transform: scale(1.05) translateX(10px);
               background: var(--bg-body, #f8fafc);
-              box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+              box-shadow: 0 10px 25px rgba(0,0,0,0.06);
               border-color: var(--primary-color) !important;
               z-index: 10;
             }
@@ -241,11 +241,11 @@ async function renderMetrics(container) {
           <div class="chart-header" style="margin-bottom: 16px;">
             <h3 class="chart-title" style="display: flex; align-items: center; gap: 8px; font-size: 16px;"><i data-lucide="pie-chart" style="color: #3498DB;"></i> Répartition Financière</h3>
           </div>
-          <div style="flex: 1; width: 100%; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 24px;">
-            <div style="flex: 1; min-width: 220px; display: flex; justify-content: center; align-items: center;">
-              <canvas id="custom-giant-donut" width="300" height="300" style="max-width: 100%; height: auto; max-height: 280px;"></canvas>
+          <div style="flex: 1; width: 100%; display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: 32px; flex-wrap: nowrap;">
+            <div style="flex: 0 0 auto; width: 260px; display: flex; justify-content: center; align-items: center;">
+              <canvas id="custom-giant-donut" width="260" height="260" style="max-width: 100%; height: auto;"></canvas>
             </div>
-            <div id="giant-donut-legend" style="flex: 1; min-width: 250px; display: flex; flex-direction: column; gap: 16px;">
+            <div id="giant-donut-legend" style="flex: 1; display: flex; flex-direction: column; gap: 16px;">
                <!-- Injecté par JS -->
             </div>
           </div>
@@ -298,25 +298,66 @@ async function renderMetrics(container) {
 
     // Rendu des graphiques
     requestAnimationFrame(() => {
-      // 1. Custom Interactive DOM Bar Chart (Tendance)
+      // 1. Custom Interactive DOM Curve Chart (Tendance)
       const trendContainer = document.getElementById('custom-trend-chart-container');
       if (trendContainer) {
         const maxVal = Math.max(...trendData, 1);
-        trendContainer.innerHTML = last7DaysLabels.map((lbl, i) => {
-          const val = trendData[i];
-          const heightPct = (val / maxVal) * 100;
-          return `
-            <div class="trend-bar-wrapper" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%;">
-              <div class="trend-value" style="font-size: 14px; font-weight: 700; color: var(--text-muted); margin-bottom: 12px; transition: all 0.3s ease; white-space: nowrap; font-family: 'JetBrains Mono', monospace;">
-                ${val.toLocaleString('fr-FR')} <span style="font-size:10px;">FG</span>
-              </div>
-              <div class="trend-bar-fill" style="width: 100%; max-width: 45px; height: ${Math.max(3, heightPct)}%; background: linear-gradient(to top, #2980b9, #6dd5ed); border-radius: 8px 8px 0 0; transition: all 0.3s ease;"></div>
-              <div class="trend-label" style="font-size: 13px; color: var(--text-muted); font-weight: 600; margin-top: 10px; transition: all 0.3s ease; text-transform: capitalize; text-align: center; line-height: 1.2;">
-                ${lbl.split(' ')[0]} <br> <span style="font-size: 15px; font-weight: 800; color: var(--text);">${lbl.split(' ')[1] || ''}</span>
-              </div>
+        const svgW = 800;
+        const svgH = 260;
+        const padX = 40;
+        const padY = 40;
+        
+        const pts = [];
+        for (let i = 0; i < trendData.length; i++) {
+          const x = padX + (i / (trendData.length - 1)) * (svgW - 2 * padX);
+          const y = svgH - padY - (trendData[i] / maxVal) * (svgH - 2 * padY);
+          pts.push({x, y, val: trendData[i], lbl: last7DaysLabels[i]});
+        }
+        
+        // Génération de la courbe de Bézier (Spline)
+        // Génération de la courbe de Bézier (Spline)
+        let pathD = `M ${pts[0].x},${pts[0].y}`;
+        for (let i = 0; i < pts.length - 1; i++) {
+          const cx = (pts[i].x + pts[i+1].x) / 2;
+          pathD += ` C ${cx},${pts[i].y} ${cx},${pts[i+1].y} ${pts[i+1].x},${pts[i+1].y}`;
+        }
+        
+        const fillPathD = pathD + ` L ${pts[pts.length-1].x},${svgH - padY} L ${pts[0].x},${svgH - padY} Z`;
+
+        trendContainer.innerHTML = `
+          <div style="position: relative; width: 100%; height: 100%;">
+            <svg viewBox="0 0 ${svgW} ${svgH}" preserveAspectRatio="none" style="width: 100%; height: 100%; overflow: visible; padding-bottom: 20px;">
+              <defs>
+                <linearGradient id="curveGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#3498db" stop-opacity="0.3" />
+                  <stop offset="100%" stop-color="#3498db" stop-opacity="0.0" />
+                </linearGradient>
+              </defs>
+              <!-- Ligne de base -->
+              <line x1="${padX}" y1="${svgH - padY}" x2="${svgW - padX}" y2="${svgH - padY}" stroke="var(--border)" stroke-width="2" stroke-dasharray="5,5" />
+              <!-- Remplissage Gradient -->
+              <path d="${fillPathD}" fill="url(#curveGradient)" />
+              <!-- Courbe dynamique -->
+              <path d="${pathD}" fill="none" stroke="#3498db" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+              <!-- Points -->
+              ${pts.map(p => `<circle cx="${p.x}" cy="${p.y}" r="6" fill="var(--surface)" stroke="#3498db" stroke-width="3" style="transition: all 0.3s;" onmouseover="this.setAttribute('r', '9'); this.setAttribute('fill', '#3498db')" onmouseout="this.setAttribute('r', '6'); this.setAttribute('fill', 'var(--surface)')" />`).join('')}
+            </svg>
+            
+            <div style="position: absolute; bottom: -10px; left: 0; width: 100%; display: flex; justify-content: space-between; padding: 0 ${(padX/svgW)*100}% 0 ${(padX/svgW)*100}%;">
+              ${pts.map(p => `
+                 <div class="trend-hover-group" style="position: absolute; left: ${((p.x - padX) / (svgW - 2 * padX)) * 100}%; bottom: 0; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; justify-content: flex-end; cursor: pointer;">
+                   <div class="trend-tooltip" style="opacity: 0; position: absolute; bottom: ${svgH - p.y + 15}px; background: var(--text); color: var(--surface); padding: 8px 12px; border-radius: 8px; font-weight: bold; font-size: 13px; white-space: nowrap; pointer-events: none; transition: opacity 0.2s, transform 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 10; transform: translateY(10px);">
+                     ${p.val.toLocaleString('fr-FR')} FG
+                   </div>
+                   <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: capitalize; text-align: center; line-height: 1.2;">${p.lbl.split(' ')[0]} <br> <span style="font-size:14px; color: var(--text); font-weight:800;">${p.lbl.split(' ')[1]}</span></div>
+                 </div>
+              `).join('')}
             </div>
-          `;
-        }).join('');
+            <style>
+              .trend-hover-group:hover .trend-tooltip { opacity: 1 !important; transform: translateY(0) !important; }
+            </style>
+          </div>
+        `;
       }
       
       const donutLabels = ['Coût Achats', 'Bénéfice Net', 'Remboursements'];
