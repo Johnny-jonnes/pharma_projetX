@@ -213,42 +213,17 @@ async function renderMetrics(container) {
 
       <div class="charts-row" style="margin-bottom: 24px; display: flex; flex-wrap: wrap; gap: 24px;">
         <div class="chart-card dash-panel" style="flex: 2; min-width: 400px; padding: 24px; background: var(--surface); border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); display: flex; flex-direction: column;">
-          <style>
-            .trend-bar-wrapper { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; cursor: crosshair; }
-            .trend-bar-wrapper:hover { transform: scale(1.15); z-index: 10; }
-            .trend-bar-wrapper:hover .trend-bar-fill { filter: brightness(1.2); box-shadow: 0 0 15px rgba(52, 152, 219, 0.7); }
-            .trend-bar-wrapper:hover .trend-value { color: var(--primary-color, #3498db); font-size: 16px; font-weight: 900; transform: translateY(-8px); }
-            .trend-bar-wrapper:hover .trend-label { color: var(--text); font-weight: 800; transform: scale(1.1); }
-          </style>
           <div class="chart-header" style="margin-bottom: 16px;">
             <h3 class="chart-title" style="display: flex; align-items: center; gap: 8px; font-size: 16px;"><i data-lucide="activity" style="color: var(--primary-color);"></i> Tendance des Ventes (7 Derniers Jours)</h3>
           </div>
-          <div id="custom-trend-chart-container" style="flex: 1; width: 100%; height: 260px; display: flex; align-items: flex-end; justify-content: space-around; gap: 12px; padding: 30px 10px 10px 10px;">
-            <!-- Injected by JS -->
-          </div>
+          <canvas id="metrics-chart-trend" width="500" height="280"></canvas>
         </div>
 
-        <div class="chart-card dash-panel" style="flex: 1; min-width: 450px; padding: 24px; background: var(--surface); border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); display: flex; flex-direction: column;">
-          <style>
-            .donut-hover-item:hover {
-              transform: scale(1.05) translateX(10px);
-              background: var(--bg-body, #f8fafc);
-              box-shadow: 0 10px 25px rgba(0,0,0,0.06);
-              border-color: var(--primary-color) !important;
-              z-index: 10;
-            }
-          </style>
+        <div class="chart-card dash-panel" style="flex: 1; min-width: 350px; padding: 24px; background: var(--surface); border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); display: flex; flex-direction: column;">
           <div class="chart-header" style="margin-bottom: 16px;">
             <h3 class="chart-title" style="display: flex; align-items: center; gap: 8px; font-size: 16px;"><i data-lucide="pie-chart" style="color: #3498DB;"></i> Répartition Financière</h3>
           </div>
-          <div style="flex: 1; width: 100%; display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: 32px; flex-wrap: nowrap;">
-            <div style="flex: 0 0 auto; width: 260px; display: flex; justify-content: center; align-items: center;">
-              <canvas id="custom-giant-donut" width="260" height="260" style="max-width: 100%; height: auto;"></canvas>
-            </div>
-            <div id="giant-donut-legend" style="flex: 1; display: flex; flex-direction: column; gap: 16px;">
-               <!-- Injecté par JS -->
-            </div>
-          </div>
+          <canvas id="metrics-chart-finance" width="500" height="280"></canvas>
         </div>
       </div>
 
@@ -298,155 +273,27 @@ async function renderMetrics(container) {
 
     // Rendu des graphiques
     requestAnimationFrame(() => {
-      // 1. Custom Interactive DOM Curve Chart (Tendance)
-      const trendContainer = document.getElementById('custom-trend-chart-container');
-      if (trendContainer) {
-        const maxVal = Math.max(...trendData, 1);
-        const svgW = 800;
-        const svgH = 260;
-        const padX = 40;
-        const padY = 40;
-        
-        const pts = [];
-        for (let i = 0; i < trendData.length; i++) {
-          const x = padX + (i / (trendData.length - 1)) * (svgW - 2 * padX);
-          const y = svgH - padY - (trendData[i] / maxVal) * (svgH - 2 * padY);
-          pts.push({x, y, val: trendData[i], lbl: last7DaysLabels[i]});
-        }
-        
-        // Génération de la courbe de Bézier (Spline)
-        // Génération de la courbe de Bézier (Spline)
-        let pathD = `M ${pts[0].x},${pts[0].y}`;
-        for (let i = 0; i < pts.length - 1; i++) {
-          const cx = (pts[i].x + pts[i+1].x) / 2;
-          pathD += ` C ${cx},${pts[i].y} ${cx},${pts[i+1].y} ${pts[i+1].x},${pts[i+1].y}`;
-        }
-        
-        const fillPathD = pathD + ` L ${pts[pts.length-1].x},${svgH - padY} L ${pts[0].x},${svgH - padY} Z`;
+      Charts.line('metrics-chart-trend', last7DaysLabels, [{
+        data: trendData,
+        color: '#0B3D6F' 
+      }], { title: '' });
 
-        trendContainer.innerHTML = `
-          <div style="position: relative; width: 100%; height: 100%;">
-            <svg viewBox="0 0 ${svgW} ${svgH}" preserveAspectRatio="none" style="width: 100%; height: 100%; overflow: visible; padding-bottom: 20px;">
-              <defs>
-                <linearGradient id="curveGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="#3498db" stop-opacity="0.3" />
-                  <stop offset="100%" stop-color="#3498db" stop-opacity="0.0" />
-                </linearGradient>
-              </defs>
-              <!-- Ligne de base -->
-              <line x1="${padX}" y1="${svgH - padY}" x2="${svgW - padX}" y2="${svgH - padY}" stroke="var(--border)" stroke-width="2" stroke-dasharray="5,5" />
-              <!-- Remplissage Gradient -->
-              <path d="${fillPathD}" fill="url(#curveGradient)" />
-              <!-- Courbe dynamique -->
-              <path d="${pathD}" fill="none" stroke="#3498db" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
-              <!-- Points -->
-              ${pts.map(p => `<circle cx="${p.x}" cy="${p.y}" r="6" fill="var(--surface)" stroke="#3498db" stroke-width="3" style="transition: all 0.3s;" onmouseover="this.setAttribute('r', '9'); this.setAttribute('fill', '#3498db')" onmouseout="this.setAttribute('r', '6'); this.setAttribute('fill', 'var(--surface)')" />`).join('')}
-            </svg>
-            
-            <div style="position: absolute; bottom: -10px; left: 0; width: 100%; display: flex; justify-content: space-between; padding: 0 ${(padX/svgW)*100}% 0 ${(padX/svgW)*100}%;">
-              ${pts.map(p => `
-                 <div class="trend-hover-group" style="position: absolute; left: ${((p.x - padX) / (svgW - 2 * padX)) * 100}%; bottom: 0; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; justify-content: flex-end; cursor: pointer;">
-                   <div class="trend-tooltip" style="opacity: 0; position: absolute; bottom: ${svgH - p.y + 15}px; background: var(--text); color: var(--surface); padding: 8px 12px; border-radius: 8px; font-weight: bold; font-size: 13px; white-space: nowrap; pointer-events: none; transition: opacity 0.2s, transform 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 10; transform: translateY(10px);">
-                     ${p.val.toLocaleString('fr-FR')} FG
-                   </div>
-                   <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: capitalize; text-align: center; line-height: 1.2;">${p.lbl.split(' ')[0]} <br> <span style="font-size:14px; color: var(--text); font-weight:800;">${p.lbl.split(' ')[1]}</span></div>
-                 </div>
-              `).join('')}
-            </div>
-            <style>
-              .trend-hover-group:hover .trend-tooltip { opacity: 1 !important; transform: translateY(0) !important; }
-            </style>
-          </div>
-        `;
-      }
-      
-      const donutLabels = ['Coût Achats', 'Bénéfice Net', 'Remboursements'];
+      const donutLabels = ['Coût Achats', 'Bénéfice Brut', 'Remboursements'];
       const donutData = [totalCOGS, Math.max(0, totalProfit), Math.max(0, totalRefunds)];
-      const donutColors = ['#3498db', '#2ecc71', '#e74c3c'];
-      const donutTotal = donutData.reduce((a, b) => a + b, 0);
-
-      // Giant Custom Donut Chart (Bypass ui.js limited canvas sizes)
-      drawGiantDonut('custom-giant-donut', donutData, donutColors);
-
-      // DOM based legend for large scalable hover effects
-      const legContainer = document.getElementById('giant-donut-legend');
-      if (legContainer) {
-        legContainer.innerHTML = donutLabels.map((lbl, i) => {
-          const pct = donutTotal > 0 ? ((donutData[i] / donutTotal) * 100).toFixed(1) : 0;
-          return `
-            <div class="donut-hover-item" style="display: flex; align-items: center; gap: 16px; padding: 16px; border: 1px solid transparent; border-radius: 16px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; background: rgba(0,0,0,0.02);">
-              <div style="width: 32px; height: 32px; background: ${donutColors[i]}; border-radius: 8px; flex-shrink: 0; box-shadow: 0 4px 15px ${donutColors[i]}80;"></div>
-              <div>
-                <div style="font-size: 18px; font-weight: 800; color: var(--text);">${lbl}</div>
-                <div style="font-size: 17px; font-weight: 700; color: var(--text-muted); margin-top: 6px;">${pct}% <span style="opacity: 0.3; margin: 0 8px;">|</span> ${donutData[i].toLocaleString('fr-FR')} FG</div>
-              </div>
-            </div>
-          `;
-        }).join('');
-      }
+      const donutColors = ['#0B3D6F', '#0D9B6C', '#D63B3B']; // Palette standard
+      
+      Charts.donut('metrics-chart-finance',
+        donutLabels,
+        donutData,
+        donutColors
+      );
+      if (window.lucide) lucide.createIcons();
     });
 
   } catch (err) {
     console.error(err);
     container.innerHTML = `<div class="error-state">Erreur d'analyse : ${err.message}</div>`;
   }
-}
-
-function drawGiantDonut(canvasId, data, colors) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const w = canvas.width, h = canvas.height;
-  
-  // Utiliser tout l'espace possible: Rayon énorme, centré  
-  const total = data.reduce((a, b) => a + b, 0);
-  
-  // On place le cercle parfaitement au centre puisque la légende html prend sa propre place
-  const cx = w * 0.50; 
-  const cy = h * 0.50; 
-  // Rayon très grand occupant le maximum
-  const R = Math.min(w, h) * 0.45; 
-  const r = R * 0.6; // Trou au milieu
-  
-  ctx.clearRect(0, 0, w, h);
-  
-  if (total === 0) {
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = '16px system-ui';
-    ctx.textAlign = 'center';
-    ctx.fillText('Aucune donnée', cx, cy);
-    return;
-  }
-  
-  let startAngle = -Math.PI / 2;
-  data.forEach((val, i) => {
-    const slice = (val / total) * 2 * Math.PI;
-    ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.arc(cx, cy, R, startAngle, startAngle + slice);
-    ctx.closePath();
-    ctx.fillStyle = colors[i % colors.length];
-    ctx.fill();
-    ctx.strokeStyle = UI.getThemeColor('--surface') || '#fff';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-    startAngle += slice;
-  });
-  
-  // Center hole
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, 2 * Math.PI);
-  ctx.fillStyle = UI.getThemeColor('--surface') || '#fff'; 
-  ctx.fill();
-  
-  // Center text (Large)
-  ctx.fillStyle = UI.getThemeColor('--text') || '#000';
-  ctx.font = '900 26px system-ui';
-  ctx.textAlign = 'center';
-  ctx.fillText(total.toLocaleString('fr-FR'), cx, cy + 8);
-  ctx.font = '15px system-ui';
-  ctx.fillStyle = UI.getThemeColor('--text-muted') || '#666';
-  ctx.fillText('Chiffre brut', cx, cy + 28);
 }
 
 function getTopProducts(items) {
