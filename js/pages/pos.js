@@ -1,16 +1,101 @@
 /**
  * PHARMA_PROJET v3 — Point de Vente Professionnel
  * Panier · Client · Ordonnance · Mobile Money · Reçu officiel
+ * FEFO · Interactions · Substitution Générique
  */
 
 let posCart = [];
 let posProducts = [];
 let posStock = {};
+let posLots = []; // Loaded for FEFO
 let posSearch = '';
 let posCurrentPatient = null;
 let posCurrentRx = null;
 let posActiveCategory = '';
 let posMobilePayState = 'idle'; // idle | en_attente | confirme | echoue
+
+// ═══════════════════════════════════════════════════════════════════
+// INTERACTIONS MÉDICAMENTEUSES — Base statique des 30 combinaisons critiques
+// Format: [DCI_A, DCI_B, niveau (grave/modéré), description]
+// ═══════════════════════════════════════════════════════════════════
+const DRUG_INTERACTIONS = [
+  ['methotrexate','trimethoprime','grave','Risque de pancytopénie potentiellement fatale'],
+  ['warfarine','aspirine','grave','Hémorragie sévère — surveillance INR obligatoire'],
+  ['warfarine','ibuprofène','grave','Hémorragie digestive — AINS contre-indiqués'],
+  ['warfarine','fluconazole','grave','Augmentation effet anticoagulant — hémorragie'],
+  ['metformine','produit de contraste iodé','modéré','Risque acidose lactique'],
+  ['ciprofloxacine','théophylline','grave','Convulsions — surdosage théophylline'],
+  ['érythromycine','simvastatine','grave','Rhabdomyolyse — toxicité musculaire'],
+  ['clarithromycine','simvastatine','grave','Rhabdomyolyse — toxicité musculaire'],
+  ['fluconazole','simvastatine','grave','Rhabdomyolyse — inhibition CYP3A4'],
+  ['métronidazole','alcool','grave','Effet antabuse — nausées, vomissements sévères'],
+  ['ciprofloxacine','fer','modéré','Absorption réduite de la ciprofloxacine'],
+  ['tétracycline','calcium','modéré','Chélation — perte d\'efficacité antibiotique'],
+  ['doxycycline','calcium','modéré','Absorption réduite de la doxycycline'],
+  ['amoxicilline','méthotrexate','grave','Toxicité méthotrexate augmentée'],
+  ['lithium','ibuprofène','grave','Toxicité lithium — insuffisance rénale'],
+  ['lithium','diclofénac','grave','Toxicité lithium — insuffisance rénale'],
+  ['digoxine','amiodarone','grave','Toxicité digitale — bradycardie sévère'],
+  ['digoxine','vérapamil','grave','Bradycardie sévère — bloc AV'],
+  ['carbamazépine','érythromycine','grave','Toxicité carbamazépine — ataxie, nystagmus'],
+  ['phénytoïne','fluconazole','grave','Toxicité phénytoïne augmentée'],
+  ['captopril','spironolactone','modéré','Hyperkaliémie — surveillance potassium'],
+  ['énalapril','spironolactone','modéré','Hyperkaliémie — surveillance potassium'],
+  ['cisapride','fluconazole','grave','Allongement QT — arythmie cardiaque'],
+  ['tramadol','carbamazépine','modéré','Efficacité tramadol réduite — induction enzymatique'],
+  ['clopidogrel','oméprazole','modéré','Efficacité clopidogrel réduite — éviter association'],
+  ['sildenafil','nitrate','grave','Hypotension sévère potentiellement fatale'],
+  ['isoniazide','rifampicine','modéré','Hépatotoxicité — surveillance hépatique obligatoire'],
+  ['amiodarone','simvastatine','grave','Rhabdomyolyse — limiter dose statine'],
+  ['métoclopramide','lévodopa','modéré','Antagonisme dopaminergique — perte d\'efficacité'],
+  ['furosémide','gentamicine','grave','Ototoxicité et néphrotoxicité augmentées'],
+];
+
+/**
+ * Vérifie les interactions médicamenteuses entre un nouveau produit et le panier actuel
+ */
+function checkDrugInteractions(newProduct) {
+  if (!newProduct.dci) return [];
+  const newDci = newProduct.dci.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const alerts = [];
+  for (const cartItem of posCart) {
+    if (!cartItem.dci) continue;
+    const cartDci = cartItem.dci.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    for (const [dciA, dciB, level, desc] of DRUG_INTERACTIONS) {
+      const a = dciA.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      const b = dciB.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      if ((newDci.includes(a) && cartDci.includes(b)) || (newDci.includes(b) && cartDci.includes(a))) {
+        alerts.push({ with: cartItem.name, level, desc });
+      }
+    }
+  }
+  return alerts;
+}
+
+/**
+ * FEFO : Retourne le lot actif avec la DLC la plus proche pour un produit
+ */
+function getFEFOLot(productId) {
+  try {
+    const productLots = posLots
+      .filter(l => l.productId === productId && l.status === 'active' && l.quantity > 0)
+      .sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
+    return productLots[0] || null;
+  } catch (e) { return null; }
+}
+
+/**
+ * Substitution Générique : Trouve les alternatives DCI en stock
+ */
+function findGenericAlternatives(product) {
+  if (!product.dci) return [];
+  const dci = product.dci.toLowerCase();
+  return posProducts.filter(p =>
+    p.id !== product.id &&
+    p.dci && p.dci.toLowerCase() === dci &&
+    (posStock[p.id] || 0) > 0
+  );
+}
 
 // Route registration is at the bottom of this file
 
@@ -23,16 +108,18 @@ async function renderPOS(container) {
   posCurrentRx = null;
   posMobilePayState = 'idle';
 
-  const [products, stockAll, patients, prescriptions] = await Promise.all([
+  const [products, stockAll, patients, prescriptions, lots] = await Promise.all([
     DB.dbGetAll('products'),
     DB.dbGetAll('stock'),
     DB.dbGetAll('patients'),
     DB.dbGetAll('prescriptions'),
+    DB.dbGetAll('lots'),
   ]);
 
   posProducts = products.filter(p => p.status !== 'inactive');
   posStock = {};
   stockAll.forEach(s => { posStock[s.productId] = s.quantity; });
+  posLots = lots.filter(l => l.status === 'active');
   window._posPatients = patients;
   window._posPrescriptions = prescriptions.filter(rx => ['pending', 'validated'].includes(rx.status));
 
@@ -279,10 +366,12 @@ function refreshGrid() {
     const inCart = posCart.find(c => c.productId === p.id);
     const rupt = q === 0;
     const low = q > 0 && q <= (p.minStock || 10);
+    const alts = rupt ? findGenericAlternatives(p) : [];
     return `<div class="prod-card ${rupt ? 'prod-rupt' : ''} ${inCart ? 'prod-incart' : ''} ${low ? 'prod-low' : ''}"
-       onclick="${rupt ? "UI.toast('Rupture de stock','error')" : `addToCart(${p.id})`}">
+       onclick="${rupt ? (alts.length ? `showGenericAlternatives(${p.id})` : "UI.toast('Rupture de stock — aucune alternative DCI en stock','error')") : `addToCart(${p.id})`}">
       <div class="prod-top">
         ${p.requiresPrescription ? '<span class="tag-rx">Rx</span>' : ''}
+        ${p.isControlled ? '<span class="tag-rx" style="background:#e74c3c">SC</span>' : ''}
         ${inCart ? `<span class="tag-cart">${inCart.qty}</span>` : ''}
       </div>
       <div class="prod-cat">${p.category || ''}</div>
@@ -290,7 +379,7 @@ function refreshGrid() {
       <div class="prod-dci">${p.dci || p.brand || ''}</div>
       <div class="prod-foot">
         <span class="prod-price">${UI.formatCurrency(p.salePrice)}</span>
-        <span class="prod-stock ${rupt ? 's-rupt' : low ? 's-low' : 's-ok'}">${rupt ? '<i data-lucide="x-circle"></i> Rupture' : q + ' u.'}</span>
+        <span class="prod-stock ${rupt ? 's-rupt' : low ? 's-low' : 's-ok'}">${rupt ? (alts.length ? '<i data-lucide="repeat"></i> Alternatives' : '<i data-lucide="x-circle"></i> Rupture') : q + ' u.'}</span>
       </div>
     </div>`;
   }).join('');
@@ -312,13 +401,27 @@ function addToCart(productId) {
   if (posCurrentPatient?.allergies) {
     const txt = (p.name + ' ' + (p.dci || '')).toLowerCase();
     const hits = posCurrentPatient.allergies.split(/[,;]/).map(s => s.trim().toLowerCase()).filter(a => a && txt.includes(a));
-    if (hits.length) UI.toast(`ALLERGIE — ${posCurrentPatient.name} : ${hits.join(', ')}`, 'error', 8000);
+    if (hits.length) UI.toast(`⚠️ ALLERGIE — ${posCurrentPatient.name} : ${hits.join(', ')}`, 'error', 8000);
   }
+  // Vérification interactions médicamenteuses
+  try {
+    const interactions = checkDrugInteractions(p);
+    for (const inter of interactions) {
+      const icon = inter.level === 'grave' ? '🚨' : '⚠️';
+      UI.toast(`${icon} INTERACTION ${inter.level.toUpperCase()} — ${p.name} + ${inter.with}\n${inter.desc}`, 'error', 10000);
+    }
+  } catch(e) { console.warn('[Interactions] Erreur vérification:', e); }
+
+  // FEFO : identifier le lot
+  const fefoLot = getFEFOLot(productId);
+
   if (existing) { existing.qty++; existing.total = existing.qty * existing.unitPrice; }
   else posCart.push({
     productId, name: p.name, dci: p.dci || '', dosage: p.dosage || '',
     unitPrice: p.salePrice, purchasePrice: p.purchasePrice || 0,
-    qty: 1, total: p.salePrice, requiresPrescription: !!p.requiresPrescription
+    qty: 1, total: p.salePrice, requiresPrescription: !!p.requiresPrescription,
+    isControlled: !!p.isControlled, controlledClass: p.controlledClass || null,
+    fefoLotNumber: fefoLot?.lotNumber || null, fefoLotId: fefoLot?.id || null,
   });
   refreshCartUI(); refreshGrid();
 }
@@ -864,10 +967,28 @@ async function validerVente() {
     const saleId = await DB.dbAdd('sales', saleData);
 
     for (const item of posCart) {
+      // FEFO: décrémentation du lot le plus proche de l'expiration
+      let assignedLotNumber = item.fefoLotNumber || null;
+      let remainingQty = item.qty;
+      try {
+        const productLots = posLots
+          .filter(l => l.productId === item.productId && l.status === 'active' && l.quantity > 0)
+          .sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
+        for (const lot of productLots) {
+          if (remainingQty <= 0) break;
+          const take = Math.min(remainingQty, lot.quantity);
+          lot.quantity -= take;
+          remainingQty -= take;
+          assignedLotNumber = assignedLotNumber || lot.lotNumber;
+          await DB.dbPut('lots', lot);
+        }
+      } catch(e) { console.warn('[FEFO] Erreur décrément lot:', e); }
+
       await DB.dbAdd('saleItems', {
         saleId, productId: item.productId, productName: item.name,
         quantity: item.qty, unitPrice: item.unitPrice,
         purchasePrice: item.purchasePrice, total: item.total,
+        lotNumber: assignedLotNumber,
       });
       const stockAll = await DB.dbGetAll('stock');
       const se = stockAll.find(s => s.productId === item.productId);
@@ -881,6 +1002,7 @@ async function validerVente() {
         quantity: -item.qty, date: new Date().toISOString(),
         userId: DB.AppState.currentUser?.id,
         reference: `SALE-${saleId}`,
+        lotNumber: assignedLotNumber,
         note: posCurrentPatient ? `Patient: ${posCurrentPatient.name}` : 'Vente comptoir',
       });
     }
@@ -1354,6 +1476,39 @@ window.renderPOS = renderPOS;
 window.imprimerTicket = imprimerTicket;
 window.startBarcodeScan = startBarcodeScan;
 window.MobileMoneyGateway = MobileMoneyGateway;
+window.showGenericAlternatives = showGenericAlternatives;
 
+// ═══════════════════════════════════════════════════════════════════
+// SUBSTITUTION GÉNÉRIQUE — Popup alternatives DCI
+// ═══════════════════════════════════════════════════════════════════
+function showGenericAlternatives(productId) {
+  const p = posProducts.find(x => x.id === productId);
+  if (!p) return;
+  const alts = findGenericAlternatives(p);
+  if (!alts.length) { UI.toast('Aucune alternative générique en stock', 'info'); return; }
+  UI.modal(`<i data-lucide="repeat" class="modal-icon-inline"></i> Alternatives Génériques — ${p.dci}`, `
+    <div class="info-box info-primary" style="margin-bottom:16px">
+      <strong>${p.name}</strong> est en rupture de stock. Voici les alternatives avec la même DCI (<strong>${p.dci}</strong>) disponibles :
+    </div>
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      ${alts.map(a => `
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 18px; background:var(--surface); border:1px solid var(--border); border-radius:12px; cursor:pointer; transition:all 0.2s"
+             onmouseover="this.style.borderColor='var(--primary-color)';this.style.transform='translateX(5px)'" 
+             onmouseout="this.style.borderColor='var(--border)';this.style.transform='none'"
+             onclick="UI.closeModal(); addToCart(${a.id})">
+          <div>
+            <div style="font-weight:700; font-size:15px;">${a.name}</div>
+            <div style="color:var(--text-muted); font-size:13px;">${a.dci} ${a.dosage || ''} · ${a.form || ''} · ${a.brand || ''}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-weight:800; color:var(--primary-color)">${UI.formatCurrency(a.salePrice)}</div>
+            <div style="font-size:12px; color:var(--success-color);">${posStock[a.id] || 0} en stock</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `, { size: 'medium' });
+  if (window.lucide) lucide.createIcons();
+}
 
 Router.register('pos', renderPOS);

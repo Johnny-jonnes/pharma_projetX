@@ -58,6 +58,28 @@ async function renderMetrics(container) {
     const totalProfit = totalRevenue - totalCOGS;
     const globalMargin = totalRevenue > 0 ? (totalProfit / totalRevenue * 100).toFixed(1) : 0;
 
+    // DSO — Délai Moyen de Recouvrement (jours)
+    const creditSales = sales.filter(s => s.paymentMethod === 'credit');
+    const paidCredits = creditSales.filter(s => s.status === 'completed' || s.status === 'paid');
+    const unpaidCredits = creditSales.filter(s => s.status === 'pending');
+    const totalCreances = unpaidCredits.reduce((a, s) => a + (s.total || 0), 0);
+    let dsoAvg = 0;
+    if (paidCredits.length > 0) {
+      const dsoDays = paidCredits.map(s => {
+        const saleDate = new Date(s.date);
+        const paidDate = s.paidAt ? new Date(s.paidAt) : new Date(); // Si pas de date de paiement, date courante
+        return Math.max(0, Math.floor((paidDate - saleDate) / 86400000));
+      });
+      dsoAvg = Math.round(dsoDays.reduce((a, d) => a + d, 0) / dsoDays.length);
+    }
+
+    // Rotation des stocks (moyenne)
+    const totalStockValue = products.reduce((a, p) => {
+      const s = stockAll.find(st => st.productId === p.id);
+      return a + ((s?.quantity || 0) * (p.purchasePrice || 0));
+    }, 0);
+    const stockRotation = totalStockValue > 0 ? (totalCOGS / totalStockValue).toFixed(1) : 0;
+
     // 7-day trend
     const last7DaysLabels = [];
     const trendData = [];
@@ -149,6 +171,42 @@ async function renderMetrics(container) {
           <div style="flex: 1; min-width: 0;">
             <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Rupture Stock</div>
             <div style="font-size: 24px; font-weight: 800; color: var(--danger-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${outOfStock}</div>
+          </div>
+        </div>
+
+        <!-- Card 5 : DSO -->
+        <div class="metric-card elite-card" style="padding: 24px; display: flex; align-items: center; gap: 16px; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-sm); border-radius: 12px; transition: transform 0.2s;">
+          <div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(155, 89, 182, 0.1); color: #9B59B6; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <i data-lucide="clock" style="width: 28px; height: 28px;"></i>
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">DSO (Délai Recouvrement)</div>
+            <div style="font-size: 24px; font-weight: 800; color: #9B59B6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${dsoAvg} jours</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">${paidCredits.length} crédit(s) réglé(s)</div>
+          </div>
+        </div>
+
+        <!-- Card 6 : Créances -->
+        <div class="metric-card elite-card" style="padding: 24px; display: flex; align-items: center; gap: 16px; background: var(--surface); border: 1px solid ${totalCreances > 0 ? 'var(--danger-color)' : 'var(--border)'}; box-shadow: var(--shadow-sm); border-radius: 12px; transition: transform 0.2s;">
+          <div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(231, 76, 60, 0.08); color: #e74c3c; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <i data-lucide="file-clock" style="width: 28px; height: 28px;"></i>
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Créances en Cours</div>
+            <div style="font-size: 24px; font-weight: 800; color: ${totalCreances > 0 ? '#e74c3c' : 'var(--success-color)'}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${totalCreances > 0 ? UI.formatCurrency(totalCreances) : '✔ Aucune'}</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">${unpaidCredits.length} dette(s) impayée(s)</div>
+          </div>
+        </div>
+
+        <!-- Card 7 : Rotation Stock -->
+        <div class="metric-card elite-card" style="padding: 24px; display: flex; align-items: center; gap: 16px; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-sm); border-radius: 12px; transition: transform 0.2s;">
+          <div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(26, 188, 156, 0.1); color: #1ABC9C; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <i data-lucide="refresh-cw" style="width: 28px; height: 28px;"></i>
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Rotation Stock</div>
+            <div style="font-size: 24px; font-weight: 800; color: #1ABC9C; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${stockRotation}x</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Coût marchandises / Valeur stock</div>
           </div>
         </div>
       </div>

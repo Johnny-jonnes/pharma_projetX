@@ -27,6 +27,40 @@ async function renderPrescriptions(container) {
     const pending = prescriptions.filter(p => p.status === 'pending');
     const dispensed = prescriptions.filter(p => p.status === 'dispensed');
 
+    // Base d'interactions pour le module ordonnances
+    window.RX_INTERACTIONS = [
+      ['methotrexate','trimethoprime','grave','Risque de pancytopénie potentiellement fatale'],
+      ['warfarine','aspirine','grave','Hémorragie sévère — surveillance INR obligatoire'],
+      ['warfarine','ibuprofène','grave','Hémorragie digestive — AINS contre-indiqués'],
+      ['warfarine','fluconazole','grave','Augmentation effet anticoagulant — hémorragie'],
+      ['metformine','produit de contraste iodé','modéré','Risque acidose lactique'],
+      ['ciprofloxacine','théophylline','grave','Convulsions — surdosage théophylline'],
+      ['érythromycine','simvastatine','grave','Rhabdomyolyse — toxicité musculaire'],
+      ['clarithromycine','simvastatine','grave','Rhabdomyolyse — toxicité musculaire'],
+      ['fluconazole','simvastatine','grave','Rhabdomyolyse — inhibition CYP3A4'],
+      ['métronidazole','alcool','grave','Effet antabuse — nausées, vomissements sévères'],
+      ['ciprofloxacine','fer','modéré','Absorption réduite de la ciprofloxacine'],
+      ['tétracycline','calcium','modéré','Chélation — perte d\'efficacité antibiotique'],
+      ['doxycycline','calcium','modéré','Absorption réduite de la doxycycline'],
+      ['amoxicilline','méthotrexate','grave','Toxicité méthotrexate augmentée'],
+      ['lithium','ibuprofène','grave','Toxicité lithium — insuffisance rénale'],
+      ['lithium','diclofénac','grave','Toxicité lithium — insuffisance rénale'],
+      ['digoxine','amiodarone','grave','Toxicité digitale — bradycardie sévère'],
+      ['digoxine','vérapamil','grave','Bradycardie sévère — bloc AV'],
+      ['carbamazépine','érythromycine','grave','Toxicité carbamazépine — ataxie, nystagmus'],
+      ['phénytoïne','fluconazole','grave','Toxicité phénytoïne augmentée'],
+      ['captopril','spironolactone','modéré','Hyperkaliémie — surveillance potassium'],
+      ['énalapril','spironolactone','modéré','Hyperkaliémie — surveillance potassium'],
+      ['cisapride','fluconazole','grave','Allongement QT — arythmie cardiaque'],
+      ['tramadol','carbamazépine','modéré','Efficacité tramadol réduite — induction enzymatique'],
+      ['clopidogrel','oméprazole','modéré','Efficacité clopidogrel réduite — éviter association'],
+      ['sildenafil','nitrate','grave','Hypotension sévère potentiellement fatale'],
+      ['isoniazide','rifampicine','modéré','Hépatotoxicité — surveillance hépatique obligatoire'],
+      ['amiodarone','simvastatine','grave','Rhabdomyolyse — limiter dose statine'],
+      ['métoclopramide','lévodopa','modéré','Antagonisme dopaminergique — perte d\'efficacité'],
+      ['furosémide','gentamicine','grave','Ototoxicité et néphrotoxicité augmentées'],
+    ];
+
     container.innerHTML = `
       <div class="page-header">
         <div>
@@ -336,10 +370,83 @@ function updateRxItemDosage(idx) {
   if (sel && dciEl) {
     const opt = sel.options[sel.selectedIndex];
     const dci = opt?.dataset?.dci || '';
-    dciEl.textContent = dci ? `DCI: ${dci}` : '';
+    dciEl.innerHTML = dci ? `DCI: <strong>${dci}</strong>` : '';
     dciEl.style.color = '#64748b';
     dciEl.style.fontSize = '11px';
+    
+    // Vérification des interactions avec les autres produits sélectionnés
+    checkPrescriptionInteractions();
   }
+}
+
+function checkPrescriptionInteractions() {
+  const selectedDCIs = [];
+  const selectedNames = [];
+  document.querySelectorAll('.rx-item-row').forEach(row => {
+    const idx = row.id.replace('rx-item-', '');
+    const prodSel = document.getElementById(`rx-prod-${idx}`);
+    if (prodSel?.value) {
+      const opt = prodSel.options[prodSel.selectedIndex];
+      if (opt?.dataset?.dci) {
+        selectedDCIs.push(opt.dataset.dci.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
+        selectedNames.push(opt.dataset.name);
+      }
+    }
+  });
+
+  const alerts = [];
+  for (let i = 0; i < selectedDCIs.length; i++) {
+    for (let j = i + 1; j < selectedDCIs.length; j++) {
+      for (const [dciA, dciB, level, desc] of (window.RX_INTERACTIONS || [])) {
+        const a = dciA.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const b = dciB.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        if ((selectedDCIs[i].includes(a) && selectedDCIs[j].includes(b)) || 
+            (selectedDCIs[i].includes(b) && selectedDCIs[j].includes(a))) {
+          alerts.push({ p1: selectedNames[i], p2: selectedNames[j], level, desc });
+        }
+      }
+    }
+  }
+
+  // Vérification des allergies du patient
+  const allergiesInput = document.getElementById('rx-patient-allergies')?.value;
+  if (allergiesInput) {
+    const patientAllergies = allergiesInput.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/[,\s]+/);
+    selectedDCIs.forEach((dci, index) => {
+      patientAllergies.forEach(allergy => {
+        if (allergy.length > 3 && dci.includes(allergy)) {
+          alerts.push({ p1: selectedNames[index], p2: 'ALLERGIE PATIENT', level: 'grave', desc: `Le patient est allergique à ${allergy} (DCI: ${dci})` });
+        }
+      });
+    });
+  }
+
+  const interactionsContainer = document.getElementById('rx-interactions-alert') || (() => {
+    const div = document.createElement('div');
+    div.id = 'rx-interactions-alert';
+    div.style.marginTop = '15px';
+    const listEl = document.getElementById('rx-items-list');
+    listEl.parentElement.insertBefore(div, listEl.nextSibling);
+    return div;
+  })();
+
+  if (alerts.length > 0) {
+    interactionsContainer.innerHTML = alerts.map(a => `
+      <div class="alert-section-banner alert-${a.level === 'grave' ? 'danger' : 'warning'}" style="margin-bottom:10px">
+        <i data-lucide="${a.level === 'grave' ? 'alert-octagon' : 'alert-triangle'}"></i>
+        <strong>Interaction ${a.level.toUpperCase()} : ${a.p1} + ${a.p2}</strong><br>
+        <span style="font-size:12px">${a.desc}</span>
+      </div>
+    `).join('');
+    // Auto-remplir la note du pharmacien
+    const noteArea = document.getElementById('rx-note');
+    if (noteArea && !noteArea.value.includes('Interactions détectées')) {
+      noteArea.value = `⚠️ Interactions détectées :\n${alerts.map(a => `- ${a.p1} / ${a.p2} : ${a.desc}`).join('\n')}\n${noteArea.value}`;
+    }
+  } else {
+    interactionsContainer.innerHTML = '';
+  }
+  if (window.lucide) lucide.createIcons();
 }
 
 function removeRxItem(idx) {

@@ -65,7 +65,24 @@ async function renderSuppliers(container) {
       ${suppliers.length === 0 ? '<div class="empty-state"><div class="empty-icon"><i data-lucide="factory"></i></div><p>Aucun fournisseur enregistré</p></div>' :
       suppliers.map(sup => {
         const stats = supplierStats[sup.id] || { total: 0, count: 0, lastOrder: null };
-        const score = sup.score || Math.floor(Math.random() * 30) + 70;
+        // Calcul du score fournisseur réel
+        const supOrders = orders.filter(o => o.supplierId === sup.id);
+        let score = 50; // Base
+        if (supOrders.length > 0) {
+          // 1. Taux de livraison à temps (40%)
+          const deliveredOrders = supOrders.filter(o => o.status === 'received');
+          const onTimeOrders = deliveredOrders.filter(o => {
+            if (!o.expectedDate || !o.receivedAt) return true; // Pas d'info = considéré OK
+            return new Date(o.receivedAt) <= new Date(o.expectedDate);
+          });
+          const onTimeRate = deliveredOrders.length > 0 ? onTimeOrders.length / deliveredOrders.length : 0.5;
+          // 2. Taux de complétion (40%) — commandes reçues vs total
+          const completionRate = deliveredOrders.length / supOrders.length;
+          // 3. Volume bonus (20%) — plus de commandes = plus fiable
+          const volumeBonus = Math.min(1, supOrders.length / 10); // Plafond à 10 commandes
+          score = Math.round((onTimeRate * 40) + (completionRate * 40) + (volumeBonus * 20));
+          score = Math.max(10, Math.min(100, score)); // Clamp 10-100
+        }
         return `
           <div class="supplier-card">
             <div class="supplier-card-header">

@@ -58,7 +58,11 @@ function renderProductsTable(data) {
     { label: 'Marque', key: 'brand' },
     { label: 'Forme', key: 'form' },
     { label: 'Catégorie', render: r => `<span class="category-tag">${r.category}</span>` },
-    { label: 'Statut', render: r => r.requiresPrescription ? '<span class="badge badge-warning">Rx</span>' : '<span class="badge badge-success">OTC</span>' },
+    { label: 'Statut', render: r => {
+      let badges = r.requiresPrescription ? '<span class="badge badge-warning">Rx</span>' : '<span class="badge badge-success">OTC</span>';
+      if (r.isControlled) badges += ` <span class="badge badge-danger" title="${r.controlledClass || 'Substance Contrôlée'}">SC</span>`;
+      return badges;
+    }},
     { label: 'Prix Vente', render: r => `<strong>${UI.formatCurrency(r.salePrice)}</strong>` },
     { label: 'Péremption', render: r => r.expiryDate ? UI.expiryBadge ? UI.expiryBadge(r.expiryDate) : r.expiryDate : '<span class="text-muted">—</span>' },
     { label: 'Prix Achat', render: r => UI.formatCurrency(r.purchasePrice) },
@@ -90,7 +94,7 @@ async function viewProduct(id) {
       <div class="detail-row"><span class="detail-label">Forme</span><span>${p.form || '—'}</span></div>
       <div class="detail-row"><span class="detail-label">Dosage</span><span>${p.dosage || '—'}</span></div>
       <div class="detail-row"><span class="detail-label">Catégorie</span><span><span class="category-tag">${p.category}</span></span></div>
-      <div class="detail-row"><span class="detail-label">Statut</span><span>${p.requiresPrescription ? '<span class="badge badge-warning">Ordonnance requise</span>' : '<span class="badge badge-success">OTC</span>'}</span></div>
+      <div class="detail-row"><span class="detail-label">Statut</span><span>${p.requiresPrescription ? '<span class="badge badge-warning">Ordonnance requise</span>' : '<span class="badge badge-success">OTC</span>'}${p.isControlled ? ` <span class="badge badge-danger">${p.controlledClass || 'Substance Contrôlée'}</span>` : ''}</span></div>
       <div class="detail-row"><span class="detail-label">Prix Vente</span><span class="text-success font-bold">${UI.formatCurrency(p.salePrice)}</span></div>
       <div class="detail-row"><span class="detail-label">Prix Achat</span><span>${UI.formatCurrency(p.purchasePrice)}</span></div>
       <div class="detail-row"><span class="detail-label">Marge</span><span class="font-bold">${margin}%</span></div>
@@ -178,6 +182,23 @@ async function showAddProduct() {
           <label>Date de Péremption</label>
           <input type="date" name="expiryDate" class="form-control">
         </div>
+        <div class="form-group">
+          <label>Substance Contrôlée</label>
+          <select name="isControlled" class="form-control" onchange="document.getElementById('controlled-class-group').style.display = this.value === '1' ? 'block' : 'none'">
+            <option value="0">Non</option>
+            <option value="1">Oui — Substance réglementée</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row" id="controlled-class-group" style="display:none">
+        <div class="form-group">
+          <label>Classification</label>
+          <select name="controlledClass" class="form-control">
+            <option value="Stupéfiant">Stupéfiant (Tableau I)</option>
+            <option value="Psychotrope">Psychotrope (Tableau II)</option>
+            <option value="Précurseur">Précurseur chimique</option>
+          </select>
+        </div>
         <div class="form-group"></div>
       </div>
     </form>
@@ -194,6 +215,8 @@ async function submitProduct() {
   if (!form?.checkValidity()) { form?.reportValidity(); return; }
   const data = Object.fromEntries(new FormData(form));
   data.requiresPrescription = data.requiresPrescription === '1';
+  data.isControlled = data.isControlled === '1';
+  data.controlledClass = data.isControlled ? (data.controlledClass || 'Stupéfiant') : null;
   data.salePrice = parseFloat(data.salePrice);
   data.purchasePrice = parseFloat(data.purchasePrice || 0);
   data.minStock = parseInt(data.minStock || 10);
@@ -295,6 +318,23 @@ async function editProductForm(id) {
           </select>
         </div>
       </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Substance Contrôlée</label>
+          <select name="isControlled" class="form-control" onchange="document.getElementById('edit-controlled-class-group').style.display = this.value === '1' ? 'block' : 'none'">
+            <option value="0" ${!p.isControlled ? 'selected' : ''}>Non</option>
+            <option value="1" ${p.isControlled ? 'selected' : ''}>Oui — Substance réglementée</option>
+          </select>
+        </div>
+        <div class="form-group" id="edit-controlled-class-group" style="display:${p.isControlled ? 'block' : 'none'}">
+          <label>Classification</label>
+          <select name="controlledClass" class="form-control">
+            <option value="Stupéfiant" ${p.controlledClass === 'Stupéfiant' ? 'selected' : ''}>Stupéfiant (Tableau I)</option>
+            <option value="Psychotrope" ${p.controlledClass === 'Psychotrope' ? 'selected' : ''}>Psychotrope (Tableau II)</option>
+            <option value="Précurseur" ${p.controlledClass === 'Précurseur' ? 'selected' : ''}>Précurseur chimique</option>
+          </select>
+        </div>
+      </div>
     </form>
   `, {
     footer: `
@@ -320,6 +360,8 @@ async function updateProduct(id) {
     dosage: data.dosage,
     category: data.category,
     requiresPrescription: data.requiresPrescription === '1',
+    isControlled: data.isControlled === '1',
+    controlledClass: data.isControlled === '1' ? (data.controlledClass || 'Stupéfiant') : null,
     salePrice: parseFloat(data.salePrice),
     purchasePrice: parseFloat(data.purchasePrice || 0),
     minStock: parseInt(data.minStock || 10),
