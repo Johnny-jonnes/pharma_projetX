@@ -154,12 +154,19 @@ async function renderMetrics(container) {
       </div>
 
       <div class="charts-row" style="margin-bottom: 24px; display: flex; flex-wrap: wrap; gap: 24px;">
-        <div class="chart-card dash-panel" style="flex: 2; min-width: 400px; padding: 24px; background: var(--surface); border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-sm);">
+        <div class="chart-card dash-panel" style="flex: 2; min-width: 400px; padding: 24px; background: var(--surface); border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); display: flex; flex-direction: column;">
+          <style>
+            .trend-bar-wrapper { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; cursor: crosshair; }
+            .trend-bar-wrapper:hover { transform: scale(1.15); z-index: 10; }
+            .trend-bar-wrapper:hover .trend-bar-fill { filter: brightness(1.2); box-shadow: 0 0 15px rgba(52, 152, 219, 0.7); }
+            .trend-bar-wrapper:hover .trend-value { color: var(--primary-color, #3498db); font-size: 16px; font-weight: 900; transform: translateY(-8px); }
+            .trend-bar-wrapper:hover .trend-label { color: var(--text); font-weight: 800; transform: scale(1.1); }
+          </style>
           <div class="chart-header" style="margin-bottom: 16px;">
             <h3 class="chart-title" style="display: flex; align-items: center; gap: 8px; font-size: 16px;"><i data-lucide="activity" style="color: var(--primary-color);"></i> Tendance des Ventes (7 Derniers Jours)</h3>
           </div>
-          <div style="width: 100%; height: 260px; display: flex; justify-content: center; align-items: center;">
-            <canvas id="chart-metrics-trend" width="600" height="260" style="max-width: 100%; object-fit: contain;"></canvas>
+          <div id="custom-trend-chart-container" style="flex: 1; width: 100%; height: 260px; display: flex; align-items: flex-end; justify-content: space-around; gap: 12px; padding: 30px 10px 10px 10px;">
+            <!-- Injected by JS -->
           </div>
         </div>
 
@@ -233,10 +240,26 @@ async function renderMetrics(container) {
 
     // Rendu des graphiques
     requestAnimationFrame(() => {
-      // Line Chart (Tendance)
-      Charts.line('chart-metrics-trend', last7DaysLabels, [
-        { data: trendData, color: UI.getThemeColor('--primary-color') || '#2980b9' }
-      ]);
+      // 1. Custom Interactive DOM Bar Chart (Tendance)
+      const trendContainer = document.getElementById('custom-trend-chart-container');
+      if (trendContainer) {
+        const maxVal = Math.max(...trendData, 1);
+        trendContainer.innerHTML = last7DaysLabels.map((lbl, i) => {
+          const val = trendData[i];
+          const heightPct = (val / maxVal) * 100;
+          return `
+            <div class="trend-bar-wrapper" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%;">
+              <div class="trend-value" style="font-size: 14px; font-weight: 700; color: var(--text-muted); margin-bottom: 12px; transition: all 0.3s ease; white-space: nowrap; font-family: 'JetBrains Mono', monospace;">
+                ${val.toLocaleString('fr-FR')} <span style="font-size:10px;">FG</span>
+              </div>
+              <div class="trend-bar-fill" style="width: 100%; max-width: 45px; height: ${Math.max(3, heightPct)}%; background: linear-gradient(to top, #2980b9, #6dd5ed); border-radius: 8px 8px 0 0; transition: all 0.3s ease;"></div>
+              <div class="trend-label" style="font-size: 13px; color: var(--text-muted); font-weight: 600; margin-top: 10px; transition: all 0.3s ease; text-transform: capitalize; text-align: center; line-height: 1.2;">
+                ${lbl.split(' ')[0]} <br> <span style="font-size: 15px; font-weight: 800; color: var(--text);">${lbl.split(' ')[1] || ''}</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
       
       const donutLabels = ['Coût Achats', 'Bénéfice Net', 'Remboursements'];
       const donutData = [totalCOGS, Math.max(0, totalProfit), Math.max(0, totalRefunds)];
