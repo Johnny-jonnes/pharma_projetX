@@ -211,19 +211,19 @@ async function renderMetrics(container) {
         </div>
       </div>
 
-      <div class="charts-row" style="margin-bottom: 24px; display: flex; flex-wrap: wrap; gap: 24px;">
-        <div class="chart-card dash-panel" style="flex: 2; min-width: 400px; padding: 24px; background: var(--surface); border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); display: flex; flex-direction: column;">
+      <div class="charts-row" style="margin-bottom: 24px; display: flex; flex-wrap: wrap; gap: 24px; align-items: stretch;">
+        <div class="chart-card dash-panel" style="flex: 1.5; min-width: 450px; padding: 24px; background: var(--surface); border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); display: flex; flex-direction: column;">
           <div class="chart-header" style="margin-bottom: 16px;">
             <h3 class="chart-title" style="display: flex; align-items: center; gap: 8px; font-size: 16px;"><i data-lucide="activity" style="color: var(--primary-color);"></i> Tendance des Ventes (7 Derniers Jours)</h3>
           </div>
-          <canvas id="metrics-chart-trend" width="500" height="280"></canvas>
+          <canvas id="metrics-chart-trend" width="600" height="340" style="width: 100%; flex: 1; min-height: 300px;"></canvas>
         </div>
 
-        <div class="chart-card dash-panel" style="flex: 1; min-width: 350px; padding: 24px; background: var(--surface); border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); display: flex; flex-direction: column;">
+        <div class="chart-card dash-panel" style="flex: 1.2; min-width: 400px; padding: 24px; background: var(--surface); border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); display: flex; flex-direction: column;">
           <div class="chart-header" style="margin-bottom: 16px;">
             <h3 class="chart-title" style="display: flex; align-items: center; gap: 8px; font-size: 16px;"><i data-lucide="pie-chart" style="color: #3498DB;"></i> Répartition Financière</h3>
           </div>
-          <canvas id="metrics-chart-finance" width="500" height="280"></canvas>
+          <canvas id="metrics-chart-finance" width="600" height="340" style="width: 100%; flex: 1; min-height: 300px;"></canvas>
         </div>
       </div>
 
