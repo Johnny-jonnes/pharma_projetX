@@ -78,10 +78,10 @@ async function renderMetrics(container) {
       </div>
 
       <!-- Hero Impact Card -->
-      <div class="elite-card impact-card" style="padding: 32px; background: linear-gradient(135deg, var(--primary-color), var(--success-color)); color: white; border-radius: 16px; margin-bottom: 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; box-shadow: 0 15px 35px rgba(46, 204, 113, 0.25); position: relative; overflow: hidden;">
+      <div class="elite-card impact-card" style="padding: 32px; background: linear-gradient(135deg, #0d324d, #1b6fae); color: white; border-radius: 16px; margin-bottom: 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; box-shadow: 0 15px 35px rgba(27, 111, 174, 0.25); position: relative; overflow: hidden;">
         <!-- Decor pattern -->
-        <div style="position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: rgba(255,255,255,0.1); border-radius: 50%; blur(10px);"></div>
-        <div style="position: absolute; bottom: -30px; left: 20%; width: 100px; height: 100px; background: rgba(255,255,255,0.05); border-radius: 50%; blur(5px);"></div>
+        <div style="position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: rgba(255,255,255,0.08); border-radius: 50%; blur(10px);"></div>
+        <div style="position: absolute; bottom: -30px; left: 20%; width: 100px; height: 100px; background: rgba(255,255,255,0.04); border-radius: 50%; blur(5px);"></div>
         
         <div style="z-index: 1;">
           <div style="font-size: 13px; text-transform: uppercase; font-weight: 700; letter-spacing: 1.5px; color: rgba(255,255,255,0.85); margin-bottom: 8px; display:flex; align-items:center; gap:8px;">
