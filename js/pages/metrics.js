@@ -314,7 +314,7 @@ function drawGiantDonut(canvasId, labels, data, colors) {
     const pct = total > 0 ? ((data[i] / total) * 100).toFixed(1) : 0;
     ctx.fillStyle = UI.getThemeColor('--text-muted') || '#666';
     ctx.font = '500 12px system-ui';
-    ctx.fillText(`\${pct}%`, lx, ly + 10);
+    ctx.fillText(`${pct}% - ${data[i].toLocaleString('fr-FR')} FG`, lx, ly + 12);
   });
 }
 
