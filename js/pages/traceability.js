@@ -48,7 +48,7 @@ async function renderTraceability(container) {
       <div class="stat-chip stat-orange"><span class="stat-val">${soonExpiry.length}</span><span class="stat-label">Exp. &lt;90j</span></div>
       <div class="stat-chip stat-purple"><span class="stat-val">${recalledLots.length}</span><span class="stat-label">Rappels actifs</span></div>
       <div class="stat-chip stat-blue"><span class="stat-val">${lots.filter(l => l.status === 'active').length}</span><span class="stat-label">Lots actifs</span></div>
-      <div class="stat-chip stat-red" style="border-color:#e74c3c"><span class="stat-val">${products.filter(p => p.isControlled).length}</span><span class="stat-label">Stupéfiants</span></div>
+      <div class="stat-chip stat-purple" style="border-color:#9b59b6"><span class="stat-val">${products.filter(p => p.isControlled).length}</span><span class="stat-label">Stupéfiants</span></div>
     </div>
 
     <!-- Tabs -->
@@ -251,6 +251,12 @@ async function renderTraceability(container) {
 
   loadDestructionHistory();
   if (window.lucide) lucide.createIcons();
+
+  // Show controlled substances tab by default if available
+  setTimeout(() => {
+    const controlledBtn = document.querySelector('.tab-btn[data-tab="controlled"]');
+    if (controlledBtn) controlledBtn.click();
+  }, 0);
 }
 
 function switchTraceTab(btn, tabId) {
