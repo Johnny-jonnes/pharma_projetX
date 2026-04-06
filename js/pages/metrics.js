@@ -168,7 +168,7 @@ async function renderMetrics(container) {
             <h3 class="chart-title" style="display: flex; align-items: center; gap: 8px; font-size: 16px;"><i data-lucide="pie-chart" style="color: #3498DB;"></i> Répartition Financière</h3>
           </div>
           <div style="flex: 1; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; position: relative;">
-            <canvas id="custom-giant-donut" width="500" height="300" style="width: 100%; height: 100%; max-height: 280px; object-fit: contain;"></canvas>
+            <canvas id="custom-giant-donut" width="600" height="300" style="width: 100%; height: 100%; max-height: 280px; object-fit: contain;"></canvas>
           </div>
         </div>
       </div>
@@ -258,7 +258,7 @@ function drawGiantDonut(canvasId, labels, data, colors) {
   
   if (total === 0) {
     ctx.fillStyle = '#94a3b8';
-    ctx.font = '14px system-ui';
+    ctx.font = '16px system-ui';
     ctx.textAlign = 'center';
     ctx.fillText('Aucune donnée', cx, cy);
     return;
@@ -287,34 +287,34 @@ function drawGiantDonut(canvasId, labels, data, colors) {
   
   // Center text (Large)
   ctx.fillStyle = UI.getThemeColor('--text') || '#000';
-  ctx.font = 'bold 22px system-ui';
+  ctx.font = '900 28px system-ui';
   ctx.textAlign = 'center';
-  ctx.fillText(total.toLocaleString('fr-FR'), cx, cy + 8);
-  ctx.font = '14px system-ui';
+  ctx.fillText(total.toLocaleString('fr-FR'), cx, cy + 10);
+  ctx.font = '16px system-ui';
   ctx.fillStyle = UI.getThemeColor('--text-muted') || '#666';
-  ctx.fillText('Chiffre brut', cx, cy + 28);
+  ctx.fillText('Chiffre brut', cx, cy + 34);
   
   // Legend (Right Side) Large and readable
   labels.forEach((label, i) => {
-    const lx = w * 0.75; 
-    const ly = (h * 0.30) + (i * 35); // Légende bien espacée et centrée verticalement
+    const lx = w * 0.70; // Plus centré vers la droite du donut
+    const ly = (h * 0.28) + (i * 45); // Espacement vertical ultra confort !
     
     // Pastille de couleur plus grande
     ctx.fillStyle = colors[i % colors.length];
     ctx.beginPath();
-    ctx.roundRect(lx - 25, ly - 14, 16, 16, 4);
+    ctx.roundRect(lx - 28, ly - 16, 18, 18, 4);
     ctx.fill();
     
     ctx.fillStyle = UI.getThemeColor('--text') || '#000';
-    ctx.font = '600 13px system-ui';
+    ctx.font = '700 16px system-ui';
     ctx.textAlign = 'left';
-    ctx.fillText(label, lx, ly - 6);
+    ctx.fillText(label, lx, ly);
     
     // Pourcentage en dessous
     const pct = total > 0 ? ((data[i] / total) * 100).toFixed(1) : 0;
-    ctx.fillStyle = UI.getThemeColor('--text-muted') || '#666';
-    ctx.font = '500 12px system-ui';
-    ctx.fillText(`${pct}% - ${data[i].toLocaleString('fr-FR')} FG`, lx, ly + 12);
+    ctx.fillStyle = UI.getThemeColor('--text-muted') || '#555';
+    ctx.font = '600 15px system-ui';
+    ctx.fillText(`${pct}% - ${data[i].toLocaleString('fr-FR')} FG`, lx, ly + 20);
   });
 }
 
