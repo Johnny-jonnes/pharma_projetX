@@ -374,9 +374,9 @@ async function renderReports(container) {
         <div class="chart-header"><h3 class="chart-title">Évolution CA et Marge (6 mois)</h3></div>
         <canvas id="chart-monthly" width="500" height="280"></canvas>
       </div>
-      <div class="chart-card">
+      <div class="chart-card" style="display: flex; flex-direction: column;">
         <div class="chart-header"><h3 class="chart-title">CA par Catégorie</h3></div>
-        <canvas id="chart-categories" width="500" height="280"></canvas>
+        <div id="chart-categories-container" style="flex: 1; overflow-y: auto; padding-right: 8px; max-height: 280px; margin-top: 10px;"></div>
       </div>
     </div>
 
@@ -418,9 +418,29 @@ async function renderReports(container) {
       { data: monthProfits, color: '#1ABC9C' }
     ]);
 
-    const catKeys = Object.keys(catRevenue);
-    const catColors = ['#2E86C1', '#1ABC9C', '#E74C3C', '#F39C12', '#9B59B6', '#34495E', '#E67E22', '#27AE60'];
-    Charts.donut('chart-categories', catKeys, catKeys.map(k => catRevenue[k]), catColors);
+    const catKeys = Object.keys(catRevenue).sort((a,b) => catRevenue[b] - catRevenue[a]);
+    const totalCatRev = catKeys.reduce((acc, k) => acc + catRevenue[k], 0);
+    const catContainer = document.getElementById('chart-categories-container');
+    if (catContainer) {
+      if (catKeys.length === 0) {
+        catContainer.innerHTML = '<div class="empty-state-small">Aucune donnée</div>';
+      } else {
+        catContainer.innerHTML = catKeys.map(k => {
+          const pct = totalCatRev > 0 ? (catRevenue[k] / totalCatRev * 100).toFixed(1) : 0;
+          return `
+            <div style="margin-bottom: 14px;">
+              <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:500; margin-bottom:4px; color:var(--text)">
+                <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:60%;">${k}</span>
+                <strong style="color:var(--text)">${UI.formatCurrency(catRevenue[k])} <span style="font-weight:normal; color:var(--text-muted); font-size:11px;">(${pct}%)</span></strong>
+              </div>
+              <div style="background:var(--border); height:8px; border-radius:4px; overflow:hidden;">
+                 <div style="background:#3498db; height:100%; width:${pct}%; border-radius:4px;"></div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
   });
 }
 

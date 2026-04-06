@@ -131,8 +131,8 @@ async function renderMetrics(container) {
           <div class="chart-header" style="margin-bottom: 16px;">
             <h3 class="chart-title" style="display: flex; align-items: center; gap: 8px; font-size: 16px;"><i data-lucide="pie-chart" style="color: #3498DB;"></i> Répartition Financière</h3>
           </div>
-          <div style="width: 100%; height: 260px; display: flex; justify-content: center; align-items: center;">
-            <canvas id="chart-metrics-donut" width="450" height="260" style="max-width: 100%; object-fit: contain; margin-left: -20px;"></canvas>
+          <div style="width: 100%; display: flex; justify-content: center; align-items: center;">
+            <canvas id="chart-metrics-donut" width="500" height="260" style="width: 100%; height: auto; max-width: 500px; object-fit: contain;"></canvas>
           </div>
         </div>
       </div>
