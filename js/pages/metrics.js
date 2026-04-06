@@ -187,7 +187,7 @@ async function renderMetrics(container) {
         </div>
 
         <!-- Card 6 : Créances -->
-        <div class="metric-card elite-card" style="padding: 24px; display: flex; align-items: center; gap: 16px; background: var(--surface); border: 1px solid ${totalCreances > 0 ? 'var(--danger-color)' : 'var(--border)'}; box-shadow: var(--shadow-sm); border-radius: 12px; transition: transform 0.2s; cursor: pointer;" onclick="Router.navigate('sales'); setTimeout(() => { let el = document.getElementById('sales-pay'); if(el){ el.value = 'credit'; if(window.filterSales) window.filterSales(); } }, 200);" title="Cliquez pour consulter le registre des dettes">
+        <div class="metric-card elite-card" style="padding: 24px; display: flex; align-items: center; gap: 16px; background: var(--surface); border: 1px solid ${totalCreances > 0 ? 'var(--danger-color)' : 'var(--border)'}; box-shadow: var(--shadow-sm); border-radius: 12px; transition: transform 0.2s; cursor: pointer;" onclick="Router.navigate('sales'); setTimeout(() => { let ep = document.getElementById('sales-pay'), ef = document.getElementById('sales-from'), et = document.getElementById('sales-to'); if(ep){ ep.value = 'credit'; if(ef) ef.value = ''; if(et) et.value = ''; if(window.filterSales) window.filterSales(); } }, 200);" title="Cliquez pour consulter le registre des dettes (toutes périodes)">
           <div style="width: 54px; height: 54px; border-radius: 14px; background: rgba(231, 76, 60, 0.08); color: #e74c3c; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
             <i data-lucide="file-clock" style="width: 28px; height: 28px;"></i>
           </div>
