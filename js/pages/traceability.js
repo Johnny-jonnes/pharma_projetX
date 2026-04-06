@@ -58,7 +58,8 @@ async function renderTraceability(container) {
       <button class="tab-btn" data-tab="recalls" onclick="switchTraceTab(this,'recalls')"><i data-lucide="alert-triangle"></i> Rappels actifs</button>
       <button class="tab-btn" data-tab="destruction" onclick="switchTraceTab(this,'destruction')"><i data-lucide="trash-2"></i> Destruction</button>
       ${DB.AppState.currentUser?.role === 'admin' ? `
-      <button class="tab-btn" data-tab="audit" onclick="switchTraceTab(this,'audit');loadAuditTab()"><i data-lucide="clipboard-list"></i> Journal d'Audit</button>` : ''}
+      <button class="tab-btn" data-tab="audit" onclick="switchTraceTab(this,'audit');loadAuditTab()"><i data-lucide="clipboard-list"></i> Journal d'Audit</button>
+      <button class="tab-btn" data-tab="report" onclick="switchTraceTab(this,'report')"><i data-lucide="file-bar-chart"></i> Rapport d'Audit</button>` : ''}
       ${['admin','pharmacien'].includes(DB.AppState.currentUser?.role) ? `
       <button class="tab-btn" data-tab="compliance" onclick="switchTraceTab(this,'compliance');loadComplianceTab()"><i data-lucide="check-square"></i> Conformité</button>
       <button class="tab-btn" data-tab="planning" onclick="switchTraceTab(this,'planning');loadPlanningTab()"><i data-lucide="calendar-clock"></i> Planification</button>
