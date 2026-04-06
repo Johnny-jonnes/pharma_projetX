@@ -164,11 +164,25 @@ async function renderMetrics(container) {
         </div>
 
         <div class="chart-card dash-panel" style="flex: 1; min-width: 350px; padding: 24px; background: var(--surface); border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); display: flex; flex-direction: column;">
+          <style>
+            .donut-hover-item:hover {
+              transform: scale(1.1) translateX(15px);
+              background: var(--bg-body, #f8fafc);
+              box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+              border-color: var(--primary-color) !important;
+              z-index: 10;
+            }
+          </style>
           <div class="chart-header" style="margin-bottom: 16px;">
             <h3 class="chart-title" style="display: flex; align-items: center; gap: 8px; font-size: 16px;"><i data-lucide="pie-chart" style="color: #3498DB;"></i> Répartition Financière</h3>
           </div>
-          <div style="flex: 1; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; position: relative;">
-            <canvas id="custom-giant-donut" width="600" height="300" style="width: 100%; height: 100%; max-height: 280px; object-fit: contain;"></canvas>
+          <div style="flex: 1; width: 100%; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 24px;">
+            <div style="flex: 1; min-width: 220px; display: flex; justify-content: center; align-items: center;">
+              <canvas id="custom-giant-donut" width="300" height="300" style="max-width: 100%; height: auto; max-height: 280px;"></canvas>
+            </div>
+            <div id="giant-donut-legend" style="flex: 1; min-width: 250px; display: flex; flex-direction: column; gap: 16px;">
+               <!-- Injecté par JS -->
+            </div>
           </div>
         </div>
       </div>
@@ -224,12 +238,30 @@ async function renderMetrics(container) {
         { data: trendData, color: UI.getThemeColor('--primary-color') || '#2980b9' }
       ]);
       
+      const donutLabels = ['Coût Achats', 'Bénéfice Net', 'Remboursements'];
+      const donutData = [totalCOGS, Math.max(0, totalProfit), Math.max(0, totalRefunds)];
+      const donutColors = ['#3498db', '#2ecc71', '#e74c3c'];
+      const donutTotal = donutData.reduce((a, b) => a + b, 0);
+
       // Giant Custom Donut Chart (Bypass ui.js limited canvas sizes)
-      drawGiantDonut('custom-giant-donut', 
-        ['Coût Achats', 'Bénéfice Net', 'Remboursements'], 
-        [totalCOGS, Math.max(0, totalProfit), Math.max(0, totalRefunds)], 
-        ['#3498db', '#2ecc71', '#e74c3c']
-      );
+      drawGiantDonut('custom-giant-donut', donutData, donutColors);
+
+      // DOM based legend for large scalable hover effects
+      const legContainer = document.getElementById('giant-donut-legend');
+      if (legContainer) {
+        legContainer.innerHTML = donutLabels.map((lbl, i) => {
+          const pct = donutTotal > 0 ? ((donutData[i] / donutTotal) * 100).toFixed(1) : 0;
+          return `
+            <div class="donut-hover-item" style="display: flex; align-items: center; gap: 16px; padding: 16px; border: 1px solid transparent; border-radius: 16px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; background: rgba(0,0,0,0.02);">
+              <div style="width: 32px; height: 32px; background: ${donutColors[i]}; border-radius: 8px; flex-shrink: 0; box-shadow: 0 4px 15px ${donutColors[i]}80;"></div>
+              <div>
+                <div style="font-size: 18px; font-weight: 800; color: var(--text);">${lbl}</div>
+                <div style="font-size: 17px; font-weight: 700; color: var(--text-muted); margin-top: 6px;">${pct}% <span style="opacity: 0.3; margin: 0 8px;">|</span> ${donutData[i].toLocaleString('fr-FR')} FG</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
     });
 
   } catch (err) {
@@ -238,20 +270,20 @@ async function renderMetrics(container) {
   }
 }
 
-function drawGiantDonut(canvasId, labels, data, colors) {
+function drawGiantDonut(canvasId, data, colors) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   const w = canvas.width, h = canvas.height;
   
-  // Utiliser tout l'espace possible: Rayon énorme, centré sur la gauche / centre
+  // Utiliser tout l'espace possible: Rayon énorme, centré  
   const total = data.reduce((a, b) => a + b, 0);
   
-  // On place le cercle au tiers gauche pour laisser la place à droite pour le texte
-  const cx = w * 0.35; 
+  // On place le cercle parfaitement au centre puisque la légende html prend sa propre place
+  const cx = w * 0.50; 
   const cy = h * 0.50; 
-  // Rayon très grand
-  const R = Math.min(w * 0.6, h) * 0.45; 
+  // Rayon très grand occupant le maximum
+  const R = Math.min(w, h) * 0.45; 
   const r = R * 0.6; // Trou au milieu
   
   ctx.clearRect(0, 0, w, h);
@@ -287,35 +319,12 @@ function drawGiantDonut(canvasId, labels, data, colors) {
   
   // Center text (Large)
   ctx.fillStyle = UI.getThemeColor('--text') || '#000';
-  ctx.font = '900 28px system-ui';
+  ctx.font = '900 26px system-ui';
   ctx.textAlign = 'center';
-  ctx.fillText(total.toLocaleString('fr-FR'), cx, cy + 10);
-  ctx.font = '16px system-ui';
+  ctx.fillText(total.toLocaleString('fr-FR'), cx, cy + 8);
+  ctx.font = '15px system-ui';
   ctx.fillStyle = UI.getThemeColor('--text-muted') || '#666';
-  ctx.fillText('Chiffre brut', cx, cy + 34);
-  
-  // Legend (Right Side) Large and readable
-  labels.forEach((label, i) => {
-    const lx = w * 0.70; // Plus centré vers la droite du donut
-    const ly = (h * 0.28) + (i * 45); // Espacement vertical ultra confort !
-    
-    // Pastille de couleur plus grande
-    ctx.fillStyle = colors[i % colors.length];
-    ctx.beginPath();
-    ctx.roundRect(lx - 28, ly - 16, 18, 18, 4);
-    ctx.fill();
-    
-    ctx.fillStyle = UI.getThemeColor('--text') || '#000';
-    ctx.font = '700 16px system-ui';
-    ctx.textAlign = 'left';
-    ctx.fillText(label, lx, ly);
-    
-    // Pourcentage en dessous
-    const pct = total > 0 ? ((data[i] / total) * 100).toFixed(1) : 0;
-    ctx.fillStyle = UI.getThemeColor('--text-muted') || '#555';
-    ctx.font = '600 15px system-ui';
-    ctx.fillText(`${pct}% - ${data[i].toLocaleString('fr-FR')} FG`, lx, ly + 20);
-  });
+  ctx.fillText('Chiffre brut', cx, cy + 28);
 }
 
 function getTopProducts(items) {
