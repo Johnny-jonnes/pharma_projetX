@@ -94,7 +94,7 @@ async function renderMetrics(container) {
     }, 0);
     const totalStockSellValue = products.reduce((a, p) => {
       const s = stockAll.find(st => st.productId === p.id);
-      return a + ((s?.quantity || 0) * (p.sellingPrice || 0));
+      return a + ((s?.quantity || 0) * (p.salePrice || 0));
     }, 0);
     const potentialProfit = totalStockSellValue - totalStockValue;
 
@@ -130,15 +130,21 @@ async function renderMetrics(container) {
     const stockRotation = totalStockValue > 0 ? (totalCOGS / totalStockValue).toFixed(1) : 0;
 
     // ── Répartition par mode de paiement ──
-    const payBreakdown = { cash: 0, orange_money: 0, mtn_momo: 0, credit: 0, transfer: 0 };
-    const payCount = { cash: 0, orange_money: 0, mtn_momo: 0, credit: 0, transfer: 0 };
+    const payBreakdown = {};
+    const payCount = {};
     completedSales.forEach(s => {
       const m = s.paymentMethod || 'cash';
       payBreakdown[m] = (payBreakdown[m] || 0) + (s.total || 0);
       payCount[m] = (payCount[m] || 0) + 1;
     });
-    const payLabels = { cash:'Espèces', orange_money:'Orange Money', mtn_momo:'MTN MoMo', credit:'Crédit', transfer:'Virement' };
-    const payColors = { cash:'#F39C12', orange_money:'#E74C3C', mtn_momo:'#FFCD00', credit:'#9B59B6', transfer:'#2ECC71' };
+    // Include pending credit sales too
+    sales.filter(s => s.paymentMethod === 'credit' && s.status === 'pending').forEach(s => {
+      payBreakdown['credit'] = (payBreakdown['credit'] || 0) + (s.total || 0);
+      payCount['credit'] = (payCount['credit'] || 0) + 1;
+    });
+    const payLabels = { cash:'Espèces', orange_money:'Orange Money', mtn_momo:'MTN MoMo', credit:'Crédit', transfer:'Virement', mobile_money:'Mobile Money', carte:'Carte Bancaire' };
+    const payColors = { cash:'#F39C12', orange_money:'#E74C3C', mtn_momo:'#FFCD00', credit:'#9B59B6', transfer:'#2ECC71', mobile_money:'#3498DB', carte:'#1ABC9C' };
+    const defaultPayColor = '#95A5A6';
 
     // ── Tendance 7 jours ──
     const last7DaysLabels = [];
@@ -355,18 +361,18 @@ async function renderMetrics(container) {
             </h3>
             <span style="font-size:12px; color:var(--text-muted);">Total: ${UI.formatCurrency(trendData.reduce((a,b) => a+b, 0))}</span>
           </div>
-          <canvas id="metrics-chart-trend" style="width:100%; min-height:260px;"></canvas>
+          <canvas id="metrics-chart-trend" width="700" height="320" style="width:100%; height:auto;"></canvas>
         </div>
 
         <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px; box-shadow:var(--shadow-sm);">
           <h3 style="font-size:15px; font-weight:700; margin:0 0 20px 0; display:flex; align-items:center; gap:8px;">
             <i data-lucide="pie-chart" style="color:#3498DB;width:18px;height:18px;"></i> Répartition par Paiement
           </h3>
-          <canvas id="metrics-chart-payments" style="width:100%; height:200px;"></canvas>
+          <canvas id="metrics-chart-payments" width="500" height="350" style="width:100%; height:auto;"></canvas>
           <div style="display:flex; flex-direction:column; gap:6px; margin-top:16px; font-size:12px;">
             ${Object.entries(payBreakdown).filter(([,v]) => v > 0).sort((a,b) => b[1]-a[1]).map(([k, v]) => `
               <div style="display:flex; align-items:center; gap:8px;">
-                <div style="width:10px;height:10px;border-radius:3px;background:${payColors[k] || '#999'};flex-shrink:0;"></div>
+                <div style="width:10px;height:10px;border-radius:3px;background:${payColors[k] || defaultPayColor};flex-shrink:0;"></div>
                 <span style="flex:1;color:var(--text-muted);">${payLabels[k] || k}</span>
                 <strong>${UI.formatCurrency(v)}</strong>
                 <span style="color:var(--text-muted);">(${payCount[k]})</span>
@@ -502,7 +508,7 @@ async function renderMetrics(container) {
       Object.entries(payBreakdown).filter(([,v]) => v > 0).sort((a,b) => b[1]-a[1]).forEach(([k, v]) => {
         payChartLabels.push(payLabels[k] || k);
         payChartData.push(v);
-        payChartColors.push(payColors[k] || '#999');
+        payChartColors.push(payColors[k] || defaultPayColor);
       });
       if (payChartData.length > 0) {
         Charts.donut('metrics-chart-payments', payChartLabels, payChartData, payChartColors);
@@ -523,7 +529,7 @@ function getTopProducts(items, mode = 'qty') {
     const key = it.productName || 'Inconnu';
     if (!map[key]) map[key] = { qty: 0, revenue: 0 };
     map[key].qty += it.quantity || 0;
-    map[key].revenue += (it.sellingPrice || 0) * (it.quantity || 0);
+    map[key].revenue += (it.unitPrice || it.total / (it.quantity || 1) || 0) * (it.quantity || 0);
   });
   return Object.entries(map)
     .sort((a, b) => mode === 'revenue' ? b[1].revenue - a[1].revenue : b[1].qty - a[1].qty)
