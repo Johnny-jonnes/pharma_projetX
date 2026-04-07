@@ -1,13 +1,13 @@
 /**
  * PHARMA_PROJET — metrics.js
- * Internal business metrics and KPIs dashboard
+ * Tableau de Bord Exécutif — Business Intelligence
  */
 
 async function renderMetrics(container) {
   UI.loading(container, 'Analyse des données business...');
 
   try {
-    const [sales, saleItems, products, stockAll, auditLog, alerts, returns] = await Promise.all([
+    const [sales, saleItems, products, stockAll, auditLog, alerts, returns, cashRegister] = await Promise.all([
       DB.dbGetAll('sales'),
       DB.dbGetAll('saleItems'),
       DB.dbGetAll('products'),
@@ -15,37 +15,90 @@ async function renderMetrics(container) {
       DB.dbGetAll('auditLog'),
       DB.dbGetAll('alerts'),
       DB.dbGetAll('returns'),
+      DB.dbGetAll('cashRegister'),
     ]);
 
+    // ── Filtres temporels ──
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split('T')[0];
+    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0];
+    const last30 = new Date(); last30.setDate(last30.getDate() - 30);
+    const last7 = new Date(); last7.setDate(last7.getDate() - 7);
+
+    // ── Ventes globales ──
     const approvedReturns = returns.filter(r => r.status === 'approved');
     const totalRefunds = approvedReturns.reduce((a, r) => a + (r.refundAmount || 0), 0);
     const completedSales = sales.filter(s => ['completed', 'paid'].includes(s.status));
     const totalRevenue = completedSales.reduce((a, s) => a + (s.total || 0), 0) - totalRefunds;
     const totalTransactions = completedSales.length;
-    const avgBasket = totalTransactions > 0 ? (totalRevenue / totalTransactions).toFixed(0) : 0;
+    const avgBasket = totalTransactions > 0 ? Math.round(totalRevenue / totalTransactions) : 0;
 
-    // First usage / App creation date (ignoring any test data before 2026)
+    // ── Ventes du mois courant ──
+    const thisMonthSales = completedSales.filter(s => s.date && s.date >= startOfMonth);
+    const thisMonthRevenue = thisMonthSales.reduce((a, s) => a + (s.total || 0), 0);
+    const thisMonthReturns = approvedReturns.filter(r => r.date && r.date >= startOfMonth);
+    const thisMonthRefunds = thisMonthReturns.reduce((a, r) => a + (r.refundAmount || 0), 0);
+    const thisMonthNet = thisMonthRevenue - thisMonthRefunds;
+    const thisMonthCount = thisMonthSales.length;
+
+    // ── Ventes du mois précédent ──
+    const lastMonthSales = completedSales.filter(s => s.date && s.date >= startOfLastMonth && s.date <= endOfLastMonth);
+    const lastMonthRevenue = lastMonthSales.reduce((a, s) => a + (s.total || 0), 0);
+    const lastMonthReturns = approvedReturns.filter(r => r.date && r.date >= startOfLastMonth && r.date <= endOfLastMonth);
+    const lastMonthRefunds = lastMonthReturns.reduce((a, r) => a + (r.refundAmount || 0), 0);
+    const lastMonthNet = lastMonthRevenue - lastMonthRefunds;
+    const lastMonthCount = lastMonthSales.length;
+
+    // ── Variation mensuelle ──
+    const monthGrowth = lastMonthNet > 0 ? (((thisMonthNet - lastMonthNet) / lastMonthNet) * 100).toFixed(1) : 0;
+    const monthCountGrowth = lastMonthCount > 0 ? (((thisMonthCount - lastMonthCount) / lastMonthCount) * 100).toFixed(1) : 0;
+
+    // ── Ventes du jour ──
+    const todaySales = completedSales.filter(s => s.date && s.date.startsWith(today));
+    const todayRevenue = todaySales.reduce((a, s) => a + (s.total || 0), 0);
+    const todayCount = todaySales.length;
+
+    // ── Date de première utilisation ──
     const realSales = sales.filter(s => new Date(s.date).getFullYear() >= 2026);
     const firstSale = [...realSales].sort((a,b) => new Date(a.date) - new Date(b.date))[0];
     const startedUsingDate = firstSale ? new Date(firstSale.date).toLocaleDateString('fr-FR', {
       day: 'numeric', month: 'long', year: 'numeric'
     }) : "Aujourd'hui";
+    const daysSinceStart = firstSale ? Math.max(1, Math.floor((now - new Date(firstSale.date)) / 86400000)) : 1;
 
-    // Usage activity
-    const last30Days = new Date();
-    last30Days.setDate(last30Days.getDate() - 30);
+    // ── Activité ──
     const activeDays = new Set(auditLog
-      .filter(l => l.timestamp > last30Days.getTime())
+      .filter(l => l.timestamp > last30.getTime())
       .map(l => new Date(l.timestamp).toDateString())
     ).size;
+    const activityRate = Math.round((activeDays / 30) * 100);
 
-    // Stock health
+    // ── Santé du Stock ──
     const outOfStock = products.filter(p => {
       const s = stockAll.find(st => st.productId === p.id);
       return !s || s.quantity <= 0;
     }).length;
+    const lowStock = products.filter(p => {
+      const s = stockAll.find(st => st.productId === p.id);
+      return s && s.quantity > 0 && s.quantity <= (p.alertThreshold || 10);
+    }).length;
+    const healthyStock = products.length - outOfStock - lowStock;
+    const stockHealthPct = products.length > 0 ? Math.round((healthyStock / products.length) * 100) : 100;
 
-    // Margin analysis (Net)
+    // ── Valeur du stock ──
+    const totalStockValue = products.reduce((a, p) => {
+      const s = stockAll.find(st => st.productId === p.id);
+      return a + ((s?.quantity || 0) * (p.purchasePrice || 0));
+    }, 0);
+    const totalStockSellValue = products.reduce((a, p) => {
+      const s = stockAll.find(st => st.productId === p.id);
+      return a + ((s?.quantity || 0) * (p.sellingPrice || 0));
+    }, 0);
+    const potentialProfit = totalStockSellValue - totalStockValue;
+
+    // ── Marges & COGS ──
     const rawCOGS = saleItems.reduce((a, si) => a + (si.purchasePrice || 0) * (si.quantity || 0), 0);
     const refundsCOGS = approvedReturns.reduce((a, r) => {
       return a + (r.items || []).reduce((acc, ri) => {
@@ -53,12 +106,11 @@ async function renderMetrics(container) {
         return acc + (si?.purchasePrice || 0) * (ri.quantity || 0);
       }, 0);
     }, 0);
-
     const totalCOGS = rawCOGS - refundsCOGS;
     const totalProfit = totalRevenue - totalCOGS;
     const globalMargin = totalRevenue > 0 ? (totalProfit / totalRevenue * 100).toFixed(1) : 0;
 
-    // DSO — Délai Moyen de Recouvrement (jours)
+    // ── DSO — Délai Moyen de Recouvrement ──
     const creditSales = sales.filter(s => s.paymentMethod === 'credit');
     const paidCredits = creditSales.filter(s => s.status === 'completed' || s.status === 'paid');
     const unpaidCredits = creditSales.filter(s => s.status === 'pending');
@@ -67,231 +119,395 @@ async function renderMetrics(container) {
     if (paidCredits.length > 0) {
       const dsoDays = paidCredits.map(s => {
         const saleDate = new Date(s.date);
-        const paidDate = s.paidAt ? new Date(s.paidAt) : new Date(); // Si pas de date de paiement, date courante
+        const paidDate = s.paidAt ? new Date(s.paidAt) : new Date();
         return Math.max(0, Math.floor((paidDate - saleDate) / 86400000));
       });
       dsoAvg = Math.round(dsoDays.reduce((a, d) => a + d, 0) / dsoDays.length);
     }
+    const debtRecoveryRate = creditSales.length > 0 ? Math.round((paidCredits.length / creditSales.length) * 100) : 100;
 
-    // Rotation des stocks (moyenne)
-    const totalStockValue = products.reduce((a, p) => {
-      const s = stockAll.find(st => st.productId === p.id);
-      return a + ((s?.quantity || 0) * (p.purchasePrice || 0));
-    }, 0);
+    // ── Rotation des stocks ──
     const stockRotation = totalStockValue > 0 ? (totalCOGS / totalStockValue).toFixed(1) : 0;
 
-    // 7-day trend
+    // ── Répartition par mode de paiement ──
+    const payBreakdown = { cash: 0, orange_money: 0, mtn_momo: 0, credit: 0, transfer: 0 };
+    const payCount = { cash: 0, orange_money: 0, mtn_momo: 0, credit: 0, transfer: 0 };
+    completedSales.forEach(s => {
+      const m = s.paymentMethod || 'cash';
+      payBreakdown[m] = (payBreakdown[m] || 0) + (s.total || 0);
+      payCount[m] = (payCount[m] || 0) + 1;
+    });
+    const payLabels = { cash:'Espèces', orange_money:'Orange Money', mtn_momo:'MTN MoMo', credit:'Crédit', transfer:'Virement' };
+    const payColors = { cash:'#F39C12', orange_money:'#E74C3C', mtn_momo:'#FFCD00', credit:'#9B59B6', transfer:'#2ECC71' };
+
+    // ── Tendance 7 jours ──
     const last7DaysLabels = [];
     const trendData = [];
+    const trendCountData = [];
     for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
+      const d = new Date(); d.setDate(d.getDate() - i);
       const ds = d.toISOString().split('T')[0];
       last7DaysLabels.push(d.toLocaleDateString('fr-FR', { weekday: 'short', day:'numeric' }));
-      const dSales = completedSales.filter(s => s.date && s.date.startsWith(ds)).reduce((a, s) => a + (s.total || 0), 0);
-      trendData.push(dSales);
+      const daySales = completedSales.filter(s => s.date && s.date.startsWith(ds));
+      trendData.push(daySales.reduce((a, s) => a + (s.total || 0), 0));
+      trendCountData.push(daySales.length);
     }
 
+    // ── Top Produits par Volume ET par Revenu ──
+    const topByVolume = getTopProducts(saleItems, 'qty');
+    const topByRevenue = getTopProducts(saleItems, 'revenue');
+
+    // ── Moyenne journalière ──
+    const avgDailyRevenue = Math.round(totalRevenue / daysSinceStart);
+
+    // ── KPI helpers ──
+    function trendBadge(val) {
+      const n = parseFloat(val);
+      if (n > 0) return `<span style="color:#2ecc71; font-size:12px; font-weight:700; display:inline-flex; align-items:center; gap:2px;"><i data-lucide="trending-up" style="width:14px;height:14px;"></i> +${val}%</span>`;
+      if (n < 0) return `<span style="color:#e74c3c; font-size:12px; font-weight:700; display:inline-flex; align-items:center; gap:2px;"><i data-lucide="trending-down" style="width:14px;height:14px;"></i> ${val}%</span>`;
+      return `<span style="color:var(--text-muted); font-size:12px; font-weight:700;">= 0%</span>`;
+    }
+
+    function progressBar(pct, color) {
+      const capped = Math.min(100, Math.max(0, pct));
+      return `<div style="height:6px; background:var(--border); border-radius:3px; overflow:hidden; margin-top:8px;">
+        <div style="height:100%; width:${capped}%; background:${color}; border-radius:3px; transition:width 0.6s ease;"></div>
+      </div>`;
+    }
+
+    // ═══════════════════════════════════════════
+    //  RENDER
+    // ═══════════════════════════════════════════
     container.innerHTML = `
-      <div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-end; border-bottom: 2px solid var(--border); padding-bottom: 15px; margin-bottom: 25px;">
+      <!-- EN-TÊTE -->
+      <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:28px;">
         <div>
-          <h1 class="page-title" style="font-size: 28px; background: linear-gradient(90deg, var(--primary-color), #2980b9); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"><i data-lucide="bar-chart-2"></i> Business Metrics Pro</h1>
-          <p class="page-subtitle" style="font-size:14px; margin-top:4px;">Plateforme d'analyse et d'intelligence d'affaires</p>
+          <h1 style="font-size:26px; font-weight:800; margin:0; display:flex; align-items:center; gap:10px; color:var(--text);">
+            <div style="width:40px;height:40px;background:linear-gradient(135deg, var(--primary-color), #2980b9);border-radius:12px;display:flex;align-items:center;justify-content:center;"><i data-lucide="bar-chart-2" style="color:#fff;width:22px;height:22px;"></i></div>
+            Business Intelligence
+          </h1>
+          <p style="font-size:13px; color:var(--text-muted); margin:4px 0 0 50px;">Analyse financière complète · ${products.length} produits · ${totalTransactions} transactions</p>
         </div>
-        <div style="text-align:right">
-          <div style="font-size:12px; text-transform:uppercase; font-weight:bold; color:var(--text-muted); letter-spacing:1px;">Période d'analyse continue</div>
-          <div style="font-size:14px; font-weight:600; background:rgba(41, 128, 185, 0.1); color:#2980b9; padding:4px 12px; border-radius:20px; display:inline-block; margin-top:4px;">
-            <i data-lucide="calendar" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;"></i> Depuis ${startedUsingDate}
+        <div style="display:flex; gap:8px; align-items:center;">
+          <div style="font-size:12px; background:var(--surface); border:1px solid var(--border); padding:6px 14px; border-radius:8px; color:var(--text-muted);">
+            <i data-lucide="calendar" style="width:13px;height:13px;vertical-align:text-bottom;margin-right:4px;"></i> Depuis le ${startedUsingDate}
+          </div>
+          <div style="font-size:12px; background:rgba(46,204,113,0.1); border:1px solid rgba(46,204,113,0.3); padding:6px 14px; border-radius:8px; color:#27ae60; font-weight:600;">
+            ${activeDays}/30j actifs · ${activityRate}%
           </div>
         </div>
       </div>
 
-      <!-- Hero Impact Section -->
-      <div style="background: linear-gradient(135deg, #091e38 0%, #174b78 100%); border-radius: 20px; padding: 35px; color: white; display:flex; justify-content:space-between; align-items:center; margin-bottom: 30px; box-shadow: 0 20px 40px rgba(23, 75, 120, 0.25); position:relative; overflow:hidden;">
-        <!-- Animated Background Elements -->
-        <div style="position:absolute; top:-100px; right:-50px; width:300px; height:300px; background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%); border-radius:50%;"></div>
-        <div style="position:absolute; bottom:-50px; left:10%; width:200px; height:200px; background: radial-gradient(circle, rgba(74, 189, 172, 0.15) 0%, rgba(255,255,255,0) 70%); border-radius:50%;"></div>
+      <!-- ═══ SECTION 1 — HERO FINANCIER ═══ -->
+      <div style="background:linear-gradient(135deg, #0c1e35 0%, #1a4a7a 50%, #1e6fa0 100%); border-radius:20px; padding:32px 36px; color:white; display:grid; grid-template-columns:1fr auto; gap:32px; margin-bottom:28px; box-shadow:0 16px 48px rgba(12,30,53,0.35); position:relative; overflow:hidden;">
+        <div style="position:absolute;top:-80px;right:-40px;width:250px;height:250px;background:radial-gradient(circle,rgba(255,255,255,0.06)0%,transparent 70%);border-radius:50%;"></div>
+        <div style="position:absolute;bottom:-60px;left:15%;width:180px;height:180px;background:radial-gradient(circle,rgba(46,204,113,0.1)0%,transparent 70%);border-radius:50%;"></div>
         
-        <div style="position:relative; z-index:2; flex:1;">
-          <div style="display:flex; align-items:center; gap:8px; font-weight:700; text-transform:uppercase; font-size:14px; letter-spacing:1px; color:rgba(255,255,255,0.8); margin-bottom:12px;">
-            <i data-lucide="zap" style="color: #f1c40f;"></i> Bénéfice Net Généré
+        <div style="z-index:2;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+            <span style="background:rgba(241,196,15,0.2); padding:4px 10px; border-radius:6px; font-size:11px; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:#f1c40f;">⚡ Bénéfice Brut Total</span>
           </div>
-          <div style="font-size: 56px; font-weight: 900; line-height: 1.1; letter-spacing:-1px; text-shadow: 0 4px 10px rgba(0,0,0,0.2);">
-            ${UI.formatCurrency(totalProfit)}
-          </div>
-          <div style="margin-top:16px; display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,0.15); backdrop-filter:blur(10px); padding:8px 16px; border-radius:30px; font-size:14px; font-weight:500; border:1px solid rgba(255,255,255,0.1);">
-            <i data-lucide="activity" style="width:16px; height:16px; color:#4ade80;"></i>
-            Marge Globale : ${globalMargin}% 
+          <div style="font-size:52px; font-weight:900; line-height:1.1; letter-spacing:-2px;">${UI.formatCurrency(totalProfit)}</div>
+          <div style="display:flex; gap:20px; margin-top:18px; flex-wrap:wrap;">
+            <div style="background:rgba(255,255,255,0.1); backdrop-filter:blur(6px); padding:10px 18px; border-radius:12px; border:1px solid rgba(255,255,255,0.08);">
+              <div style="font-size:11px; text-transform:uppercase; color:rgba(255,255,255,0.6); font-weight:600; margin-bottom:2px;">CA Net Cumulé</div>
+              <div style="font-size:20px; font-weight:800;">${UI.formatCurrency(totalRevenue)}</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.1); backdrop-filter:blur(6px); padding:10px 18px; border-radius:12px; border:1px solid rgba(255,255,255,0.08);">
+              <div style="font-size:11px; text-transform:uppercase; color:rgba(255,255,255,0.6); font-weight:600; margin-bottom:2px;">Marge Globale</div>
+              <div style="font-size:20px; font-weight:800;">${globalMargin}%</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.1); backdrop-filter:blur(6px); padding:10px 18px; border-radius:12px; border:1px solid rgba(255,255,255,0.08);">
+              <div style="font-size:11px; text-transform:uppercase; color:rgba(255,255,255,0.6); font-weight:600; margin-bottom:2px;">Moy. Journalière</div>
+              <div style="font-size:20px; font-weight:800;">${UI.formatCurrency(avgDailyRevenue)}</div>
+            </div>
           </div>
         </div>
 
-        <div style="position:relative; z-index:2; border-left:1px solid rgba(255,255,255,0.2); padding-left:40px; margin-left:20px; display:flex; flex-direction:column; gap:20px;">
+        <div style="z-index:2; display:flex; flex-direction:column; gap:16px; border-left:1px solid rgba(255,255,255,0.15); padding-left:32px; justify-content:center;">
           <div>
-            <div style="font-size:12px; text-transform:uppercase; color:rgba(255,255,255,0.7); font-weight:600; margin-bottom:4px;">Chiffre d'Affaires Net</div>
-            <div style="font-size:26px; font-weight:800;">${UI.formatCurrency(totalRevenue)}</div>
+            <div style="font-size:11px; text-transform:uppercase; color:rgba(255,255,255,0.6); font-weight:600; margin-bottom:2px;">Coût Marchandises</div>
+            <div style="font-size:18px; font-weight:700;">-${UI.formatCurrency(totalCOGS)}</div>
           </div>
           <div>
-            <div style="font-size:12px; text-transform:uppercase; color:rgba(255,255,255,0.7); font-weight:600; margin-bottom:4px;">Transactions</div>
-            <div style="font-size:26px; font-weight:800;">${totalTransactions} <span style="font-size:14px; font-weight:500; color:rgba(255,255,255,0.7);">ventes</span></div>
+            <div style="font-size:11px; text-transform:uppercase; color:rgba(255,255,255,0.6); font-weight:600; margin-bottom:2px;">Retours/Remb.</div>
+            <div style="font-size:18px; font-weight:700;">-${UI.formatCurrency(totalRefunds)}</div>
+          </div>
+          <div>
+            <div style="font-size:11px; text-transform:uppercase; color:rgba(255,255,255,0.6); font-weight:600; margin-bottom:2px;">Transactions</div>
+            <div style="font-size:18px; font-weight:700;">${totalTransactions}</div>
           </div>
         </div>
       </div>
 
-      <!-- Main KPI Grid -->
-      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-bottom: 30px;">
+      <!-- ═══ SECTION 2 — KPIs MENSUEL vs PRÉCÉDENT ═══ -->
+      <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:20px; margin-bottom:28px;">
         
-        <!-- Metric Card 1: Panier Moyen -->
-        <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px; box-shadow:var(--shadow-sm); position:relative; overflow:hidden; transition:transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.transform='none'; this.style.boxShadow='var(--shadow-sm)'">
-          <div style="position:absolute; top:0; right:0; width:80px; height:80px; background:linear-gradient(135deg, transparent 50%, rgba(52, 152, 219, 0.1) 100%);"></div>
-          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
-            <div>
-              <div style="font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); margin-bottom:4px;">Panier Moyen</div>
-              <div style="font-size:28px; font-weight:800; color:var(--text);">${UI.formatCurrency(avgBasket)}</div>
-            </div>
-            <div style="width:48px; height:48px; background:rgba(52, 152, 219, 0.1); color:#3498DB; border-radius:14px; display:flex; align-items:center; justify-content:center;">
-              <i data-lucide="shopping-cart" style="width:24px; height:24px;"></i>
-            </div>
+        <!-- KPI: CA Mois Courant -->
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:20px; box-shadow:var(--shadow-sm); transition:transform .2s;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='none'">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <div style="width:42px;height:42px;border-radius:12px;background:rgba(46,204,113,0.1);color:#27ae60;display:flex;align-items:center;justify-content:center;"><i data-lucide="trending-up" style="width:22px;height:22px;"></i></div>
+            ${trendBadge(monthGrowth)}
           </div>
-          <div style="font-size:12px; color:var(--text-muted); display:flex; align-items:center; gap:6px;">
-            Indicateur de dépense par client
-          </div>
+          <div style="font-size:24px; font-weight:800; color:var(--text); margin-bottom:4px;">${UI.formatCurrency(thisMonthNet)}</div>
+          <div style="font-size:12px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.3px;">CA Net du Mois</div>
+          <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">${thisMonthCount} ventes · Précédent: ${UI.formatCurrency(lastMonthNet)}</div>
         </div>
 
-        <!-- Metric Card 2: Rotation Stock -->
-        <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px; box-shadow:var(--shadow-sm); position:relative; overflow:hidden; transition:transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.transform='none'; this.style.boxShadow='var(--shadow-sm)'">
-          <div style="position:absolute; top:0; right:0; width:80px; height:80px; background:linear-gradient(135deg, transparent 50%, rgba(26, 188, 156, 0.1) 100%);"></div>
-          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
-            <div>
-              <div style="font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); margin-bottom:4px;">Rotation des Stocks</div>
-              <div style="font-size:28px; font-weight:800; color:var(--text);">${stockRotation}x</div>
-            </div>
-            <div style="width:48px; height:48px; background:rgba(26, 188, 156, 0.1); color:#1ABC9C; border-radius:14px; display:flex; align-items:center; justify-content:center;">
-              <i data-lucide="refresh-cw" style="width:24px; height:24px;"></i>
-            </div>
+        <!-- KPI: Ventes Aujourd'hui -->
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:20px; box-shadow:var(--shadow-sm); transition:transform .2s;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='none'">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <div style="width:42px;height:42px;border-radius:12px;background:rgba(52,152,219,0.1);color:#3498db;display:flex;align-items:center;justify-content:center;"><i data-lucide="clock" style="width:22px;height:22px;"></i></div>
+            <span style="font-size:12px;color:var(--text-muted);font-weight:600;">${todayCount} vente(s)</span>
           </div>
-          <div style="font-size:12px; color:var(--text-muted); display:flex; align-items:center; justify-content:space-between;">
-            <span>Efficacité du renouvellement</span>
-            <span class="${outOfStock > 0 ? 'text-danger' : 'text-success'} font-bold" style="display:flex;align-items:center;gap:4px;"><i data-lucide="alert-triangle" style="width:12px;height:12px;"></i> ${outOfStock} ruptures</span>
-          </div>
+          <div style="font-size:24px; font-weight:800; color:var(--text); margin-bottom:4px;">${UI.formatCurrency(todayRevenue)}</div>
+          <div style="font-size:12px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.3px;">Recette du Jour</div>
+          <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Moy/jour: ${UI.formatCurrency(avgDailyRevenue)}</div>
         </div>
 
-        <!-- Metric Card 3: DSO / Recouvrement -->
-        <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px; box-shadow:var(--shadow-sm); position:relative; overflow:hidden; transition:transform 0.2s, box-shadow 0.2s; cursor:pointer;" onclick="Router.navigate('sales')" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.transform='none'; this.style.boxShadow='var(--shadow-sm)'">
-          <div style="position:absolute; top:0; right:0; width:80px; height:80px; background:linear-gradient(135deg, transparent 50%, rgba(155, 89, 182, 0.1) 100%);"></div>
-          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
-            <div>
-               <div style="font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); margin-bottom:4px;">Santé Client (DSO)</div>
-               <div style="font-size:28px; font-weight:800; color:var(--text);">${dsoAvg} jours</div>
-            </div>
-            <div style="width:48px; height:48px; background:rgba(155, 89, 182, 0.1); color:#9B59B6; border-radius:14px; display:flex; align-items:center; justify-content:center;">
-              <i data-lucide="user-check" style="width:24px; height:24px;"></i>
-            </div>
+        <!-- KPI: Panier Moyen -->
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:20px; box-shadow:var(--shadow-sm); transition:transform .2s;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='none'">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <div style="width:42px;height:42px;border-radius:12px;background:rgba(243,156,18,0.1);color:#f39c12;display:flex;align-items:center;justify-content:center;"><i data-lucide="shopping-cart" style="width:22px;height:22px;"></i></div>
           </div>
-          <div style="font-size:12px; color:var(--text-muted); display:flex; align-items:center; justify-content:space-between;">
-            <span>Délai moyen de paiement</span>
-            <span class="${totalCreances > 0 ? 'text-danger' : 'text-success'} font-bold">${totalCreances > 0 ? UI.formatCurrency(totalCreances) + ' impayés' : '0 dettes !'}</span>
-          </div>
+          <div style="font-size:24px; font-weight:800; color:var(--text); margin-bottom:4px;">${UI.formatCurrency(avgBasket)}</div>
+          <div style="font-size:12px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.3px;">Panier Moyen</div>
+          <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Dépense moyenne par transaction</div>
         </div>
 
-      </div>
-
-      <!-- Graphiques et Data -->
-      <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: stretch; margin-bottom: 24px;">
-        <div style="flex: 1.5; min-width: 450px; padding: 24px; background: var(--surface); border-radius: 16px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); display: flex; flex-direction: column;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
-            <h3 style="font-size: 16px; font-weight:700; margin:0;"><i data-lucide="trending-up" style="color:var(--primary-color); vertical-align:text-bottom; margin-right:6px;"></i> Dynamique des Ventes (7 Jours)</h3>
+        <!-- KPI: Créances -->
+        <div style="background:var(--surface); border:1px solid ${totalCreances > 0 ? 'rgba(231,76,60,0.3)' : 'var(--border)'}; border-radius:14px; padding:20px; box-shadow:var(--shadow-sm); cursor:pointer; transition:transform .2s;" onclick="Router.navigate('sales')" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='none'">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <div style="width:42px;height:42px;border-radius:12px;background:rgba(155,89,182,0.1);color:#9b59b6;display:flex;align-items:center;justify-content:center;"><i data-lucide="file-clock" style="width:22px;height:22px;"></i></div>
+            <span style="font-size:12px;color:${totalCreances > 0 ? '#e74c3c' : '#27ae60'};font-weight:700;">${unpaidCredits.length} impayé(s)</span>
           </div>
-          <canvas id="metrics-chart-trend" style="width: 100%; flex: 1; min-height: 280px;"></canvas>
-        </div>
-
-        <div style="flex: 1; min-width: 350px; padding: 24px; background: var(--surface); border-radius: 16px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); display: flex; flex-direction: column;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
-            <h3 style="font-size: 16px; font-weight:700; margin:0;"><i data-lucide="pie-chart" style="color:#3498DB; vertical-align:text-bottom; margin-right:6px;"></i> Répartition Financière</h3>
-          </div>
-          <canvas id="metrics-chart-finance" style="width: 100%; height: 260px;"></canvas>
+          <div style="font-size:24px; font-weight:800; color:${totalCreances > 0 ? '#e74c3c' : 'var(--success-color)'}; margin-bottom:4px;">${totalCreances > 0 ? UI.formatCurrency(totalCreances) : '0 FG ✓'}</div>
+          <div style="font-size:12px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.3px;">Créances en Cours</div>
+          <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">DSO: ${dsoAvg}j · Taux recouvr.: ${debtRecoveryRate}%</div>
         </div>
       </div>
 
-      <!-- Tableaux Financiers Avancés -->
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 24px;">
+      <!-- ═══ SECTION 3 — INDICATEURS OPÉRATIONNELS ═══ -->
+      <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:20px; margin-bottom:28px;">
         
+        <!-- Marge Globale -->
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:20px; box-shadow:var(--shadow-sm);">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px;">
+            <div style="width:36px;height:36px;border-radius:10px;background:rgba(46,204,113,0.1);color:#27ae60;display:flex;align-items:center;justify-content:center;"><i data-lucide="percent" style="width:18px;height:18px;"></i></div>
+            <span style="font-size:13px; font-weight:700; color:var(--text);">Marge Brute</span>
+          </div>
+          <div style="font-size:32px; font-weight:900; color:${parseFloat(globalMargin) >= 20 ? '#27ae60' : parseFloat(globalMargin) >= 10 ? '#f39c12' : '#e74c3c'};">${globalMargin}%</div>
+          ${progressBar(parseFloat(globalMargin), parseFloat(globalMargin) >= 20 ? '#27ae60' : parseFloat(globalMargin) >= 10 ? '#f39c12' : '#e74c3c')}
+          <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted); margin-top:6px;">
+            <span>0%</span><span>Objectif: 25%</span><span>50%</span>
+          </div>
+        </div>
+
+        <!-- Rotation Stock -->
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:20px; box-shadow:var(--shadow-sm);">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px;">
+            <div style="width:36px;height:36px;border-radius:10px;background:rgba(26,188,156,0.1);color:#1abc9c;display:flex;align-items:center;justify-content:center;"><i data-lucide="refresh-cw" style="width:18px;height:18px;"></i></div>
+            <span style="font-size:13px; font-weight:700; color:var(--text);">Rotation Stock</span>
+          </div>
+          <div style="font-size:32px; font-weight:900; color:var(--text);">${stockRotation}x</div>
+          ${progressBar(Math.min(parseFloat(stockRotation) * 20, 100), '#1abc9c')}
+          <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted); margin-top:6px;">
+            <span>Lent</span><span>COGS / Val. stock</span><span>Rapide</span>
+          </div>
+        </div>
+
+        <!-- Santé du Stock -->
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:20px; box-shadow:var(--shadow-sm);">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px;">
+            <div style="width:36px;height:36px;border-radius:10px;background:rgba(52,152,219,0.1);color:#3498db;display:flex;align-items:center;justify-content:center;"><i data-lucide="package" style="width:18px;height:18px;"></i></div>
+            <span style="font-size:13px; font-weight:700; color:var(--text);">Santé Stock</span>
+          </div>
+          <div style="font-size:32px; font-weight:900; color:${stockHealthPct >= 80 ? '#27ae60' : stockHealthPct >= 50 ? '#f39c12' : '#e74c3c'};">${stockHealthPct}%</div>
+          ${progressBar(stockHealthPct, stockHealthPct >= 80 ? '#27ae60' : stockHealthPct >= 50 ? '#f39c12' : '#e74c3c')}
+          <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted); margin-top:6px;">
+            <span style="color:#e74c3c;">${outOfStock} ruptures</span>
+            <span style="color:#f39c12;">${lowStock} bas</span>
+            <span style="color:#27ae60;">${healthyStock} ok</span>
+          </div>
+        </div>
+
+        <!-- Taux de Recouvrement -->
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:20px; box-shadow:var(--shadow-sm);">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px;">
+            <div style="width:36px;height:36px;border-radius:10px;background:rgba(155,89,182,0.1);color:#9b59b6;display:flex;align-items:center;justify-content:center;"><i data-lucide="user-check" style="width:18px;height:18px;"></i></div>
+            <span style="font-size:13px; font-weight:700; color:var(--text);">Recouvrement</span>
+          </div>
+          <div style="font-size:32px; font-weight:900; color:${debtRecoveryRate >= 80 ? '#27ae60' : debtRecoveryRate >= 50 ? '#f39c12' : '#e74c3c'};">${debtRecoveryRate}%</div>
+          ${progressBar(debtRecoveryRate, debtRecoveryRate >= 80 ? '#27ae60' : debtRecoveryRate >= 50 ? '#f39c12' : '#e74c3c')}
+          <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted); margin-top:6px;">
+            <span>DSO: ${dsoAvg}j</span>
+            <span>${paidCredits.length} réglé(s) / ${creditSales.length} total</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SECTION 4 — GRAPHIQUES ═══ -->
+      <div style="display:grid; grid-template-columns:1.5fr 1fr; gap:24px; margin-bottom:28px;">
         <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px; box-shadow:var(--shadow-sm);">
-          <h3 style="font-size: 16px; font-weight:700; margin-bottom: 20px; padding-bottom:12px; border-bottom:1px solid var(--border);"><i data-lucide="file-spreadsheet" style="vertical-align:text-bottom; margin-right:6px;"></i> État de Résultat (Comptable)</h3>
-          
-          <div style="display: flex; flex-direction: column; gap: 14px; font-size: 14px;">
-            <div style="display: flex; justify-content: space-between;">
-              <span style="color:var(--text-muted); font-weight:500;">Chiffre d'Affaires Théorique</span>
-              <strong style="font-size:15px">${UI.formatCurrency(rawCOGS + totalProfit + totalRefunds)}</strong>
-            </div>
-            
-            <div style="display: flex; justify-content: space-between; position:relative;">
-              <div style="position:absolute; left:-12px; top:8px; width:6px; height:6px; border-radius:50%; background:var(--danger-color);"></div>
-              <span style="font-weight:500;">Moins : Remboursements & Retours</span>
-              <strong class="text-danger">-${UI.formatCurrency(totalRefunds)}</strong>
-            </div>
-            
-            <div style="display: flex; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 12px; margin-top: 4px;">
-              <span style="font-weight:700; text-transform:uppercase; font-size:13px; letter-spacing:0.5px;">Chiffre d'Affaires Net</span>
-              <strong style="font-size:16px; color:var(--text);">${UI.formatCurrency(totalRevenue)}</strong>
-            </div>
-            
-            <div style="display: flex; justify-content: space-between; position:relative;">
-              <div style="position:absolute; left:-12px; top:8px; width:6px; height:6px; border-radius:50%; background:#f39c12;"></div>
-              <span style="font-weight:500;">Moins : Coût des Marchandises Vendues</span>
-              <strong style="color:#f39c12;">-${UI.formatCurrency(totalCOGS)}</strong>
-            </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h3 style="font-size:15px; font-weight:700; margin:0; display:flex; align-items:center; gap:8px;">
+              <i data-lucide="activity" style="color:var(--primary-color);width:18px;height:18px;"></i> Dynamique des Ventes (7 Jours)
+            </h3>
+            <span style="font-size:12px; color:var(--text-muted);">Total: ${UI.formatCurrency(trendData.reduce((a,b) => a+b, 0))}</span>
+          </div>
+          <canvas id="metrics-chart-trend" style="width:100%; min-height:260px;"></canvas>
+        </div>
 
-            <div style="display: flex; justify-content: space-between; align-items: center; background: linear-gradient(90deg, rgba(46, 204, 113, 0.1), rgba(46, 204, 113, 0.05)); padding: 16px; border-radius: 12px; margin-top: 12px; border:1px dashed rgba(46,204,113,0.3);">
-              <div>
-                <div style="font-weight: 800; color: var(--success-color); text-transform:uppercase; letter-spacing:0.5px;">Bénéfice Net Brut</div>
-                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Avant charges fixes (Loyer, salaires...)</div>
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px; box-shadow:var(--shadow-sm);">
+          <h3 style="font-size:15px; font-weight:700; margin:0 0 20px 0; display:flex; align-items:center; gap:8px;">
+            <i data-lucide="pie-chart" style="color:#3498DB;width:18px;height:18px;"></i> Répartition par Paiement
+          </h3>
+          <canvas id="metrics-chart-payments" style="width:100%; height:200px;"></canvas>
+          <div style="display:flex; flex-direction:column; gap:6px; margin-top:16px; font-size:12px;">
+            ${Object.entries(payBreakdown).filter(([,v]) => v > 0).sort((a,b) => b[1]-a[1]).map(([k, v]) => `
+              <div style="display:flex; align-items:center; gap:8px;">
+                <div style="width:10px;height:10px;border-radius:3px;background:${payColors[k] || '#999'};flex-shrink:0;"></div>
+                <span style="flex:1;color:var(--text-muted);">${payLabels[k] || k}</span>
+                <strong>${UI.formatCurrency(v)}</strong>
+                <span style="color:var(--text-muted);">(${payCount[k]})</span>
               </div>
-              <strong style="font-size: 24px; font-weight:900; color: var(--success-color);">${UI.formatCurrency(totalProfit)}</strong>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SECTION 5 — TABLEAUX AVANCÉS ═══ -->
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap:24px; margin-bottom:28px;">
+        
+        <!-- P&L -->
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px; box-shadow:var(--shadow-sm);">
+          <h3 style="font-size:15px; font-weight:700; margin:0 0 20px 0; padding-bottom:12px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px;">
+            <i data-lucide="file-spreadsheet" style="width:18px;height:18px;"></i> Compte de Résultat
+          </h3>
+          <div style="display:flex; flex-direction:column; gap:12px; font-size:14px;">
+            <div style="display:flex; justify-content:space-between;">
+              <span style="color:var(--text-muted);">CA Brut (ventes)</span>
+              <strong>${UI.formatCurrency(rawCOGS + totalProfit + totalRefunds)}</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; color:#e74c3c;">
+              <span>− Retours clients</span>
+              <strong>-${UI.formatCurrency(totalRefunds)}</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; border-top:1px dashed var(--border); padding-top:10px;">
+              <span style="font-weight:700;">= CA Net</span>
+              <strong style="font-size:15px;">${UI.formatCurrency(totalRevenue)}</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; color:#f39c12;">
+              <span>− Coût d'Achat (COGS)</span>
+              <strong>-${UI.formatCurrency(totalCOGS)}</strong>
+            </div>
+            <div style="background:linear-gradient(90deg, rgba(46,204,113,0.08), rgba(46,204,113,0.02)); padding:14px; border-radius:10px; border:1px dashed rgba(46,204,113,0.25); margin-top:6px; display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <div style="font-weight:800; color:var(--success-color); letter-spacing:0.3px;">= BÉNÉFICE BRUT</div>
+                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Marge: ${globalMargin}%</div>
+              </div>
+              <strong style="font-size:22px; font-weight:900; color:var(--success-color);">${UI.formatCurrency(totalProfit)}</strong>
             </div>
           </div>
         </div>
 
+        <!-- Valorisation Stock -->
         <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px; box-shadow:var(--shadow-sm);">
-          <h3 style="font-size: 16px; font-weight:700; margin-bottom: 20px; padding-bottom:12px; border-bottom:1px solid var(--border);"><i data-lucide="award" style="vertical-align:text-bottom; margin-right:6px; color:#f1c40f;"></i> Top 5 Produits (En Volume)</h3>
-          
-          <div style="display:flex; flex-direction:column; gap:12px;">
-            ${getTopProducts(saleItems).map((p, i) => `
-              <div style="display: flex; align-items: center; padding: 12px 16px; background: var(--surface-2); border-radius: 12px; border: 1px solid var(--border); transition:transform 0.15s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
-                <div style="width: 32px; height: 32px; border-radius: 8px; background: ${i===0 ? 'linear-gradient(135deg, #f1c40f, #e67e22)' : i===1 ? 'linear-gradient(135deg, #bdc3c7, #95a5a6)' : i===2 ? 'linear-gradient(135deg, #d35400, #e67e22)' : 'var(--border)'}; color: ${i<3 ? '#fff' : 'inherit'}; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; margin-right: 16px; box-shadow:0 4px 8px rgba(0,0,0,0.1);">
-                  ${i + 1}
-                </div>
-                <div style="flex: 1; min-width:0;">
-                  <div style="font-weight: 600; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.name}</div>
-                </div>
-                <div style="background: rgba(41, 128, 185, 0.1); color: #2980b9; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 700; margin-left:12px;">
-                  ${p.qty} vendus
-                </div>
+          <h3 style="font-size:15px; font-weight:700; margin:0 0 20px 0; padding-bottom:12px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px;">
+            <i data-lucide="warehouse" style="width:18px;height:18px;"></i> Valorisation du Stock
+          </h3>
+          <div style="display:flex; flex-direction:column; gap:12px; font-size:14px;">
+            <div style="display:flex; justify-content:space-between;">
+              <span style="color:var(--text-muted);">Valeur d'achat (coût)</span>
+              <strong>${UI.formatCurrency(totalStockValue)}</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between;">
+              <span style="color:var(--text-muted);">Valeur de vente (PV)</span>
+              <strong>${UI.formatCurrency(totalStockSellValue)}</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; border-top:1px dashed var(--border); padding-top:10px;">
+              <span style="font-weight:700; color:var(--success-color);">Gain potentiel</span>
+              <strong style="color:var(--success-color);">${UI.formatCurrency(potentialProfit)}</strong>
+            </div>
+            <div style="margin-top:8px; padding:14px; background:var(--surface-2); border-radius:10px; border:1px solid var(--border);">
+              <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                <span style="font-size:13px; font-weight:600;">Répartition stock</span>
+                <span style="font-size:13px; font-weight:600;">${products.length} réf.</span>
+              </div>
+              <div style="display:flex; height:8px; border-radius:4px; overflow:hidden; gap:2px;">
+                <div style="flex:${healthyStock}; background:#27ae60; border-radius:4px;" title="${healthyStock} OK"></div>
+                <div style="flex:${lowStock || 0.1}; background:#f39c12; border-radius:4px;" title="${lowStock} Bas"></div>
+                <div style="flex:${outOfStock || 0.1}; background:#e74c3c; border-radius:4px;" title="${outOfStock} Rupture"></div>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted); margin-top:6px;">
+                <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#27ae60;margin-right:4px;"></span>${healthyStock} Normal</span>
+                <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#f39c12;margin-right:4px;"></span>${lowStock} Bas</span>
+                <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#e74c3c;margin-right:4px;"></span>${outOfStock} Rupture</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SECTION 6 — TOP PRODUITS ═══ -->
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:24px;">
+        
+        <!-- Top par Volume -->
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px; box-shadow:var(--shadow-sm);">
+          <h3 style="font-size:15px; font-weight:700; margin:0 0 18px 0; padding-bottom:12px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px;">
+            <i data-lucide="trophy" style="width:18px;height:18px;color:#f1c40f;"></i> Top 5 — Volume Vendu
+          </h3>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            ${topByVolume.map((p, i) => `
+              <div style="display:flex; align-items:center; gap:12px; padding:10px 14px; background:var(--surface-2); border-radius:10px; border:1px solid var(--border);">
+                <div style="width:28px;height:28px;border-radius:8px;background:${i===0?'linear-gradient(135deg,#f1c40f,#e67e22)':i===1?'linear-gradient(135deg,#bdc3c7,#95a5a6)':i===2?'linear-gradient(135deg,#d35400,#e67e22)':'var(--border)'};color:${i<3?'#fff':'var(--text)'};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0;">${i+1}</div>
+                <div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name}</div></div>
+                <div style="background:rgba(41,128,185,0.1);color:#2980b9;padding:3px 10px;border-radius:16px;font-size:12px;font-weight:700;">${p.qty} unités</div>
               </div>
             `).join('')}
           </div>
         </div>
 
+        <!-- Top par Revenu -->
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px; box-shadow:var(--shadow-sm);">
+          <h3 style="font-size:15px; font-weight:700; margin:0 0 18px 0; padding-bottom:12px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px;">
+            <i data-lucide="banknote" style="width:18px;height:18px;color:#27ae60;"></i> Top 5 — Chiffre d'Affaires
+          </h3>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            ${topByRevenue.map((p, i) => `
+              <div style="display:flex; align-items:center; gap:12px; padding:10px 14px; background:var(--surface-2); border-radius:10px; border:1px solid var(--border);">
+                <div style="width:28px;height:28px;border-radius:8px;background:${i===0?'linear-gradient(135deg,#27ae60,#2ecc71)':i===1?'linear-gradient(135deg,#16a085,#1abc9c)':i===2?'linear-gradient(135deg,#2980b9,#3498db)':'var(--border)'};color:${i<3?'#fff':'var(--text)'};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0;">${i+1}</div>
+                <div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name}</div></div>
+                <div style="background:rgba(39,174,96,0.1);color:#27ae60;padding:3px 10px;border-radius:16px;font-size:12px;font-weight:700;">${UI.formatCurrency(p.revenue)}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
       </div>
     `;
 
     if (window.lucide) lucide.createIcons();
 
-    // Rendu des graphiques
+    // ─── Rendus graphiques ───
     requestAnimationFrame(() => {
       Charts.line('metrics-chart-trend', last7DaysLabels, [{
         data: trendData,
         color: '#0B3D6F' 
       }], { title: '' });
 
-      const donutLabels = ['Coût Achats', 'Bénéfice Brut', 'Remboursements'];
-      const donutData = [totalCOGS, Math.max(0, totalProfit), Math.max(0, totalRefunds)];
-      const donutColors = ['#0B3D6F', '#0D9B6C', '#D63B3B']; // Palette standard
-      
-      Charts.donut('metrics-chart-finance',
-        donutLabels,
-        donutData,
-        donutColors
-      );
+      // Donut des modes de paiement
+      const payChartLabels = [];
+      const payChartData = [];
+      const payChartColors = [];
+      Object.entries(payBreakdown).filter(([,v]) => v > 0).sort((a,b) => b[1]-a[1]).forEach(([k, v]) => {
+        payChartLabels.push(payLabels[k] || k);
+        payChartData.push(v);
+        payChartColors.push(payColors[k] || '#999');
+      });
+      if (payChartData.length > 0) {
+        Charts.donut('metrics-chart-payments', payChartLabels, payChartData, payChartColors);
+      }
+
       if (window.lucide) lucide.createIcons();
     });
 
@@ -301,17 +517,18 @@ async function renderMetrics(container) {
   }
 }
 
-function getTopProducts(items) {
+function getTopProducts(items, mode = 'qty') {
   const map = {};
   items.forEach(it => {
-    if (!map[it.productName]) map[it.productName] = 0;
-    map[it.productName] += it.quantity;
+    const key = it.productName || 'Inconnu';
+    if (!map[key]) map[key] = { qty: 0, revenue: 0 };
+    map[key].qty += it.quantity || 0;
+    map[key].revenue += (it.sellingPrice || 0) * (it.quantity || 0);
   });
   return Object.entries(map)
-    .sort((a, b) => b[1] - a[1])
+    .sort((a, b) => mode === 'revenue' ? b[1].revenue - a[1].revenue : b[1].qty - a[1].qty)
     .slice(0, 5)
-    .map(([name, qty]) => ({ name, qty }));
+    .map(([name, data]) => ({ name, qty: data.qty, revenue: data.revenue }));
 }
 
 window.renderMetrics = renderMetrics;
-
