@@ -7,16 +7,23 @@ async function renderMetrics(container) {
   UI.loading(container, 'Analyse des données business...');
 
   try {
+    // Chargement défensif : chaque table est chargée individuellement
+    // pour éviter un crash global si une table n'existe pas encore
+    const safeLoad = async (table) => { try { return await DB.dbGetAll(table) || []; } catch(e) { console.warn('[Metrics] Table manquante:', table); return []; } };
     const [sales, saleItems, products, stockAll, auditLog, alerts, returns, cashRegister] = await Promise.all([
-      DB.dbGetAll('sales'),
-      DB.dbGetAll('saleItems'),
-      DB.dbGetAll('products'),
-      DB.dbGetAll('stock'),
-      DB.dbGetAll('auditLog'),
-      DB.dbGetAll('alerts'),
-      DB.dbGetAll('returns'),
-      DB.dbGetAll('cashRegister'),
+      safeLoad('sales'),
+      safeLoad('saleItems'),
+      safeLoad('products'),
+      safeLoad('stock'),
+      safeLoad('auditLog'),
+      safeLoad('alerts'),
+      safeLoad('returns'),
+      safeLoad('cashRegister'),
     ]);
+
+    // Index rapide stock par productId pour éviter des .find() répétés
+    const stockMap = {};
+    stockAll.forEach(s => { stockMap[s.productId] = s; });
 
     // ── Filtres temporels ──
     const now = new Date();
@@ -75,26 +82,28 @@ async function renderMetrics(container) {
     ).size;
     const activityRate = Math.round((activeDays / 30) * 100);
 
-    // ── Santé du Stock ──
+    // ── Santé du Stock (utilise p.minStock comme le reste de l'app) ──
     const outOfStock = products.filter(p => {
-      const s = stockAll.find(st => st.productId === p.id);
-      return !s || s.quantity <= 0;
+      const s = stockMap[p.id];
+      return !s || (s.quantity || 0) <= 0;
     }).length;
     const lowStock = products.filter(p => {
-      const s = stockAll.find(st => st.productId === p.id);
-      return s && s.quantity > 0 && s.quantity <= (p.alertThreshold || 10);
+      const s = stockMap[p.id];
+      const qty = s ? (s.quantity || 0) : 0;
+      const minSeuil = p.minStock || 10;
+      return qty > 0 && qty <= minSeuil;
     }).length;
-    const healthyStock = products.length - outOfStock - lowStock;
+    const healthyStock = Math.max(0, products.length - outOfStock - lowStock);
     const stockHealthPct = products.length > 0 ? Math.round((healthyStock / products.length) * 100) : 100;
 
     // ── Valeur du stock ──
     const totalStockValue = products.reduce((a, p) => {
-      const s = stockAll.find(st => st.productId === p.id);
-      return a + ((s?.quantity || 0) * (p.purchasePrice || 0));
+      const qty = stockMap[p.id]?.quantity || 0;
+      return a + (qty * (p.purchasePrice || 0));
     }, 0);
     const totalStockSellValue = products.reduce((a, p) => {
-      const s = stockAll.find(st => st.productId === p.id);
-      return a + ((s?.quantity || 0) * (p.salePrice || 0));
+      const qty = stockMap[p.id]?.quantity || 0;
+      return a + (qty * (p.salePrice || 0));
     }, 0);
     const potentialProfit = totalStockSellValue - totalStockValue;
 
@@ -108,7 +117,7 @@ async function renderMetrics(container) {
     }, 0);
     const totalCOGS = rawCOGS - refundsCOGS;
     const totalProfit = totalRevenue - totalCOGS;
-    const globalMargin = totalRevenue > 0 ? (totalProfit / totalRevenue * 100).toFixed(1) : 0;
+    const globalMargin = totalRevenue > 0 ? (totalProfit / totalRevenue * 100).toFixed(1) : '0.0';
 
     // ── DSO — Délai Moyen de Recouvrement ──
     const creditSales = sales.filter(s => s.paymentMethod === 'credit');
@@ -164,7 +173,7 @@ async function renderMetrics(container) {
     const topByRevenue = getTopProducts(saleItems, 'revenue');
 
     // ── Moyenne journalière ──
-    const avgDailyRevenue = Math.round(totalRevenue / daysSinceStart);
+    const avgDailyRevenue = daysSinceStart > 0 ? Math.round(totalRevenue / daysSinceStart) : 0;
 
     // ── KPI helpers ──
     function trendBadge(val) {
