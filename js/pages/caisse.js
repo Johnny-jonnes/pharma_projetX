@@ -92,11 +92,11 @@ async function renderCaisse(container) {
   const returnOut = cashRegister.filter(c => c.date === today && c.type === 'return_out').reduce((a, c) => a + c.amount, 0);
 
   // Per-method sales breakdown for detail
-  const cashSales = todaySales.filter(s => (s.paymentMethod || 'cash') === 'cash').reduce((a, s) => a + s.total, 0);
-  const omSales = todaySales.filter(s => s.paymentMethod === 'orange_money').reduce((a, s) => a + s.total, 0);
-  const mtnSales = todaySales.filter(s => s.paymentMethod === 'mtn_momo').reduce((a, s) => a + s.total, 0);
-  const transferSales = todaySales.filter(s => s.paymentMethod === 'transfer').reduce((a, s) => a + s.total, 0);
-  const creditSales = todaySales.filter(s => s.paymentMethod === 'credit').reduce((a, s) => a + s.total, 0);
+  const cashSales = breakdown.cash.total;
+  const omSales = breakdown.orange_money.total;
+  const mtnSales = breakdown.mtn_momo.total;
+  const transferSales = breakdown.transfer.total;
+  const creditSales = breakdown.credit.total;
 
   // Theoretical balances by channel
   const cashBalance = cashSales + (debtByMethod.cash || 0) + manualIn - manualOut - returnOut;
