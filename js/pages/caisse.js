@@ -115,17 +115,18 @@ async function renderCaisse(container) {
     ${todayClosure ? `<div class="closure-banner"><i data-lucide="check-circle"></i> Cette journée a été clôturée à ${UI.formatDateTime(todayClosure.closedAt)} par ${todayClosure.closedBy}</div>` : ''}
     
     <!-- Tabs Navigation -->
-    <div class="tabs-bar" style="margin-bottom: 20px;">
-      <button class="tab-btn active" onclick="switchCaisseTab(this,'main')"><i data-lucide="banknote"></i> Ventes du jour</button>
+    <div class="tabs-bar" style="margin-bottom: 20px; display:flex; flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none;">
+      <style>.tabs-bar::-webkit-scrollbar { display: none; }</style>
+      <button class="tab-btn active" style="flex-shrink:0" onclick="switchCaisseTab(this,'main')"><i data-lucide="banknote"></i> Ventes du jour</button>
       ${DB.AppState.currentUser?.role !== 'caissier' ? `
-      <button class="tab-btn" onclick="switchCaisseTab(this,'detail')"><i data-lucide="calculator"></i> Détail du calcul</button>
-      <button class="tab-btn" onclick="switchCaisseTab(this,'stats')"><i data-lucide="bar-chart-3"></i> Statistiques & Clôtures</button>
+      <button class="tab-btn" style="flex-shrink:0" onclick="switchCaisseTab(this,'detail')"><i data-lucide="calculator"></i> Détail du calcul</button>
+      <button class="tab-btn" style="flex-shrink:0" onclick="switchCaisseTab(this,'stats')"><i data-lucide="bar-chart-3"></i> Statistiques & Clôtures</button>
       ` : ''}
     </div>
 
     <div id="tab-caisse-main" class="tab-content active">
       <!-- Recap cards -->
-      <div class="caisse-recap">
+      <div class="caisse-recap" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px">
         <div class="caisse-total-card balance-card">
           <div class="caisse-total-icon" style="background: var(--success-color)"><i data-lucide="wallet"></i></div>
           <div>
@@ -144,7 +145,7 @@ async function renderCaisse(container) {
         </div>
       </div>
 
-      <div class="payment-breakdown-grid" style="margin-top:20px">
+      <div class="payment-breakdown-grid" style="margin-top:20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px">
         ${Object.entries(breakdown).filter(([, v]) => v.count > 0).map(([method, data]) => {
       const icons = { cash: 'banknote', orange_money: 'smartphone', mtn_momo: 'smartphone', credit: 'file-text', transfer: 'landmark' };
       const labels = { cash: 'Espèces', orange_money: 'Orange Money', mtn_momo: 'MTN MoMo', credit: 'Crédit', transfer: 'Virement' };

@@ -231,6 +231,8 @@ async function renderPOS(container) {
             <button class="pay-btn active" data-m="cash"         onclick="selectPay(this)"><span class="pay-icon"><i data-lucide="banknote"></i></span><span class="pay-name">Espèces</span></button>
             <button class="pay-btn"        data-m="orange_money" onclick="selectPay(this)"><span class="pay-icon"><i data-lucide="smartphone"></i></span><span class="pay-name">Orange Money</span></button>
             <button class="pay-btn"        data-m="mtn_momo"     onclick="selectPay(this)"><span class="pay-icon"><i data-lucide="smartphone"></i></span><span class="pay-name">MTN MoMo</span></button>
+            <button class="pay-btn"        data-m="combined"     onclick="selectPay(this)"><span class="pay-icon"><i data-lucide="split"></i></span><span class="pay-name">Combiné</span></button>
+            <button class="pay-btn"        data-m="assurance"    onclick="selectPay(this)"><span class="pay-icon"><i data-lucide="shield-plus"></i></span><span class="pay-name">Couverture</span></button>
             <button class="pay-btn"        data-m="credit"       onclick="selectPay(this)"><span class="pay-icon"><i data-lucide="file-clock"></i></span><span class="pay-name">Crédit</span></button>
           </div>
 
@@ -258,6 +260,86 @@ async function renderPOS(container) {
                 <i data-lucide="send"></i> Envoyer la demande de paiement
               </button>
             </div>
+          </div>
+
+          <!-- Détail Paiement Combiné -->
+          <div id="pay-combined" class="pay-detail" style="display:none">
+            <div class="combined-info" style="background:rgba(46,134,193,0.08);border:1px solid rgba(46,134,193,0.2);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--text-muted)">
+              <i data-lucide="info" style="width:14px;height:14px;vertical-align:text-bottom;margin-right:4px"></i>
+              Divisez le paiement entre deux modes. Le total doit couvrir le montant dû.
+            </div>
+            <div class="combined-split-row" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+              <div style="flex:1;min-width:180px">
+                <label class="pay-detail-label" style="margin-bottom:6px;display:block">1er mode</label>
+                <select id="combined-method-1" class="pay-input" style="margin-bottom:8px" onchange="onCombinedChange()">
+                  <option value="cash">Espèces</option>
+                  <option value="orange_money">Orange Money</option>
+                  <option value="mtn_momo">MTN MoMo</option>
+                </select>
+                <input id="combined-amount-1" type="number" class="pay-input" placeholder="Montant 1" oninput="refreshCombined()">
+              </div>
+              <div style="flex:1;min-width:180px">
+                <label class="pay-detail-label" style="margin-bottom:6px;display:block">2ème mode</label>
+                <select id="combined-method-2" class="pay-input" style="margin-bottom:8px" onchange="onCombinedChange()">
+                  <option value="orange_money">Orange Money</option>
+                  <option value="cash">Espèces</option>
+                  <option value="mtn_momo">MTN MoMo</option>
+                </select>
+                <input id="combined-amount-2" type="number" class="pay-input" placeholder="Montant 2" oninput="refreshCombined()">
+              </div>
+            </div>
+            <div id="combined-phone-row" style="display:none;margin-bottom:12px">
+              <label class="pay-detail-label">Numéro Mobile Money</label>
+              <input id="combined-mm-phone" type="tel" class="pay-input" placeholder="+224 6XX XXX XXX">
+            </div>
+            <div id="combined-status" style="padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;text-align:center;background:var(--bg);color:var(--text-muted)">Saisissez les montants</div>
+          </div>
+
+          <!-- Détail Prise en Charge / Assurance -->
+          <div id="pay-assurance" class="pay-detail" style="display:none">
+            <div class="combined-info" style="background:rgba(46,175,125,0.08);border:1px solid rgba(46,175,125,0.2);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--success-color)">
+              <i data-lucide="shield-check" style="width:14px;height:14px;vertical-align:text-bottom;margin-right:4px"></i>
+              Prise en charge (Tiers-Payant). La part Assurance sera enregistrée comme Créance.
+            </div>
+            <div class="pay-detail-row">
+              <label class="pay-detail-label">Organisme (Assurance/Entreprise) *</label>
+              <input id="assur-name" type="text" class="pay-input" placeholder="Ex: SAHAM, INAM, Ogar...">
+            </div>
+            <div class="pay-detail-row">
+              <label class="pay-detail-label">Numéro Prise en Charge / Matricule (Optionnel)</label>
+              <input id="assur-ref" type="text" class="pay-input" placeholder="Réf...">
+            </div>
+            <div class="pay-detail-row">
+              <label class="pay-detail-label">Montant Pris en charge par l'organisme (GNF) *</label>
+              <input id="assur-amount" type="number" class="pay-input" placeholder="Saisir montant" oninput="calcAssurance()">
+            </div>
+            
+            <hr style="margin:16px 0; border:1px dashed var(--border)">
+            
+            <div class="pay-detail-row">
+              <label class="pay-detail-label" style="color:var(--primary); font-weight:700">Ticket Modérateur (Reste à payer Patient)</label>
+              <strong id="assur-patient-part" style="font-size:20px; color:var(--text)">—</strong>
+            </div>
+            <div class="combined-split-row" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+              <div style="flex:1;min-width:140px">
+                 <label class="pay-detail-label">Méthode Patient</label>
+                 <select id="assur-patient-method" class="pay-input" onchange="calcAssurance()">
+                    <option value="cash">Espèces</option>
+                    <option value="orange_money">Orange Money</option>
+                    <option value="mtn_momo">MTN MoMo</option>
+                 </select>
+              </div>
+              <div style="flex:1;min-width:140px" id="assur-patient-recv-wrap">
+                 <label class="pay-detail-label">Montant reçu Patient (GNF)</label>
+                 <input id="assur-patient-recv" type="number" class="pay-input" placeholder="0" oninput="calcAssurance()">
+              </div>
+              <div style="flex:1;min-width:140px;display:none" id="assur-patient-phone-wrap">
+                 <label class="pay-detail-label">Numéro MM Patient</label>
+                 <input id="assur-patient-phone" type="tel" class="pay-input" placeholder="+224...">
+              </div>
+            </div>
+            <div id="assur-status" style="font-size:13px;font-weight:600;margin-top:4px"></div>
+            <div class="credit-warn" style="margin-top:12px"><i data-lucide="alert-triangle"></i> Un patient doit obligatoirement être sélectionné</div>
           </div>
 
           <!-- Détail Crédit -->
@@ -514,14 +596,51 @@ function refreshTotals() {
   const el2 = document.getElementById('pos-total');
   if (el1) el1.textContent = UI.formatCurrency(sub);
   if (el2) el2.textContent = UI.formatCurrency(tot);
+
+  // Protection marge : vérifier que la remise ne fait pas passer sous le prix d'achat
+  const totalPurchase = posCart.reduce((a, c) => a + (c.purchasePrice || 0) * c.qty, 0);
+  const marginWarn = document.getElementById('margin-warning');
+  if (disc > 0 && tot < totalPurchase) {
+    const role = DB.AppState.currentUser?.role;
+    if (role === 'caissier') {
+      // Blocage dur pour les caissiers
+      const el = document.getElementById('pos-discount');
+      const maxDisc = Math.max(0, sub - totalPurchase);
+      if (el) el.value = maxDisc;
+      const correctedTot = Math.max(0, sub - maxDisc);
+      if (el2) el2.textContent = UI.formatCurrency(correctedTot);
+      UI.toast('⛔ Remise bloquée — interdit de vendre en dessous du prix d\'achat', 'error', 4000);
+    }
+    if (!marginWarn) {
+      const warn = document.createElement('div');
+      warn.id = 'margin-warning';
+      warn.className = 'margin-warning-banner';
+      warn.innerHTML = '<i data-lucide="alert-triangle"></i> <span>Attention : la remise fait passer en dessous du coût d\'achat !</span>';
+      warn.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(231,76,60,0.1);border:1px solid rgba(231,76,60,0.3);border-radius:8px;color:#e74c3c;font-size:12px;font-weight:600;margin-top:8px';
+      document.querySelector('.pos-totals-block')?.appendChild(warn);
+      if (window.lucide) lucide.createIcons();
+    }
+  } else {
+    if (marginWarn) marginWarn.remove();
+  }
+
   buildCashShortcuts(tot);
   refreshChange();
+  if (getPayMethod() === 'combined') refreshCombined();
+  if (getPayMethod() === 'assurance') calcAssurance();
 }
 
 function quickDiscount(pct) {
   const sub = posCart.reduce((a, c) => a + c.total, 0);
+  const totalPurchase = posCart.reduce((a, c) => a + (c.purchasePrice || 0) * c.qty, 0);
+  const discAmount = Math.round(sub * pct / 100);
+  const role = DB.AppState.currentUser?.role;
+  // Caissier : plafonner la remise à (sub - totalPurchase)
+  const finalDisc = (role === 'caissier' && (sub - discAmount) < totalPurchase)
+    ? Math.max(0, sub - totalPurchase)
+    : discAmount;
   const el = document.getElementById('pos-discount');
-  if (el) { el.value = Math.round(sub * pct / 100); refreshTotals(); }
+  if (el) { el.value = finalDisc; refreshTotals(); }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -537,11 +656,114 @@ function selectPay(btn) {
   const m = btn.dataset.m;
   document.getElementById('pay-cash').style.display = m === 'cash' ? 'block' : 'none';
   document.getElementById('pay-mobile').style.display = ['orange_money', 'mtn_momo'].includes(m) ? 'block' : 'none';
+  document.getElementById('pay-combined').style.display = m === 'combined' ? 'block' : 'none';
+  document.getElementById('pay-assurance').style.display = m === 'assurance' ? 'block' : 'none';
   document.getElementById('pay-credit').style.display = m === 'credit' ? 'block' : 'none';
   posMobilePayState = 'idle';
   resetMobilePayUI();
   if (['orange_money', 'mtn_momo'].includes(m) && posCurrentPatient?.phone) {
     document.getElementById('mm-phone').value = posCurrentPatient.phone;
+  }
+  if (m === 'combined') {
+    refreshCombined();
+    onCombinedChange();
+  }
+  if (m === 'assurance') {
+    calcAssurance();
+    if (posCurrentPatient?.phone) {
+        const ph = document.getElementById('assur-patient-phone');
+        if (ph && !ph.value) ph.value = posCurrentPatient.phone;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PAIEMENT COMBINÉ — Split Payment (2 modes max)
+// ═══════════════════════════════════════════════════════════════════
+function refreshCombined() {
+  const total = getTotal();
+  const a1 = parseFloat(document.getElementById('combined-amount-1')?.value || 0);
+  const a2 = parseFloat(document.getElementById('combined-amount-2')?.value || 0);
+  const sum = a1 + a2;
+  const el = document.getElementById('combined-status');
+  if (!el) return;
+  if (sum === 0) {
+    el.style.background = 'var(--bg)';
+    el.style.color = 'var(--text-muted)';
+    el.innerHTML = 'Saisissez les montants';
+  } else if (sum < total) {
+    const rest = total - sum;
+    el.style.background = 'rgba(231,76,60,0.1)';
+    el.style.color = '#e74c3c';
+    el.innerHTML = `<i data-lucide="alert-circle" style="width:16px;height:16px;vertical-align:text-bottom;margin-right:4px"></i> Insuffisant — Manque ${UI.formatCurrency(rest)}`;
+  } else if (sum > total) {
+    const change = sum - total;
+    el.style.background = 'rgba(46,175,125,0.1)';
+    el.style.color = '#2eaf7d';
+    el.innerHTML = `<i data-lucide="check-circle" style="width:16px;height:16px;vertical-align:text-bottom;margin-right:4px"></i> OK — Monnaie à rendre : ${UI.formatCurrency(change)}`;
+  } else {
+    el.style.background = 'rgba(46,175,125,0.1)';
+    el.style.color = '#2eaf7d';
+    el.innerHTML = `<i data-lucide="check-circle" style="width:16px;height:16px;vertical-align:text-bottom;margin-right:4px"></i> Montant exact — Parfait !`;
+  }
+  if (window.lucide) lucide.createIcons();
+}
+
+function onCombinedChange() {
+  const m1 = document.getElementById('combined-method-1')?.value || 'cash';
+  const m2 = document.getElementById('combined-method-2')?.value || 'orange_money';
+  const hasMM = [m1, m2].some(m => ['orange_money', 'mtn_momo'].includes(m));
+  const phoneRow = document.getElementById('combined-phone-row');
+  if (phoneRow) phoneRow.style.display = hasMM ? 'block' : 'none';
+  if (hasMM && posCurrentPatient?.phone) {
+    const ph = document.getElementById('combined-mm-phone');
+    if (ph && !ph.value) ph.value = posCurrentPatient.phone;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PRISE EN CHARGE (Assurance / Tiers payant)
+// ═══════════════════════════════════════════════════════════════════
+function calcAssurance() {
+  const total = getTotal();
+  const assurAmt = parseFloat(document.getElementById('assur-amount')?.value || 0);
+  const patientPart = Math.max(0, total - assurAmt);
+  
+  const elPatientPart = document.getElementById('assur-patient-part');
+  if (elPatientPart) {
+    elPatientPart.textContent = UI.formatCurrency(patientPart);
+  }
+
+  // Toggle fields based on patient's payment method
+  const pMethod = document.getElementById('assur-patient-method')?.value || 'cash';
+  const pRecvWrap = document.getElementById('assur-patient-recv-wrap');
+  const pPhoneWrap = document.getElementById('assur-patient-phone-wrap');
+  
+  if (pMethod === 'cash') {
+    if (pRecvWrap) pRecvWrap.style.display = 'block';
+    if (pPhoneWrap) pPhoneWrap.style.display = 'none';
+  } else {
+    // Mobile money
+    if (pRecvWrap) pRecvWrap.style.display = 'none';
+    if (pPhoneWrap) pPhoneWrap.style.display = 'block';
+  }
+
+  // Status for cash change
+  const statEl = document.getElementById('assur-status');
+  if (statEl) {
+    if (patientPart === 0) {
+      statEl.innerHTML = '<span style="color:#2eaf7d"><i data-lucide="check-circle" style="width:14px;height:14px;vertical-align:text-bottom"></i> Part patient soldée.</span>';
+    } else if (pMethod === 'cash') {
+      const recv = parseFloat(document.getElementById('assur-patient-recv')?.value || 0);
+      if (recv < patientPart) {
+        statEl.innerHTML = `<span style="color:#e74c3c"><i data-lucide="alert-circle" style="width:14px;height:14px;vertical-align:text-bottom"></i> Manque ${UI.formatCurrency(patientPart - recv)}</span>`;
+      } else {
+        statEl.innerHTML = `<span style="color:#2eaf7d"><i data-lucide="check-circle" style="width:14px;height:14px;vertical-align:text-bottom"></i> Monnaie à rendre : ${UI.formatCurrency(recv - patientPart)}</span>`;
+      }
+    } else {
+      statEl.innerHTML = `<span style="color:#2E86C1"><i data-lucide="info" style="width:14px;height:14px;vertical-align:text-bottom"></i> ${UI.formatCurrency(patientPart)} seront prélevés par Mobile Money.</span>`;
+    }
+    if (window.lucide) lucide.createIcons();
   }
 }
 
@@ -902,7 +1124,6 @@ async function validerVente() {
   if (!posCart.length) { UI.toast('Le panier est vide', 'warning'); return; }
 
   // ── Vérification clôture de caisse ──
-  // Si la caisse est clôturée pour aujourd'hui, aucune vente n'est possible
   const today = new Date().toISOString().split('T')[0];
   const cashRegister = await DB.dbGetAll('cashRegister');
   const todayClosure = cashRegister.find(c => c.date === today && c.type === 'closure');
@@ -919,7 +1140,32 @@ async function validerVente() {
   const disc = getDiscount();
   const sub = posCart.reduce((a, c) => a + c.total, 0);
 
-  // Contrôles
+  // ── Gate substances contrôlées ──
+  const hasControlled = posCart.some(i => i.isControlled);
+  if (hasControlled) {
+    if (!posCurrentPatient) {
+      UI.toast('⛔ Substance contrôlée — Un patient identifié est OBLIGATOIRE', 'error', 6000);
+      return;
+    }
+    const rxCheckedForCtrl = document.getElementById('rx-toggle')?.checked;
+    if (!rxCheckedForCtrl || !posCurrentRx) {
+      const okCtrl = await UI.confirm('⚠️ SUBSTANCE CONTRÔLÉE\n\nLe panier contient des substances réglementées.\nUne ordonnance doit être liée pour la traçabilité.\n\nContinuer sans ordonnance ?\n(Votre responsabilité est ENGAGÉE)');
+      if (!okCtrl) return;
+    }
+  }
+
+  // ── Protection marge finale ──
+  const totalPurchase = posCart.reduce((a, c) => a + (c.purchasePrice || 0) * c.qty, 0);
+  if (total < totalPurchase && DB.AppState.currentUser?.role === 'caissier') {
+    UI.toast('⛔ Vente refusée — le total est inférieur au coût d\'achat. Contactez le pharmacien.', 'error', 6000);
+    return;
+  }
+  if (total < totalPurchase) {
+    const okMargin = await UI.confirm(`⚠️ ATTENTION MARGE\n\nLe total (${UI.formatCurrency(total)}) est inférieur au coût d'achat (${UI.formatCurrency(totalPurchase)}).\n\nVous perdrez ${UI.formatCurrency(totalPurchase - total)} sur cette vente.\n\nConfirmer quand même ?`);
+    if (!okMargin) return;
+  }
+
+  // Contrôles ordonnance
   const hasRxItems = posCart.some(i => i.requiresPrescription);
   const rxChecked = document.getElementById('rx-toggle')?.checked;
   if (hasRxItems && !rxChecked) {
@@ -927,6 +1173,7 @@ async function validerVente() {
     if (!ok) return;
   }
 
+  // Contrôles paiement
   if (method === 'cash') {
     const recv = parseFloat(document.getElementById('cash-in')?.value || 0);
     if (recv < total) { UI.toast('Montant reçu insuffisant par rapport au total', 'error'); return; }
@@ -937,6 +1184,38 @@ async function validerVente() {
     if (!ok) return;
   }
 
+  if (method === 'combined') {
+    const a1 = parseFloat(document.getElementById('combined-amount-1')?.value || 0);
+    const a2 = parseFloat(document.getElementById('combined-amount-2')?.value || 0);
+    if ((a1 + a2) < total) {
+      UI.toast('Le total des paiements combinés est insuffisant', 'error');
+      return;
+    }
+  }
+
+  if (method === 'assurance') {
+    if (!posCurrentPatient) {
+      UI.toast('Un patient doit être sélectionné pour une prise en charge', 'error'); return;
+    }
+    const assurName = document.getElementById('assur-name')?.value.trim();
+    if (!assurName) {
+      UI.toast('Le nom de l\'organisme (Assurance/Entreprise) est requis', 'error'); return;
+    }
+    const assurAmt = parseFloat(document.getElementById('assur-amount')?.value || 0);
+    if (assurAmt <= 0) {
+      UI.toast('Le montant pris en charge doit être supérieur à zéro', 'error'); return;
+    }
+    // Check patient part rules
+    const patientPart = Math.max(0, total - assurAmt);
+    const pMethod = document.getElementById('assur-patient-method')?.value || 'cash';
+    if (patientPart > 0 && pMethod === 'cash') {
+      const pRecv = parseFloat(document.getElementById('assur-patient-recv')?.value || 0);
+      if (pRecv < patientPart) {
+        UI.toast('La part patient reçue en espèces est insuffisante', 'error'); return;
+      }
+    }
+  }
+
   if (method === 'credit' && !posCurrentPatient) {
     UI.toast('Un patient doit être sélectionné pour une vente à crédit', 'error'); return;
   }
@@ -945,7 +1224,62 @@ async function validerVente() {
   if (btn) { btn.disabled = true; btn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Traitement…'; if (window.lucide) lucide.createIcons(); }
 
   try {
+    // Build combined payment details if applicable
+    let combinedDetails = null;
+    let combinedMmPhone = null;
+    if (method === 'combined') {
+      const m1 = document.getElementById('combined-method-1')?.value || 'cash';
+      const m2 = document.getElementById('combined-method-2')?.value || 'orange_money';
+      const a1 = parseFloat(document.getElementById('combined-amount-1')?.value || 0);
+      const a2 = parseFloat(document.getElementById('combined-amount-2')?.value || 0);
+      combinedDetails = [{ method: m1, amount: a1 }, { method: m2, amount: a2 }];
+      combinedMmPhone = document.getElementById('combined-mm-phone')?.value || null;
+    }
+
+    // Build assurance data
+    let assurData = {};
+    if (method === 'assurance') {
+      const assurName = document.getElementById('assur-name')?.value.trim();
+      const assurRef = document.getElementById('assur-ref')?.value.trim();
+      const assurAmt = parseFloat(document.getElementById('assur-amount')?.value || 0);
+      const patientPart = Math.max(0, total - assurAmt);
+      const pMethod = document.getElementById('assur-patient-method')?.value || 'cash';
+      
+      assurData = {
+         assuranceName: assurName,
+         assuranceRef: assurRef,
+         assuranceAmount: assurAmt,
+      };
+      
+      combinedDetails = [
+         { method: 'assurance', amount: assurAmt, entity: assurName }
+      ];
+      if (patientPart > 0) {
+         combinedDetails.push({ method: pMethod, amount: patientPart, label: 'Ticket modérateur' });
+      }
+      
+      if (pMethod !== 'cash') {
+         combinedMmPhone = document.getElementById('assur-patient-phone')?.value;
+      }
+    }
+
+    // Calcul du cash reçu formel
+    let cashRcv = 0;
+    if (method === 'cash') cashRcv = parseFloat(document.getElementById('cash-in')?.value || 0);
+    else if (method === 'combined') cashRcv = combinedDetails?.find(d => d.method === 'cash')?.amount || 0;
+    else if (method === 'assurance') {
+       const pMethod = document.getElementById('assur-patient-method')?.value || 'cash';
+       if (pMethod === 'cash') {
+           // L'argent reçu physiquement par le patient
+           cashRcv = parseFloat(document.getElementById('assur-patient-recv')?.value || 0);
+       }
+    }
+
+    // Status: assurance & credit become "pending" debt
+    const finalStatus = (method === 'credit' || method === 'assurance') ? 'pending' : 'completed';
+
     const saleData = {
+      ...assurData,
       date: new Date().toISOString(),
       patientId: posCurrentPatient?.id || null,
       patientName: posCurrentPatient?.name || null,
@@ -954,14 +1288,15 @@ async function validerVente() {
       sellerName: DB.AppState.currentUser?.name || 'Vendeur inconnu',
       total, subtotal: sub, discount: disc,
       paymentMethod: method,
-      mmPhone: ['orange_money', 'mtn_momo'].includes(method) ? document.getElementById('mm-phone')?.value : null,
-      status: method === 'credit' ? 'pending' : 'completed',
+      paymentDetails: combinedDetails,
+      mmPhone: method === 'combined' || method === 'assurance' ? combinedMmPhone : (['orange_money', 'mtn_momo'].includes(method) ? document.getElementById('mm-phone')?.value : null),
+      status: finalStatus,
       prescriptionId: posCurrentRx?.id || null,
       prescriptionRef: posCurrentRx ? `Rx-${String(posCurrentRx.id).padStart(5, '0')}` : null,
       doctorName: posCurrentRx?.doctorName || null,
       itemCount: posCart.length,
       creditDueDate: method === 'credit' ? document.getElementById('credit-date')?.value : null,
-      cashReceived: method === 'cash' ? parseFloat(document.getElementById('cash-in')?.value || 0) : null,
+      cashReceived: cashRcv > 0 ? cashRcv : null,
     };
 
     const saleId = await DB.dbAdd('sales', saleData);
@@ -1461,6 +1796,9 @@ window.quickDiscount = quickDiscount;
 window.initMobilePay = initMobilePay;
 window.resetMobilePayUI = resetMobilePayUI;
 window.refreshMmPhone = refreshMmPhone;
+window.refreshCombined = refreshCombined;
+window.onCombinedChange = onCombinedChange;
+window.calcAssurance = calcAssurance;
 window.filterCat = filterCat;
 window.clearPosSearch = clearPosSearch;
 window.onClientFocus = onClientFocus;

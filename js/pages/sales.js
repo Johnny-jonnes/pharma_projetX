@@ -448,16 +448,19 @@ async function settleDebt(saleId) {
   const sale = await DB.dbGet('sales', saleId);
   if (!sale) { UI.toast('Vente introuvable', 'error'); return; }
 
+  const debtAmount = sale.paymentMethod === 'assurance' ? (sale.assuranceAmount || sale.total) : sale.total;
+
   // Show modal to choose payment method for the debt settlement
   UI.modal('<i data-lucide="check-circle" class="modal-icon-inline"></i> Encaisser la dette', `
     <div class="form-grid">
       <div class="info-box-small" style="margin-bottom:16px; background:rgba(46,175,125,0.08); border:1px solid rgba(46,175,125,0.2); border-radius:8px; padding:14px;">
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:4px;">Montant de la dette</div>
-        <div style="font-size:24px;font-weight:800;color:var(--success)">${UI.formatCurrency(sale.total)}</div>
+        <div style="font-size:24px;font-weight:800;color:var(--success)">${UI.formatCurrency(debtAmount)}</div>
         <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Patient : <strong>${sale.patientName || 'Non renseigné'}</strong> · Vente #${String(saleId).padStart(6, '0')}</div>
+        ${sale.paymentMethod === 'assurance' ? `<div style="font-size:11px;color:var(--primary);margin-top:4px;">Facture Assurance : ${sale.assuranceName || ''}</div>` : ''}
       </div>
       <div class="form-group">
-        <label>Comment le patient règle-t-il ? *</label>
+        <label>Comment le client règle-t-il ? *</label>
         <div class="pay-methods-grid" id="debt-pay-methods">
           <button type="button" class="pay-method-btn active" data-method="cash" onclick="selectDebtPayMethod(this)">
             <i data-lucide="banknote"></i> Espèces
@@ -469,7 +472,7 @@ async function settleDebt(saleId) {
             <i data-lucide="smartphone"></i> MTN MoMo
           </button>
           <button type="button" class="pay-method-btn" data-method="transfer" onclick="selectDebtPayMethod(this)">
-            <i data-lucide="landmark"></i> Virement
+            <i data-lucide="landmark"></i> Virement bancaire / Chèque
           </button>
         </div>
       </div>
@@ -505,6 +508,7 @@ async function confirmSettleDebt(saleId) {
     if (!sale) throw new Error('Vente introuvable');
 
     const today = new Date().toISOString().split('T')[0];
+    const debtAmount = sale.paymentMethod === 'assurance' ? (sale.assuranceAmount || sale.total) : sale.total;
 
     // 1. Update the sale status
     sale.status = 'paid';
@@ -516,9 +520,9 @@ async function confirmSettleDebt(saleId) {
     // 2. Record payment in cashRegister so it appears in today's caisse
     await DB.dbAdd('cashRegister', {
       type: 'debt_in',
-      amount: sale.total,
+      amount: debtAmount,
       paymentMethod: paymentMethod,
-      reason: `Règlement dette — Vente #${String(saleId).padStart(6, '0')}${sale.patientName ? ' · ' + sale.patientName : ''}`,
+      reason: `Règlement dette — Vente #${String(saleId).padStart(6, '0')}${sale.patientName ? ' · ' + sale.patientName : ''}${sale.paymentMethod === 'assurance' ? ' ('+sale.assuranceName+')' : ''}`,
       reference: reference,
       saleId: saleId,
       date: today,

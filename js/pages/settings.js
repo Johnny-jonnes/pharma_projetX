@@ -216,23 +216,23 @@ async function renderSettings(container) {
       <!-- Users Management (Admin Only) -->
       ${DB.AppState.currentUser?.role === 'admin' ? `
       <div class="settings-card">
-        <div class="panel-header">
+        <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
           <h3 class="settings-card-title"><i data-lucide="users"></i> Gestion des Utilisateurs</h3>
           <button class="btn btn-sm btn-primary" onclick="showAddUser()"><i data-lucide="plus"></i> Ajouter</button>
         </div>
-        <div class="users-list">
+        <div class="users-list" style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
           ${users.map(u => `
-            <div class="user-item">
-              <div class="user-avatar">${u.name?.charAt(0).toUpperCase() || '?'}</div>
-              <div class="user-info">
-                <div class="user-name">${u.name}</div>
-                <div class="user-meta">
-                  <code>${u.username}</code>
+            <div class="user-item-card" style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--bg);border:1px solid var(--border);border-radius:12px;flex-wrap:wrap">
+              <div class="user-avatar" style="width:42px;height:42px;border-radius:50%;background:var(--primary-light,rgba(46,134,193,0.15));color:var(--primary-color,#2E86C1);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;flex-shrink:0">${u.name?.charAt(0).toUpperCase() || '?'}</div>
+              <div class="user-info" style="flex:1;min-width:120px">
+                <div class="user-name" style="font-weight:600;font-size:14px">${u.name}</div>
+                <div class="user-meta" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:4px">
+                  <code style="font-size:11px;background:var(--surface);padding:2px 6px;border-radius:4px">${u.username}</code>
                   ${UI.roleBadge(u.role)}
                   <span class="badge badge-${u.active ? 'success' : 'neutral'}">${u.active ? 'Actif' : 'Inactif'}</span>
                 </div>
               </div>
-              <button class="btn btn-xs btn-secondary" onclick="editUser(${u.id})"><i data-lucide="edit-3"></i></button>
+              <button class="btn btn-sm btn-secondary" onclick="editUser(${u.id})" style="flex-shrink:0;min-width:90px;justify-content:center"><i data-lucide="edit-3"></i> Modifier</button>
             </div>`).join('')}
         </div>
       </div>` : ''}
