@@ -113,7 +113,7 @@ async function renderCaisse(container) {
 
   // Hourly sales today
   const hourlyData = new Array(24).fill(0);
-  todaySales.forEach(s => {
+  todaySalesRaw.forEach(s => {
     const h = new Date(s.date).getHours();
     hourlyData[h] += s.total || 0;
   });
