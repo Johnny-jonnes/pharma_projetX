@@ -13,8 +13,8 @@ async function renderCaisse(container) {
     DB.dbGetAll('returns'),
   ]);
 
-  // Today's sales breakdown (completed sales made today)
-  const todaySales = sales.filter(s => s.date && s.date.startsWith(today) && ['completed', 'paid'].includes(s.status));
+  // Today's sales (we need completed, paid, AND pending if it's assurance because patient pays ticket modérateur today)
+  const todaySalesRaw = sales.filter(s => s.date && s.date.startsWith(today) && ['completed', 'paid', 'pending'].includes(s.status));
 
   const breakdown = {
     cash: { count: 0, total: 0 },
@@ -23,11 +23,38 @@ async function renderCaisse(container) {
     credit: { count: 0, total: 0 },
     transfer: { count: 0, total: 0 },
   };
-  todaySales.forEach(s => {
-    const m = s.paymentMethod || 'cash';
-    if (!breakdown[m]) breakdown[m] = { count: 0, total: 0 };
-    breakdown[m].count++;
-    breakdown[m].total += s.total || 0;
+  
+  let totalSalesCounted = 0;
+  
+  todaySalesRaw.forEach(s => {
+    // Avoid counting fully pending credit sales in the daily cash register
+    if (s.status === 'pending' && s.paymentMethod === 'credit') return;
+
+    totalSalesCounted++;
+
+    if (s.paymentMethod === 'combined' && Array.isArray(s.paymentDetails)) {
+        s.paymentDetails.forEach(d => {
+            const m = d.method || 'cash';
+            if (!breakdown[m]) breakdown[m] = { count: 0, total: 0 };
+            breakdown[m].count++; // We just increment the count to indicate a transaction piece exists
+            breakdown[m].total += d.amount || 0;
+        });
+    } else if (s.paymentMethod === 'assurance' && Array.isArray(s.paymentDetails)) {
+        // Only count the patient part (ticket modérateur) into today's caisse
+        s.paymentDetails.forEach(d => {
+            if (d.method !== 'assurance') { // This is the patient's payment
+                const m = d.method || 'cash';
+                if (!breakdown[m]) breakdown[m] = { count: 0, total: 0 };
+                breakdown[m].count++;
+                breakdown[m].total += d.amount || 0;
+            }
+        });
+    } else {
+        const m = s.paymentMethod || 'cash';
+        if (!breakdown[m]) breakdown[m] = { count: 0, total: 0 };
+        breakdown[m].count++;
+        breakdown[m].total += s.total || 0;
+    }
   });
 
   // Debt payments received today (sales from older dates but paid today)
@@ -49,7 +76,7 @@ async function renderCaisse(container) {
   });
 
   const grandTotal = Object.values(breakdown).reduce((a, b) => a + b.total, 0) + totalDebtIn;
-  const totalDiscounts = todaySales.reduce((a, s) => a + (s.discount || 0), 0);
+  const totalDiscounts = todaySalesRaw.reduce((a, s) => a + (s.discount || 0), 0);
 
   // Real Monthly Turnover calculation (Net: Sales - Returns)
   const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
@@ -140,7 +167,7 @@ async function renderCaisse(container) {
           <div>
             <div class="caisse-total-val">${UI.formatCurrency(grandTotal)}</div>
             <div class="caisse-total-label">Recette Totale Journée</div>
-            <div class="caisse-total-sub">${todaySales.length} ventes${debtPaymentsToday.length ? ` · ${debtPaymentsToday.length} dette(s) encaissée(s)` : ''}${todayReturns.length ? ` · ${todayReturns.length} retour(s)` : ''}</div>
+            <div class="caisse-total-sub">${totalSalesCounted} ventes${debtPaymentsToday.length ? ` · ${debtPaymentsToday.length} dette(s) encaissée(s)` : ''}${todayReturns.length ? ` · ${todayReturns.length} retour(s)` : ''}</div>
           </div>
         </div>
       </div>

@@ -145,9 +145,12 @@ function renderSalesTable(data) {
         const isPaid = r.status === 'completed' || r.status === 'paid';
         const isReturned = r.returnStatus === 'fully_returned';
         const isPartial = r.returnStatus === 'partially_returned';
+        const isDebt = ['credit', 'assurance'].includes(r.paymentMethod);
+        const debtLabel = r.paymentMethod === 'assurance' ? 'Couverture' : 'Dette';
+        
         const label = isReturned ? 'Retourné'
           : isPartial ? 'Ret. partiel'
-            : r.paymentMethod === 'credit' ? (isPaid ? 'Dette Réglée' : 'Dette en cours') : 'Payé';
+          : isDebt ? (isPaid ? `${debtLabel} Réglée` : `${debtLabel} en cours`) : 'Payé';
         const cls = isReturned ? 'badge-neutral' : isPartial ? 'badge-warning' : isPaid ? 'badge-success' : 'badge-warning';
         return `<span class="badge ${cls}">${label}</span>`;
       }

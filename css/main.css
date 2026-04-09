@@ -1835,16 +1835,16 @@ textarea.form-control {
 /* ===== SETTINGS ===== */
 .settings-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: 24px;
 }
 
 .settings-card {
-  background: var(--surface);
-  border-radius: var(--radius);
-  padding: 20px;
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
+  background: #FFFFFF;
+  border: 1px solid rgba(0,0,0,0.05);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
 }
 
 .settings-card-wide {
@@ -1852,10 +1852,15 @@ textarea.form-control {
 }
 
 .settings-card-title {
-  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  font-size: 16px;
   font-weight: 700;
-  color: var(--text);
-  margin-bottom: 16px;
+  color: var(--primary);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  padding-bottom: 12px;
 }
 
 .users-list {
@@ -6651,10 +6656,10 @@ a:focus-visible {
   display: flex;
   flex-direction: column;
   gap: 0;
-  background: var(--surface);
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-md);
+  background: #FFFFFF;
+  border-radius: 16px;
+  border: none;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
   /* Scroll global sur la colonne de droite */
   position: sticky;
   top: 10px;
@@ -6676,30 +6681,33 @@ a:focus-visible {
   flex: 1;
   display: flex;
   align-items: center;
-  background: var(--surface);
-  border: 2px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 0 12px;
-  transition: border-color var(--transition);
+  background: #FFFFFF;
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 20px;
+  padding: 0 16px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+  transition: all 0.2s ease;
 }
 
 .pos-searchfield:focus-within {
   border-color: var(--primary-light);
-  box-shadow: 0 0 0 3px rgba(74, 159, 217, 0.12);
+  box-shadow: 0 6px 24px rgba(74, 159, 217, 0.15);
+  transform: translateY(-1px);
 }
 
 .pos-searchicon {
-  font-size: 16px;
-  margin-right: 8px;
+  font-size: 18px;
+  margin-right: 12px;
   opacity: 0.5;
+  color: var(--primary);
 }
 
 .pos-searchinput {
   flex: 1;
   border: none;
   outline: none;
-  padding: 10px 0;
-  font-size: 14px;
+  padding: 14px 0;
+  font-size: 15px;
   font-family: var(--font);
   color: var(--text);
   background: transparent;
@@ -6777,12 +6785,13 @@ a:focus-visible {
 }
 
 .prod-card {
-  background: var(--surface);
-  border-radius: var(--radius-sm);
+  background: #FFFFFF;
+  border-radius: 16px;
   padding: 12px;
-  border: 1px solid var(--border);
+  border: 1px solid rgba(0,0,0,0.04);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
   cursor: pointer;
-  transition: all var(--transition);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, border-color 0.2s ease;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -6792,8 +6801,8 @@ a:focus-visible {
 
 .prod-card:hover {
   border-color: var(--primary-light);
-  box-shadow: 0 0 0 3px rgba(74, 159, 217, 0.1);
-  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+  transform: translateY(-4px);
 }
 
 .prod-card.prod-rupt {
@@ -6803,7 +6812,7 @@ a:focus-visible {
 
 .prod-card.prod-rupt:hover {
   transform: none;
-  box-shadow: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
 }
 
 .prod-card.prod-incart {
@@ -7521,9 +7530,10 @@ a:focus-visible {
 
 /* ── Totaux & Paiement POS PROFESSIONNEL (Elite) — UNIFIÉ ── */
 .pos-totals-block {
-  padding: 14px 16px;
-  background: var(--surface-2);
-  border-top: 1.5px solid var(--border);
+  padding: 20px 24px;
+  background: linear-gradient(135deg, var(--primary) 0%, #155589 100%);
+  color: white;
+  border-top: none;
   flex-shrink: 0;
   /* Toujours visible en bas */
 }
@@ -7536,28 +7546,23 @@ a:focus-visible {
   font-size: 13px;
 }
 
-.totals-label {
-  color: var(--text-muted);
+.pos-totals-block .totals-label, .pos-totals-block .totals-value {
+  color: rgba(255,255,255,0.85);
   font-weight: 500;
-}
-
-.totals-value {
-  font-weight: 600;
-  color: var(--text);
 }
 
 .totals-total {
   font-size: 16px;
-  font-weight: 700;
-  color: var(--text);
-  border-top: 2px solid var(--border);
-  margin-top: 8px;
-  padding-top: 8px;
+  font-weight: 800;
+  color: white;
+  border-top: 1px solid rgba(255,255,255,0.2);
+  margin-top: 10px;
+  padding-top: 10px;
 }
 
 .totals-total span:last-child {
-  color: var(--primary);
-  font-size: 18px;
+  color: white !important;
+  font-size: 22px;
 }
 
 .discount-controls {
@@ -7567,29 +7572,31 @@ a:focus-visible {
 }
 
 .disc-btn {
-  padding: 3px 8px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--surface);
-  font-size: 11px;
+  padding: 4px 8px;
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.1);
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  color: var(--text-muted);
+  color: white;
   font-family: var(--font);
   transition: all var(--transition);
 }
 
 .disc-btn:hover {
-  border-color: var(--primary-light);
-  color: var(--primary);
+  background: rgba(255,255,255,0.2);
 }
 
 .disc-input {
   width: 70px;
-  padding: 3px 6px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  font-size: 12px;
+  padding: 4px 8px;
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.1);
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
   text-align: right;
   font-family: var(--font);
   outline: none;
@@ -7603,67 +7610,77 @@ a:focus-visible {
 }
 
 .disc-input:focus {
-  border-color: var(--primary-light);
+  border-color: white;
+  background: rgba(255,255,255,0.2);
 }
 
 /* ── Paiement POS PROFESSIONNEL (Elite) — UNIFIÉ ── */
 .pos-pay-block {
-  padding: 14px 16px 30px;
-  /* Padding bas généreux pour éviter les coupures */
-  border-top: 1px solid var(--border);
-  background: var(--surface);
+  padding: 20px 24px 30px;
+  background: #F8FAFC;
   flex-shrink: 0;
   /* Toujours visible en bas */
 }
 
 .pay-label {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .pay-methods {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-  margin-bottom: 12px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 .pay-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 10px 4px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
+  justify-content: center;
+  gap: 6px;
+  padding: 16px 8px;
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 12px;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
   cursor: pointer;
-  transition: all var(--transition);
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   font-family: var(--font);
+  color: var(--text-muted);
 }
 
 .pay-btn:hover {
   border-color: var(--primary-light);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  transform: translateY(-2px);
+  color: var(--primary);
 }
 
 .pay-btn.active {
-  border-color: var(--primary-light);
-  background: rgba(74, 159, 217, 0.06);
-  color: var(--primary);
-  box-shadow: 0 0 0 2px rgba(74, 159, 217, 0.1);
+  border-color: var(--primary);
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 6px 16px rgba(27, 111, 174, 0.3);
+  transform: translateY(-2px);
 }
 
 .pay-icon {
-  font-size: 18px;
+  font-size: 24px;
+}
+
+.pay-btn.active .pay-icon {
+  color: white;
 }
 
 .pay-name {
-  font-size: 10px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
   white-space: nowrap;
 }
 
