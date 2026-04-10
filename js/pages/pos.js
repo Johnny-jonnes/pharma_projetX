@@ -2233,12 +2233,14 @@ function mobileShowVue(vue) {
     if (posRight) posRight.style.display = 'block';
     if (cartPanel) cartPanel.classList.add('expanded');
   } else if (vue === 'menu') {
-    // Ouvrir la sidebar comme drawer
-    if (sidebar) sidebar.classList.add('open');
-    const overlay = document.getElementById('sidebar-overlay');
-    if (overlay) overlay.classList.add('active');
-    // Quand la sidebar se ferme, revenir à la vue précédente
-    _mobileCurrentVue = 'produits';
+    // Garder la vue produits visible en arrière-plan
+    if (posLeft) posLeft.style.display = 'block';
+    // Ouvrir la sidebar via la fonction existante
+    if (typeof toggleSidebar === 'function') {
+      toggleSidebar();
+    }
+    // Remettre l'onglet Produits comme actif
+    vue = 'produits';
   }
 
   // Mettre à jour les onglets actifs
