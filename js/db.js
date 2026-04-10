@@ -795,8 +795,10 @@ async function pullFromSupabase() {
     if (hasChanges && window.Router && Router.currentPage) {
       const safeToRefresh = ['dashboard', 'sales', 'reports', 'caisse', 'stock', 'returns'];
       if (safeToRefresh.includes(Router.currentPage)) {
-        console.log('[Flash] Rafraîchissement automatique UI:', Router.currentPage);
+        console.log('[Flash] Rafraîchissement silencieux de l\'UI:', Router.currentPage);
+        window._isBackgroundRefresh = true;
         Router.render(Router.currentPage);
+        setTimeout(() => { window._isBackgroundRefresh = false; }, 100);
       }
     }
 

@@ -111,6 +111,7 @@ const UI = {
   },
 
   loading(container, message = 'Chargement...') {
+    if (window._isBackgroundRefresh) return;
     container.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>${message}</p></div>`;
   },
 
