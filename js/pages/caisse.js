@@ -179,8 +179,8 @@ async function renderCaisse(container) {
 
       <div class="payment-breakdown-grid" style="margin-top:20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px">
         ${Object.entries(breakdown).filter(([, v]) => v.count > 0).map(([method, data]) => {
-      const icons = { cash: 'banknote', orange_money: 'smartphone', mtn_momo: 'smartphone', credit: 'file-text', transfer: 'landmark' };
-      const labels = { cash: 'Espèces', orange_money: 'Orange Money', mtn_momo: 'MTN MoMo', credit: 'Crédit', transfer: 'Virement' };
+      const icons = { cash: 'banknote', orange_money: 'smartphone', mtn_momo: 'smartphone', credit: 'file-text', transfer: 'landmark', assurance: 'shield-check' };
+      const labels = { cash: 'Espèces', orange_money: 'Orange Money', mtn_momo: 'MTN MoMo', credit: 'Crédit', transfer: 'Virement', assurance: 'Prise en charge (Assurance)' };
       return `<div class="pay-breakdown-card">
             <span class="pay-icon-lg"><i data-lucide="${icons[method] || 'credit-card'}"></i></span>
             <div>
