@@ -1411,7 +1411,7 @@ async function afficherRecu(saleId, items, saleData) {
           <div class="recu-orgdnpm">Licence DNPM : ${dnpmPharma}</div>
         </div>
         <div class="recu-docblock">
-          <div class="recu-doctype">REÇU DE VENTE</div>
+          <div class="recu-doctype" style="background:#0c1e35; color:white; padding:4px 8px; border-radius:4px;">${saleData.paymentMethod === 'assurance' ? 'FACTURE / REÇU' : 'REÇU DE VENTE'}</div>
           <div class="recu-docnum">N° ${refNum}</div>
           <div class="recu-docdate">${now.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
           <div class="recu-doctime">${now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>
@@ -1430,8 +1430,12 @@ async function afficherRecu(saleId, items, saleData) {
         </div>
         <div class="recu-tx-block recu-tx-payment">
           <div class="recu-tx-label">PAIEMENT</div>
-          <div class="recu-tx-name">${payLabels[saleData.paymentMethod] || saleData.paymentMethod}</div>
-          ${saleData.mmPhone ? `<div class="recu-tx-sub">${saleData.mmPhone}</div>` : ''}
+          <div class="recu-tx-name">${saleData.paymentMethod === 'combined' ? 'Paiement Mixte' : (payLabels[saleData.paymentMethod] || saleData.paymentMethod)}</div>
+          ${saleData.paymentMethod === 'assurance' ? `
+            <div class="recu-tx-sub" style="font-weight:800; color:var(--primary); margin-top:4px;">${saleData.assuranceName || 'Assurance'}</div>
+            <div class="recu-tx-sub">N° ${saleData.assuranceRef || 'Non Renseigné'}</div>
+          ` : ''}
+          ${saleData.mmPhone && saleData.paymentMethod !== 'assurance' ? `<div class="recu-tx-sub">${saleData.mmPhone}</div>` : ''}
           ${saleData.creditDueDate ? `<div class="recu-tx-sub">Échéance : ${UI.formatDate(saleData.creditDueDate)}</div>` : ''}
         </div>
         <div class="recu-tx-block recu-tx-caissier">
@@ -1485,17 +1489,32 @@ async function afficherRecu(saleId, items, saleData) {
               <span>− ${UI.formatCurrency(saleData.discount)}</span>
             </div>` : ''}
           <div class="recu-tot-row recu-tot-main">
-            <span>TOTAL TTC</span>
+            <span>TOTAL FACTURE (TTC)</span>
             <span>${UI.formatCurrency(saleData.total)}</span>
           </div>
-          ${saleData.paymentMethod === 'cash' && cashRecv > 0 ? `
-            <div class="recu-tot-row">
-              <span>Montant reçu</span>
-              <span>${UI.formatCurrency(cashRecv)}</span>
+
+          ${saleData.paymentDetails && saleData.paymentDetails.length > 0 ? `
+            <div style="margin-top:12px; padding-top:12px; border-top:1px dashed var(--border);">
+              <div style="font-size:10px; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Détail du Règlement</div>
+              ${saleData.paymentDetails.map(d => `
+                <div class="recu-tot-row" style="font-size:12px; margin-bottom:4px;">
+                  <span>${d.method === 'assurance' ? 'Prise en charge (Tiers Payant)' : (d.label || payLabels[d.method] || d.method)}</span>
+                  <span style="font-weight:${d.method === 'assurance' ? '800' : '600'}; color:${d.method === 'assurance' ? 'var(--primary-color)' : 'inherit'};">${UI.formatCurrency(d.amount)}</span>
+                </div>
+              `).join('')}
             </div>
-            <div class="recu-tot-row recu-monnaie">
-              <span>Monnaie rendue</span>
-              <span>${UI.formatCurrency(change)}</span>
+          ` : ''}
+
+          ${saleData.paymentMethod === 'cash' && cashRecv > 0 ? `
+            <div style="margin-top:12px; padding-top:12px; border-top:1px dashed var(--border);">
+              <div class="recu-tot-row" style="font-size:12px;">
+                <span>Espèces reçues</span>
+                <span>${UI.formatCurrency(cashRecv)}</span>
+              </div>
+              <div class="recu-tot-row recu-monnaie" style="font-size:12px; margin-top:4px;">
+                <span>Monnaie rendue</span>
+                <span>${UI.formatCurrency(change)}</span>
+              </div>
             </div>` : ''}
         </div>
       </div>

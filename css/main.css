@@ -2644,6 +2644,22 @@ textarea.form-control {
     box-shadow: none;
     max-height: none;
   }
+
+  .modal-header {
+    display: none !important;
+  }
+
+  .recu-pro {
+    max-width: 100% !important;
+    width: 100% !important;
+    font-size: 14px !important;
+    padding: 20px !important;
+  }
+
+  .recu-table th, .recu-table td {
+    padding: 12px 8px !important;
+    font-size: 14px !important;
+  }
 }
 
 /* ===== RESPONSIVE ===== */
