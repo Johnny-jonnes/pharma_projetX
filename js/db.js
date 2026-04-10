@@ -32,9 +32,31 @@ let db = null;
 let _supabaseInstance = null;
 
 // App state manager
-// Device Identity — chaque appareil (PC, Mobile) reçoit un ID unique
+// Device Identity — ID unique déterministe basé sur l'empreinte du navigateur
+// L'ID reste le MÊME pour le même appareil/navigateur, même si localStorage est vidé
+function _generateStableDeviceId() {
+  var fingerprint = [
+    navigator.userAgent,
+    screen.width + 'x' + screen.height,
+    screen.colorDepth,
+    Intl.DateTimeFormat().resolvedOptions().timeZone,
+    navigator.language,
+    navigator.hardwareConcurrency || 0
+  ].join('|');
+  // Simple hash FNV-1a
+  var hash = 0x811c9dc5;
+  for (var i = 0; i < fingerprint.length; i++) {
+    hash ^= fingerprint.charCodeAt(i);
+    hash = (hash * 0x01000193) >>> 0;
+  }
+  return 'DEV_' + hash.toString(36).toUpperCase();
+}
+
+var _stableId = _generateStableDeviceId();
+// Si un ID existe déjà en localStorage, on le garde (rétrocompatibilité)
+// Sinon on utilise l'ID stable
 if (!localStorage.getItem('pharma_device_id')) {
-  localStorage.setItem('pharma_device_id', 'DEV_' + Math.random().toString(36).substr(2, 9).toUpperCase());
+  localStorage.setItem('pharma_device_id', _stableId);
 }
 if (!localStorage.getItem('pharma_device_name')) {
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry/i.test(navigator.userAgent);
