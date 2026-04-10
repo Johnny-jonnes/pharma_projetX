@@ -219,7 +219,7 @@ async function viewSaleDetail(saleId) {
         </button>
       </div>
     ` : ''}
-  `, { size: 'large' });
+  `, { size: 'large', footer: ' ' });
   if (window.lucide) lucide.createIcons();
 
   // Injecter les boutons d'actions supplémentaires (Facture & Retour)
