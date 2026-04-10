@@ -249,7 +249,7 @@ async function renderCaisse(container) {
           <h3 class="panel-title"><i data-lucide="calculator"></i> Détail Avancé des Recettes et Flux Financiers</h3>
         </div>
         
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-bottom: 24px;">
+        <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-bottom: 24px;">
           
           <!-- Bloc Espèces -->
           <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:16px; box-shadow:var(--shadow-sm);">
