@@ -221,28 +221,25 @@ const UI = {
             } catch(e) {}
         });
 
-        // INTELLIGENCE : Dédupliquer par nom (garder le plus récent)
-        var byName = {};
-        allDevices.forEach(function(d) {
-            if (!byName[d.name] || d.last_sync > byName[d.name].last_sync) {
-                byName[d.name] = d;
-            }
-        });
-        var devices = Object.values(byName);
-
-        // Trier : appareils actifs d'abord, puis par date
+        // Chaque appareil a un device_id unique (clé device_status_DEV_XXX)
+        // Pas de déduplication par nom — chaque device_id est un appareil distinct
         var now = Date.now();
         var ACTIVE_THRESHOLD = 48 * 60 * 60 * 1000; // 48h
+
+        // Filtrer : garder uniquement les appareils actifs (<48h)
+        var devices = allDevices.filter(function(d) { return (now - d.last_sync) < ACTIVE_THRESHOLD; });
+
+        // Trier : en ligne d'abord, puis par date
         devices.sort(function(a, b) {
-            var aActive = (now - a.last_sync) < ACTIVE_THRESHOLD;
-            var bActive = (now - b.last_sync) < ACTIVE_THRESHOLD;
-            if (aActive && !bActive) return -1;
-            if (!aActive && bActive) return 1;
+            var aOnline = a.online && (now - a.last_sync < 3600000);
+            var bOnline = b.online && (now - b.last_sync < 3600000);
+            if (aOnline && !bOnline) return -1;
+            if (!aOnline && bOnline) return 1;
             return b.last_sync - a.last_sync;
         });
 
         // Compteurs
-        var activeDevices = devices.filter(function(d) { return (now - d.last_sync) < ACTIVE_THRESHOLD; });
+        var activeDevices = devices;
         var onlineCount = 0;
         var pendingCount = 0;
         var hasAlerts = false;
@@ -319,16 +316,12 @@ const UI = {
             html = '<div style="text-align:center; padding:30px; color:var(--text-muted);"><p>Aucun appareil actif détecté</p></div>';
         }
 
-        // Nettoyer les anciens doublons dans Supabase (silencieux)
-        var staleKeys = [];
-        allDevices.forEach(function(d) {
-            if (byName[d.name] && byName[d.name]._key !== d._key) {
-                staleKeys.push(d._key);
-            }
-        });
+        // Nettoyer les entrées très anciennes (>7 jours) dans Supabase
+        var STALE_THRESHOLD = 7 * 24 * 60 * 60 * 1000;
+        var staleKeys = allDevices.filter(function(d) { return (now - d.last_sync) > STALE_THRESHOLD; });
         if (staleKeys.length > 0) {
-            staleKeys.forEach(function(k) {
-                sb.from('settings').delete().eq('key', k).then(function(){}).catch(function(){});
+            staleKeys.forEach(function(d) {
+                sb.from('settings').delete().eq('key', d._key).then(function(){}).catch(function(){});
             });
         }
 

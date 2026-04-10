@@ -712,19 +712,17 @@ async function loadDeviceCount() {
     const { data, error } = await sb.from('settings').select('value').like('key', 'device_status_%');
     if (error) { el.textContent = 'Erreur'; return; }
 
-    // Même logique de déduplication que le Moniteur
-    var byName = {};
+    // Chaque device_id = un appareil distinct (pas de dédup par nom)
+    var allDevices = [];
     var now = Date.now();
     var ACTIVE_THRESHOLD = 48 * 3600000;
     (data || []).forEach(function(row) {
       try {
         var s = JSON.parse(row.value);
-        if (!byName[s.name] || s.last_sync > byName[s.name].last_sync) {
-          byName[s.name] = s;
-        }
+        allDevices.push(s);
       } catch(e) {}
     });
-    var devices = Object.values(byName).filter(function(d) { return (now - d.last_sync) < ACTIVE_THRESHOLD; });
+    var devices = allDevices.filter(function(d) { return (now - d.last_sync) < ACTIVE_THRESHOLD; });
     var count = devices.length;
     var onlineNow = devices.filter(function(d) { return d.online && (now - d.last_sync < 3600000); }).length;
 
