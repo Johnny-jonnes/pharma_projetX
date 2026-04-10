@@ -1394,8 +1394,11 @@ async function validerVente() {
        }
     }
 
-    // Status: assurance & credit become "pending" debt
-    const finalStatus = (method === 'credit' || method === 'assurance') ? 'pending' : 'completed';
+    // Status: credit = pending debt for FULL total
+    // assurance = pending debt ONLY for assurance portion (patient part is paid)
+    const assurAmt = method === 'assurance' ? parseFloat(document.getElementById('assur-amount')?.value || 0) : 0;
+    const patientPart = method === 'assurance' ? Math.max(0, total - assurAmt) : 0;
+    const finalStatus = method === 'credit' ? 'pending' : (method === 'assurance' ? 'pending' : 'completed');
 
     const saleData = {
       ...assurData,
@@ -1652,7 +1655,22 @@ async function afficherRecu(saleId, items, saleData) {
             <span>${UI.formatCurrency(saleData.total)}</span>
           </div>
 
-          ${saleData.paymentDetails && saleData.paymentDetails.length > 0 ? `
+          ${saleData.paymentMethod === 'assurance' && saleData.assuranceAmount ? `
+            <div style="margin-top:12px; padding-top:12px; border-top:1px dashed var(--border);">
+              <div style="font-size:10px; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">Ventilation du Règlement</div>
+              <div class="recu-tot-row" style="font-size:13px; margin-bottom:6px;">
+                <span>🛡️ Prise en charge <strong>${saleData.assuranceName || 'Assurance'}</strong></span>
+                <span style="font-weight:800; color:var(--primary-color);">${UI.formatCurrency(saleData.assuranceAmount)}</span>
+              </div>
+              <div class="recu-tot-row" style="font-size:13px; margin-bottom:4px;">
+                <span>👤 Part patient (Ticket modérateur)</span>
+                <span style="font-weight:700;">${UI.formatCurrency(Math.max(0, saleData.total - saleData.assuranceAmount))}</span>
+              </div>
+              ${saleData.assuranceRef ? `<div style="font-size:11px; color:var(--text-muted); margin-top:6px;">Réf. Prise en charge : <strong>${saleData.assuranceRef}</strong></div>` : ''}
+            </div>
+          ` : ''}
+
+          ${saleData.paymentMethod !== 'assurance' && saleData.paymentDetails && saleData.paymentDetails.length > 0 ? `
             <div style="margin-top:12px; padding-top:12px; border-top:1px dashed var(--border);">
               <div style="font-size:10px; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Détail du Règlement</div>
               ${saleData.paymentDetails.map(d => `
