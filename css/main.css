@@ -4882,8 +4882,8 @@ input[type="checkbox"]:checked~.switch-track .switch-thumb {
 
 .recu-table th {
   font-size: 10px;
-  font-weight: 700;
-  color: var(--text-muted);
+  font-weight: 800;
+  color: white !important;
   text-transform: uppercase;
   border-bottom: 2px solid var(--border);
   padding: 5px 4px;
