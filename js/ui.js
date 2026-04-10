@@ -211,6 +211,9 @@ const UI = {
 
         let html = '';
         let hasAlerts = false;
+        let totalDevices = data.length;
+        let onlineCount = 0;
+        let pendingCount = 0;
         
         data.forEach(row => {
             try {
@@ -220,6 +223,8 @@ const UI = {
                 const hasPending = status.pending > 0;
                 
                 if (hasPending && !isCurrent) hasAlerts = true;
+                if (isOnline) onlineCount++;
+                if (hasPending) pendingCount++;
 
                 const statusColor = hasPending ? 'var(--warning)' : (isOnline ? 'var(--success)' : 'var(--text-muted)');
                 const statusIcon = hasPending ? 'alert-triangle' : (isOnline ? 'check-circle' : 'clock');
@@ -249,14 +254,23 @@ const UI = {
             html = '<div style="text-align:center; padding:20px;">Aucun périphérique trouvé sur le réseau.</div>';
         }
 
-        list.innerHTML = html;
+        // Résumé en haut de la liste
+        var summaryHtml = '<div style="display:flex; justify-content:space-around; padding:12px; margin-bottom:12px; background:var(--surface); border-radius:8px; border:1px solid var(--border);">'  
+           + '<div style="text-align:center;"><div style="font-size:1.5rem; font-weight:800; color:var(--primary);">' + totalDevices + '</div><div style="font-size:0.75rem; color:var(--text-muted);">Appareils</div></div>'
+           + '<div style="text-align:center;"><div style="font-size:1.5rem; font-weight:800; color:var(--success);">' + onlineCount + '</div><div style="font-size:0.75rem; color:var(--text-muted);">En ligne</div></div>'
+           + '<div style="text-align:center;"><div style="font-size:1.5rem; font-weight:800; color:' + (pendingCount > 0 ? 'var(--warning)' : 'var(--text-muted)') + ';">' + pendingCount + '</div><div style="font-size:0.75rem; color:var(--text-muted);">En attente</div></div>'
+           + '</div>';
+
+        list.innerHTML = summaryHtml + html;
         if (window.lucide) lucide.createIcons({ root: list });
 
         const badge = document.getElementById('device-sync-badge');
         const icon = document.getElementById('device-sync-icon');
         if (badge && icon) {
            icon.style.color = hasAlerts ? 'var(--warning)' : 'var(--success)';
-           badge.style.display = hasAlerts ? 'inline-block' : 'none';
+           badge.style.display = totalDevices > 0 ? 'inline-block' : 'none';
+           badge.textContent = totalDevices;
+           badge.style.background = hasAlerts ? 'var(--warning)' : 'var(--primary)';
         }
 
     } catch (e) {

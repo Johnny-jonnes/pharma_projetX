@@ -253,6 +253,12 @@ async function renderSettings(container) {
             <span>Mode opération</span>
             <span class="badge badge-success">Offline-First <i data-lucide="check"></i></span>
           </div>
+          <div class="sync-status-row">
+            <span><i data-lucide="monitor" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;"></i> Appareils connectés</span>
+            <span>
+              <span id="settings-device-count" class="badge badge-info" style="font-size:0.85rem; cursor:pointer;" onclick="if(window.UI && UI.openSyncMonitor) UI.openSyncMonitor(); loadDeviceCount();">Chargement...</span>
+            </span>
+          </div>
           <div class="sync-actions">
             <button class="btn btn-secondary" onclick="doBackup()"><i data-lucide="save"></i> Sauvegarder maintenant</button>
             <button class="btn btn-ghost" onclick="restoreBackup()"><i data-lucide="folder-open"></i> Restaurer une sauvegarde</button>
@@ -316,6 +322,9 @@ async function renderSettings(container) {
       </div>
     </div>
   `;
+
+  // Charger le compteur d'appareils automatiquement
+  setTimeout(() => { if (window.loadDeviceCount) loadDeviceCount(); }, 500);
 }
 
 async function saveSettings() {
@@ -686,6 +695,36 @@ function saveDeviceName() {
 }
 
 window.saveDeviceName = saveDeviceName;
+
+async function loadDeviceCount() {
+  const el = document.getElementById('settings-device-count');
+  if (!el) return;
+  try {
+    if (!navigator.onLine) { el.textContent = 'Hors ligne'; return; }
+    const sb = await getSupabaseClient();
+    if (!sb) { el.textContent = 'Non configuré'; return; }
+    const { data, error } = await sb.from('settings').select('value').like('key', 'device_status_%');
+    if (error) { el.textContent = 'Erreur'; return; }
+    var count = data ? data.length : 0;
+    var onlineNow = 0;
+    if (data) {
+      data.forEach(function(row) {
+        try {
+          var s = JSON.parse(row.value);
+          if (s.online && (Date.now() - s.last_sync < 3600000)) onlineNow++;
+        } catch(e) {}
+      });
+    }
+    el.textContent = count + ' appareil' + (count > 1 ? 's' : '') + ' (' + onlineNow + ' en ligne)';
+    el.className = 'badge ' + (count > 1 ? 'badge-warning' : 'badge-info');
+    el.style.fontSize = '0.85rem';
+    el.style.cursor = 'pointer';
+  } catch(e) {
+    el.textContent = 'Erreur réseau';
+  }
+}
+
+window.loadDeviceCount = loadDeviceCount;
 
 Router.register('login', renderLogin);
 Router.register('settings', renderSettings);
