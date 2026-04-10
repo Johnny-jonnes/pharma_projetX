@@ -237,7 +237,7 @@ async function renderSettings(container) {
         </div>
       </div>` : ''}
 
-      <!-- Sync Status -->
+      <!-- Sync Status (GAUCHE) -->
       <div class="settings-card">
         <h3 class="settings-card-title"><i data-lucide="rotate-cw"></i> Synchronisation & Sauvegarde</h3>
         <div class="sync-panel">
@@ -267,26 +267,32 @@ async function renderSettings(container) {
              <div style="display:flex; flex-direction:column; gap:0.5rem">
                 <button class="btn btn-sm btn-primary" onclick="triggerPull()"><i data-lucide="cloud-download"></i> Récupérer les données du Cloud (PULL)</button>
                 <button class="btn btn-sm btn-secondary" onclick="DB.syncToSupabase()"><i data-lucide="cloud-lightning"></i> Envoi forcé vers le Cloud (PUSH)</button>
-                <button class="btn btn-xs btn-outline-danger" onclick="repairSync()"><i data-lucide="wrench"></i> ⚙️ Réparer l'envoi Cloud (Comptes manquants)</button>
+                <button class="btn btn-xs btn-outline-danger" onclick="repairSync()"><i data-lucide="wrench"></i> ⚙️ Réparer l'envoi Cloud</button>
              </div>
           </div>
-          <hr style="margin: 1rem 0; opacity: 0.1;">
-          <h4 style="margin-bottom: 0.5rem; font-size: 0.9rem;"><i data-lucide="monitor" style="width:16px;height:16px;vertical-align:middle;margin-right:4px;"></i> Identité de cet Appareil</h4>
-          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">Donnez un nom unique à cet appareil pour le distinguer dans le Moniteur de Réseau.</p>
+        </div>
+      </div>
+
+      <!-- Appareil & Cloud Config (DROITE) -->
+      <div class="settings-card">
+        <h3 class="settings-card-title"><i data-lucide="monitor"></i> Appareil & Cloud</h3>
+        <div class="sync-panel">
+          <h4 style="margin-bottom: 0.5rem; font-size: 0.9rem;">Identité de cet Appareil</h4>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">Nom affiché dans le Moniteur de Réseau.</p>
           <div class="form-grid" style="margin-bottom: 16px;">
             <div class="form-row">
               <div class="form-group">
                 <label>Nom de l'appareil</label>
-                <input type="text" id="device-name-input" class="form-control" value="${localStorage.getItem('pharma_device_name') || 'Caisse 1'}" placeholder="Ex: PC Principal, Mobile Vente...">
+                <input type="text" id="device-name-input" class="form-control" value="${localStorage.getItem('pharma_device_name') || 'Caisse 1'}" placeholder="Ex: PC Bureau, Mobile Vente...">
               </div>
               <div class="form-group" style="display:flex;align-items:flex-end;">
-                <button type="button" class="btn btn-sm btn-primary" onclick="saveDeviceName()"><i data-lucide="save"></i> Enregistrer le nom</button>
+                <button type="button" class="btn btn-sm btn-primary" onclick="saveDeviceName()"><i data-lucide="save"></i> Enregistrer</button>
               </div>
             </div>
-            <div style="font-size:0.75rem; color:var(--text-muted)">ID Appareil : <code>${localStorage.getItem('pharma_device_id') || 'N/A'}</code></div>
+            <div style="font-size:0.75rem; color:var(--text-muted)">ID : <code>${localStorage.getItem('pharma_device_id') || 'N/A'}</code></div>
           </div>
           <hr style="margin: 1rem 0; opacity: 0.1;">
-          <h4 style="margin-bottom: 0.5rem; font-size: 0.9rem;">Configuration Supabase (Cloud Sync)</h4>
+          <h4 style="margin-bottom: 0.5rem; font-size: 0.9rem;">Configuration Supabase</h4>
           <form id="supabase-config-form" class="form-grid">
             <div class="form-group">
               <label>URL Supabase</label>
@@ -294,7 +300,7 @@ async function renderSettings(container) {
             </div>
             <div class="form-group">
               <label>Clé Supabase (Anon Public)</label>
-              <input type="password" name="supabase_key" class="form-control" value="${gs('supabase_key') || ''}" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+              <input type="password" name="supabase_key" class="form-control" value="${gs('supabase_key') || ''}" placeholder="eyJhbGciOiJI...">
             </div>
             <button type="button" class="btn btn-xs btn-secondary" onclick="saveSupabaseConfig()">Enregistrer la config Cloud</button>
           </form>

@@ -275,7 +275,11 @@ const UI = {
 
             if (!isActive) return; // Masquer les appareils inactifs >48h
 
-            var icon = (status.type === 'mobile') ? mobileSvg : pcSvg;
+            // Détection intelligente : type explicite OU déduction par le nom
+            var nameLower = (status.name || '').toLowerCase();
+            var isMobile = status.type === 'mobile' || /mobile|phone|smartphone|téléphone|android|iphone/i.test(nameLower);
+            var icon = isMobile ? mobileSvg : pcSvg;
+            var deviceLabel = isMobile ? '📱 Mobile' : '🖥️ Bureau';
             var iconColor = isOnline ? 'var(--primary)' : 'var(--text-muted)';
             var borderColor = hasPending ? 'var(--warning)' : (isOnline ? 'var(--success)' : '#ddd');
 
@@ -301,7 +305,7 @@ const UI = {
                + '<div ' + pulseAnim + '></div>'
                + '</div>'
                + '<div style="display:flex; align-items:center; gap:12px; margin-top:4px; font-size:0.8rem; color:var(--text-muted);">'
-               + '<span>' + (status.type === 'mobile' ? '📱 Mobile' : '🖥️ Bureau') + '</span>'
+               + '<span>' + deviceLabel + '</span>'
                + '<span>·</span>'
                + '<span>' + timeAgo + '</span>'
                + '<span>·</span>'
