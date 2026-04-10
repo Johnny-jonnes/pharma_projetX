@@ -34,27 +34,44 @@ async function renderCaisse(container) {
 
     totalSalesCounted++;
 
-    if (s.paymentMethod === 'combined' && Array.isArray(s.paymentDetails)) {
+    if (s.paymentMethod === 'combined' && Array.isArray(s.paymentDetails) && s.paymentDetails.length > 0) {
+        // Paiement mixte avec détails → ventiler chaque composante
         s.paymentDetails.forEach(d => {
             const m = d.method || 'cash';
-            if (!breakdown[m]) breakdown[m] = { count: 0, total: 0 };
-            breakdown[m].count++; // We just increment the count to indicate a transaction piece exists
-            breakdown[m].total += d.amount || 0;
+            if (m === 'assurance') {
+                // La part assurance d'un combined est une dette, pas du cash
+                assuranceCount++;
+                assuranceSales += d.amount || 0;
+            } else {
+                if (!breakdown[m]) breakdown[m] = { count: 0, total: 0 };
+                breakdown[m].count++;
+                breakdown[m].total += d.amount || 0;
+            }
         });
-    } else if (s.paymentMethod === 'assurance' && Array.isArray(s.paymentDetails)) {
-        // Only count the patient part (ticket modérateur) into today's caisse
+    } else if (s.paymentMethod === 'assurance' && Array.isArray(s.paymentDetails) && s.paymentDetails.length > 0) {
+        // Assurance avec détails → seul le ticket modérateur (part patient) va en caisse
         assuranceCount++;
         s.paymentDetails.forEach(d => {
-            if (d.method !== 'assurance') { // This is the patient's payment
+            if (d.method !== 'assurance') { // Part patient
                 const m = d.method || 'cash';
                 if (!breakdown[m]) breakdown[m] = { count: 0, total: 0 };
                 breakdown[m].count++;
                 breakdown[m].total += d.amount || 0;
             } else {
-                assuranceSales += d.amount || 0; // The debt part
+                assuranceSales += d.amount || 0; // Part assurance = dette
             }
         });
+    } else if (s.paymentMethod === 'assurance') {
+        // Assurance SANS paymentDetails (anciennes données) → tout est dette
+        assuranceCount++;
+        assuranceSales += s.total || 0;
+    } else if (s.paymentMethod === 'combined') {
+        // Combined SANS paymentDetails (données incomplètes) → fallback espèces
+        if (!breakdown.cash) breakdown.cash = { count: 0, total: 0 };
+        breakdown.cash.count++;
+        breakdown.cash.total += s.total || 0;
     } else {
+        // Paiements simples : cash, orange_money, mtn_momo, transfer, credit
         const m = s.paymentMethod || 'cash';
         if (!breakdown[m]) breakdown[m] = { count: 0, total: 0 };
         breakdown[m].count++;
