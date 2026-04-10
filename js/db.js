@@ -933,8 +933,7 @@ function startAutoBackup() {
 let _autoPullTimer = null;
 /**
  * AUTO-PULL : Synchronisation cloud → local automatique
- * Boucle récursive intelligente (ne s'empile pas) déclenchée toutes les 2.5 secondes.
- * S'arrête drastiquement si la connexion internet coupe pour épargner le téléphone.
+ * Boucle récursive stabilisée à 15 secondes pour éviter de saturer le mobile.
  */
 function startAutoPull() {
   if (_autoPullTimer) clearTimeout(_autoPullTimer);
@@ -943,15 +942,15 @@ function startAutoPull() {
     if (navigator.onLine && AppState.isOnline) {
       try {
         await pullFromSupabase();
-      } catch (e) {
-        // Silencieux pour ne pas spammer la console lors de micro-coupures
-      }
+      } catch (e) { }
     }
-    // Reprogramme le prochain pull UNIQUEMENT après la fin du précédent
-    _autoPullTimer = setTimeout(loop, 2500); 
+    // Délai de 15 secondes entre chaque vérification pour la stabilité
+    _autoPullTimer = setTimeout(loop, 15000); 
   };
   
-  loop();
+  // On attend 5 secondes au démarrage de l'app avant de lancer la première boucle
+  // pour laisser l'interface (POS) se charger sans concurrence
+  _autoPullTimer = setTimeout(loop, 5000);
 }
 
 /**
