@@ -297,6 +297,20 @@ function renderFullPOSUI(container) {
           <div class="totals-row"><span>Sous-total</span><span id="pos-subtotal">0 GNF</span></div>
           <div class="totals-row"><span>Remise</span><input id="pos-discount" type="number" class="disc-input" value="0" min="0" oninput="refreshTotals()"></div>
           <div class="totals-row totals-total"><span>TOTAL À PAYER</span><span id="pos-total">0 GNF</span></div>
+          <div id="assur-split-banner" style="display:none; margin-top:10px; padding:12px; border-radius:10px; background:linear-gradient(135deg, rgba(26,86,219,0.06), rgba(46,134,193,0.06)); border:1.5px solid rgba(26,86,219,0.15)">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px">
+              <div style="text-align:center">
+                <div style="font-size:9px; text-transform:uppercase; letter-spacing:1px; color:var(--primary); font-weight:700; margin-bottom:3px">🛡️ Part Entreprise</div>
+                <div id="assur-split-enterprise" style="font-size:18px; font-weight:800; color:var(--primary)">0 GNF</div>
+                <div style="font-size:9px; color:var(--text-muted)">Dette en attente</div>
+              </div>
+              <div style="text-align:center">
+                <div style="font-size:9px; text-transform:uppercase; letter-spacing:1px; color:var(--success); font-weight:700; margin-bottom:3px">👤 Part Patient</div>
+                <div id="assur-split-patient" style="font-size:18px; font-weight:800; color:var(--success)">0 GNF</div>
+                <div style="font-size:9px; color:var(--text-muted)">Encaissé maintenant</div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- PAIEMENT -->
@@ -746,7 +760,13 @@ function refreshTotals() {
   buildCashShortcuts(tot);
   refreshChange();
   if (getPayMethod() === 'combined') refreshCombined();
-  if (getPayMethod() === 'assurance') calcAssurance();
+  if (getPayMethod() === 'assurance') {
+    calcAssurance();
+  } else {
+    // Cacher le bandeau ventilation si on n'est plus en mode assurance
+    const splitBanner = document.getElementById('assur-split-banner');
+    if (splitBanner) splitBanner.style.display = 'none';
+  }
 }
 
 function quickDiscount(pct) {
@@ -853,6 +873,20 @@ function calcAssurance() {
     elPatientPart.textContent = UI.formatCurrency(patientPart);
   }
 
+  // Mise à jour du bandeau ventilation dans les totaux
+  const splitBanner = document.getElementById('assur-split-banner');
+  if (splitBanner) {
+    if (assurAmt > 0) {
+      splitBanner.style.display = 'block';
+      const elEnterprise = document.getElementById('assur-split-enterprise');
+      const elPatient = document.getElementById('assur-split-patient');
+      if (elEnterprise) elEnterprise.textContent = UI.formatCurrency(Math.min(assurAmt, total));
+      if (elPatient) elPatient.textContent = UI.formatCurrency(patientPart);
+    } else {
+      splitBanner.style.display = 'none';
+    }
+  }
+
   // Toggle fields based on patient's payment method
   const pMethod = document.getElementById('assur-patient-method')?.value || 'cash';
   const pRecvWrap = document.getElementById('assur-patient-recv-wrap');
@@ -871,7 +905,7 @@ function calcAssurance() {
   const statEl = document.getElementById('assur-status');
   if (statEl) {
     if (patientPart === 0) {
-      statEl.innerHTML = '<span style="color:#2eaf7d"><i data-lucide="check-circle" style="width:14px;height:14px;vertical-align:text-bottom"></i> Part patient soldée.</span>';
+      statEl.innerHTML = '<span style="color:#2eaf7d"><i data-lucide="check-circle" style="width:14px;height:14px;vertical-align:text-bottom"></i> Couverture totale — Rien à payer par le patient.</span>';
     } else if (pMethod === 'cash') {
       const recv = parseFloat(document.getElementById('assur-patient-recv')?.value || 0);
       if (recv < patientPart) {
