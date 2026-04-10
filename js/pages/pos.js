@@ -297,17 +297,17 @@ function renderFullPOSUI(container) {
           <div class="totals-row"><span>Sous-total</span><span id="pos-subtotal">0 GNF</span></div>
           <div class="totals-row"><span>Remise</span><input id="pos-discount" type="number" class="disc-input" value="0" min="0" oninput="refreshTotals()"></div>
           <div class="totals-row totals-total"><span>TOTAL À PAYER</span><span id="pos-total">0 GNF</span></div>
-          <div id="assur-split-banner" style="display:none; margin-top:10px; padding:12px; border-radius:10px; background:linear-gradient(135deg, rgba(26,86,219,0.06), rgba(46,134,193,0.06)); border:1.5px solid rgba(26,86,219,0.15)">
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px">
-              <div style="text-align:center">
-                <div style="font-size:9px; text-transform:uppercase; letter-spacing:1px; color:var(--primary); font-weight:700; margin-bottom:3px">🛡️ Part Entreprise</div>
-                <div id="assur-split-enterprise" style="font-size:18px; font-weight:800; color:var(--primary)">0 GNF</div>
-                <div style="font-size:9px; color:var(--text-muted)">Dette en attente</div>
+          <div id="assur-split-banner" style="display:none; margin-top:10px; padding:14px; border-radius:12px; background:#FFFFFF; border:2px solid #E8E8E8; box-shadow:0 2px 8px rgba(0,0,0,0.06)">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
+              <div style="text-align:center; padding:10px 6px; background:#EBF5FB; border-radius:8px">
+                <div style="font-size:9px; text-transform:uppercase; letter-spacing:1px; color:#1A56DB; font-weight:800; margin-bottom:4px">🛡️ PART ENTREPRISE</div>
+                <div id="assur-split-enterprise" style="font-size:20px; font-weight:900; color:#1A56DB">0 GNF</div>
+                <div style="font-size:9px; color:#7B8CA8; margin-top:2px">En attente de règlement</div>
               </div>
-              <div style="text-align:center">
-                <div style="font-size:9px; text-transform:uppercase; letter-spacing:1px; color:var(--success); font-weight:700; margin-bottom:3px">👤 Part Patient</div>
-                <div id="assur-split-patient" style="font-size:18px; font-weight:800; color:var(--success)">0 GNF</div>
-                <div style="font-size:9px; color:var(--text-muted)">Encaissé maintenant</div>
+              <div style="text-align:center; padding:10px 6px; background:#E8F8EF; border-radius:8px">
+                <div style="font-size:9px; text-transform:uppercase; letter-spacing:1px; color:#1E8449; font-weight:800; margin-bottom:4px">👤 PART PATIENT</div>
+                <div id="assur-split-patient" style="font-size:20px; font-weight:900; color:#1E8449">0 GNF</div>
+                <div style="font-size:9px; color:#7B8CA8; margin-top:2px">Encaissé maintenant</div>
               </div>
             </div>
           </div>
@@ -386,13 +386,14 @@ function renderFullPOSUI(container) {
             <label class="pay-detail-label">Organisme & Prise en charge</label>
             <input id="assur-name" type="text" class="pay-input" placeholder="Nom de l'assurance / Entreprise" style="margin-bottom:8px">
             <input id="assur-ref" type="text" class="pay-input" placeholder="Réf. Prise en charge" style="margin-bottom:8px">
-            <input id="assur-amount" type="number" class="pay-input" placeholder="Montant Assurance" oninput="calcAssurance()">
+            <div style="margin-bottom:6px;font-size:11px;font-weight:700;color:#1A56DB">🛡️ Montant pris en charge par l'entreprise :</div>
+            <input id="assur-amount" type="number" class="pay-input" placeholder="Part couverte par l'assurance (pas le total)" oninput="calcAssurance()" style="border-color:#1A56DB">
             
-            <div style="margin:15px 0 10px 0; font-weight:700; color:var(--text-muted); font-size:12px; text-transform:uppercase; letter-spacing:0.5px">Règlement Patient (Ticket modérateur)</div>
-            <div style="background:rgba(0,0,0,0.02); padding:12px; border-radius:8px; border:1px solid var(--border)">
+            <div style="margin:15px 0 10px 0; font-weight:700; color:var(--text-muted); font-size:12px; text-transform:uppercase; letter-spacing:0.5px">👤 Règlement Patient (Ticket modérateur)</div>
+            <div style="background:#E8F8EF; padding:12px; border-radius:8px; border:1.5px solid #C3E6CB">
               <div style="display:flex; justify-content:space-between; margin-bottom:10px">
-                <span style="font-size:13px">Reste à payer :</span>
-                <span id="assur-patient-part" style="font-weight:800; color:var(--primary-color)">0 GNF</span>
+                <span style="font-size:13px;font-weight:600">Reste à payer par le patient :</span>
+                <span id="assur-patient-part" style="font-weight:900; font-size:15px; color:#1E8449">0 GNF</span>
               </div>
               <div style="display:flex; gap:10px">
                  <select id="assur-patient-method" class="pay-input" style="flex:1" onchange="calcAssurance()">
@@ -1358,6 +1359,9 @@ async function validerVente() {
     if (assurAmt <= 0) {
       UI.toast('Le montant pris en charge doit être supérieur à zéro', 'error'); return;
     }
+    if (assurAmt > total) {
+      UI.toast('Le montant assurance ne peut pas dépasser le total de la facture (' + UI.formatCurrency(total) + ')', 'error'); return;
+    }
     // Check patient part rules
     const patientPart = Math.max(0, total - assurAmt);
     const pMethod = document.getElementById('assur-patient-method')?.value || 'cash';
@@ -2120,7 +2124,7 @@ function initKeyboardShortcuts() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// HISTORIQUE — 3 dernières ventes
+// HISTORIQUE — 5 dernières ventes (PRO)
 // ═══════════════════════════════════════════════════════════════════
 async function loadRecentSales() {
   const el = document.getElementById('pos-recent-list');
@@ -2130,25 +2134,33 @@ async function loadRecentSales() {
     const recent = sales
       .filter(s => s.status !== 'cancelled')
       .sort((a, b) => new Date(b.date) - new Date(a.date))
-      .slice(0, 3);
+      .slice(0, 5);
 
     if (!recent.length) {
-      el.innerHTML = '<span style="opacity:0.5">Aucune vente récente</span>';
+      el.innerHTML = '<div style="text-align:center;padding:12px;opacity:0.5;font-size:12px">Aucune vente récente</div>';
       return;
     }
 
-    el.innerHTML = recent.map(s => {
+    el.innerHTML = recent.map((s, i) => {
       const d = new Date(s.date);
       const time = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-      const payLabels = { cash: '💵', orange_money: '📱', mtn_momo: '📱', credit: '📝', assurance: '🛡️', combined: '🔀' };
-      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--bg)">
-        <span>${payLabels[s.paymentMethod] || '💰'} ${s.patientName || 'Client'}</span>
-        <span style="font-weight:700;color:var(--primary)">${UI.formatCurrency(s.total)}</span>
-        <span style="opacity:0.5">${time}</span>
+      const dateStr = d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+      const payIcons = { cash: '💵', orange_money: '📱', mtn_momo: '📲', credit: '📝', assurance: '🛡️', combined: '🔀' };
+      const statusColors = { completed: '#1E8449', paid: '#1E8449', pending: '#E67E22' };
+      const statusLabels = { completed: 'Payé', paid: 'Réglé', pending: 'En attente' };
+      const bgColor = i % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.015)';
+      return `<div style="display:grid;grid-template-columns:auto 1fr auto auto;gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid rgba(0,0,0,0.05);background:${bgColor};font-size:12px;cursor:pointer" onclick="if(typeof viewSaleDetail==='function')viewSaleDetail(${s.id})" title="Voir le détail">
+        <span style="font-size:16px">${payIcons[s.paymentMethod] || '💰'}</span>
+        <div style="min-width:0">
+          <div style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">#${String(s.id).padStart(4,'0')} · ${s.patientName || 'Comptoir'}</div>
+          <div style="font-size:10px;color:#888">${s.itemCount || '?'} art. · ${dateStr} ${time}</div>
+        </div>
+        <div style="font-weight:800;color:#1A56DB;white-space:nowrap">${UI.formatCurrency(s.total)}</div>
+        <span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;background:${(statusColors[s.status] || '#888') + '18'};color:${statusColors[s.status] || '#888'}">${statusLabels[s.status] || s.status}</span>
       </div>`;
     }).join('');
   } catch (e) {
-    el.innerHTML = '<span style="opacity:0.5">—</span>';
+    el.innerHTML = '<div style="text-align:center;padding:8px;opacity:0.4">—</div>';
   }
 }
 
