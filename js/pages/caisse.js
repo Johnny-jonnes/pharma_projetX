@@ -274,11 +274,11 @@ async function renderCaisse(container) {
             </div>
           </div>
 
-          <!-- Bloc Banque & Crédit -->
+          <!-- Bloc Banque -->
           <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:16px; box-shadow:var(--shadow-sm);">
             <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px; color:var(--text);">
               <div style="background:rgba(46, 204, 113, 0.1); color:#2ECC71; padding:6px; border-radius:6px;"><i data-lucide="landmark" style="width:20px;height:20px;"></i></div>
-              <h4 style="margin:0; font-size:15px; font-weight:600;">Banque, Crédits & Assurances</h4>
+              <h4 style="margin:0; font-size:15px; font-weight:600;">Banque (Virements)</h4>
             </div>
             <div style="display:flex; flex-direction:column; gap:8px; font-size:13px;">
               <div style="display:flex; justify-content:space-between;">
@@ -287,26 +287,29 @@ async function renderCaisse(container) {
               <div style="display:flex; justify-content:space-between; padding-bottom:8px; border-bottom:1px solid var(--border);">
                 <span class="text-muted">Dettes réglées virement</span> <strong class="text-success">${UI.formatCurrency(debtByMethod.transfer || 0)}</strong>
               </div>
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px; margin-bottom:12px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
                 <span style="font-weight:600; font-size:14px;">Total Banque Attendus</span>
                 <strong style="font-size:16px; color:var(--success-color);">${UI.formatCurrency(transferBalance)}</strong>
               </div>
-              <div style="background:rgba(52, 152, 219, 0.1); border-radius:6px; padding:10px;">
-                <div style="display:flex; justify-content:space-between; color:#3498DB; margin-bottom:4px;">
-                  <span style="font-weight:600;"><i data-lucide="file-text" style="width:14px;height:14px;vertical-align:text-bottom;margin-right:4px;"></i>Créances à recouvrer du jour</span>
-                </div>
-                <div style="display:flex; justify-content:space-between; font-size:14px; color:#2980B9; margin-bottom:4px; padding-bottom:4px; border-bottom:1px dashed rgba(52, 152, 219, 0.3);">
-                  <span>↳ ${breakdown.credit?.count || 0} Vente(s) à Crédit</span>
-                  <span>${UI.formatCurrency(creditSales)}</span>
-                </div>
-                <div style="display:flex; justify-content:space-between; font-size:14px; color:#27ae60; margin-bottom:6px;">
-                  <span>↳ ${assuranceCount} Couverture(s) Assurance</span>
-                  <span>${UI.formatCurrency(assuranceSales)}</span>
-                </div>
-                <div style="display:flex; justify-content:space-between; font-size:16px; font-weight:bold; color:#2980B9;">
-                  <span>Total Créances Créées</span>
-                  <span>${UI.formatCurrency(creditSales + assuranceSales)}</span>
-                </div>
+            </div>
+          </div>
+
+          <!-- Bloc Créances / Assurances -->
+          <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:16px; box-shadow:var(--shadow-sm);">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px; color:var(--text);">
+              <div style="background:rgba(52, 152, 219, 0.1); color:#3498DB; padding:6px; border-radius:6px;"><i data-lucide="file-text" style="width:20px;height:20px;"></i></div>
+              <h4 style="margin:0; font-size:15px; font-weight:600;">Nouvelles Créances (Dettes)</h4>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px; font-size:13px;">
+              <div style="display:flex; justify-content:space-between;">
+                <span class="text-muted">Ventes à Crédit (${breakdown.credit?.count || 0})</span> <strong style="color:#2980B9">${UI.formatCurrency(creditSales)}</strong>
+              </div>
+              <div style="display:flex; justify-content:space-between; padding-bottom:8px; border-bottom:1px solid var(--border);">
+                <span class="text-muted">Couvertures Assurance (${assuranceCount})</span> <strong style="color:#27ae60">${UI.formatCurrency(assuranceSales)}</strong>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+                <span style="font-weight:600; font-size:14px;">Total Créances du Jour</span>
+                <strong style="font-size:16px; color:#2980B9;">${UI.formatCurrency(creditSales + assuranceSales)}</strong>
               </div>
             </div>
           </div>
