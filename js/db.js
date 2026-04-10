@@ -526,14 +526,15 @@ async function syncToSupabase() {
           return payload;
         });
 
-        // Resilient upsert with column stripping
-        let currentPayloads = payloads;
-        // Pré-filtrer les colonnes connues comme invalides (depuis le cache)
+        // Pré-filtrer les colonnes connues comme invalides AVANT l'envoi
         var badCols = _colCache[storeName] || [];
+        var currentPayloads = payloads;
         if (badCols.length > 0) {
-          currentPayloads = currentPayloads.map(function(p) {
-            var clean = Object.assign({}, p);
-            badCols.forEach(function(c) { delete clean[c]; });
+          currentPayloads = payloads.map(function(p) {
+            var clean = {};
+            for (var k in p) {
+              if (badCols.indexOf(k) === -1) clean[k] = p[k];
+            }
             return clean;
           });
         }
