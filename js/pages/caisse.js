@@ -351,7 +351,7 @@ async function renderCaisse(container) {
   // Render transactions & movements
   const txContainer = document.getElementById('today-transactions');
   if (txContainer) {
-    if (todaySales.length === 0) {
+    if (todaySalesRaw.length === 0) {
       txContainer.innerHTML = '<div class="empty-state-small">Aucune vente aujourd\'hui</div>';
     } else {
       // Pré-calculer les remboursements par vente pour affichage net
@@ -360,7 +360,7 @@ async function renderCaisse(container) {
         refundMap[r.saleId] = (refundMap[r.saleId] || 0) + (r.refundAmount || 0);
       });
 
-      const sortedTx = [...todaySales].sort((a, b) => new Date(b.date) - new Date(a.date));
+      const sortedTx = [...todaySalesRaw].sort((a, b) => new Date(b.date) - new Date(a.date));
       UI.table(txContainer, [
         { label: 'Heure', render: r => new Date(r.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) },
         { label: 'N° Vente', render: r => `<code class="code-tag">#${String(r.id).padStart(6, '0')}</code>` },
