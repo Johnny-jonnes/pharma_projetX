@@ -4190,8 +4190,7 @@ input[type="checkbox"]:checked~.switch-track .switch-thumb {
 
 /* Paiement â€” Augmentation du padding pour Ã©viter les coupures */
 .pos-pay-block {
-  padding: 15px 14px 25px;
-  /* Large padding bas */
+  padding: 16px 16px 24px;
   border-top: 2px solid var(--bg);
   flex-shrink: 0;
   background: var(--surface);
@@ -4199,43 +4198,80 @@ input[type="checkbox"]:checked~.switch-track .switch-thumb {
 
 .pay-methods {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 4px;
-  margin-bottom: 8px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
 .pay-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1px;
-  padding: 7px 4px;
+  justify-content: center;
+  gap: 5px;
+  padding: 12px 6px;
   border: 2px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: 12px;
   background: var(--surface);
   cursor: pointer;
-  font-size: 10px;
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: 600;
   color: var(--text-muted);
-  transition: var(--transition);
-  line-height: 1.3;
+  transition: all 0.2s ease;
+  line-height: 1.2;
+  min-height: 58px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.pay-btn i, .pay-btn svg {
+  width: 20px;
+  height: 20px;
+  opacity: 0.6;
+  transition: all 0.2s ease;
 }
 
 .pay-btn small {
   font-size: 10px;
+  opacity: 0.7;
 }
 
 .pay-btn:hover {
   border-color: var(--primary-light);
   color: var(--primary);
-  background: var(--bg);
+  background: rgba(46, 134, 193, 0.04);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(46, 134, 193, 0.1);
+}
+
+.pay-btn:hover i, .pay-btn:hover svg {
+  opacity: 1;
 }
 
 .pay-btn.active {
   border-color: var(--primary);
-  background: #EBF5FB;
+  background: linear-gradient(135deg, rgba(46, 134, 193, 0.08) 0%, rgba(26, 86, 219, 0.12) 100%);
   color: var(--primary);
-  font-weight: 700;
+  font-weight: 800;
+  box-shadow: 0 2px 12px rgba(46, 134, 193, 0.15), inset 0 0 0 1px rgba(46, 134, 193, 0.1);
+  transform: translateY(-1px);
+}
+
+.pay-btn.active i, .pay-btn.active svg {
+  opacity: 1;
+  color: var(--primary);
+}
+
+.pay-btn.active::after {
+  content: '\u2713';
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--primary);
+  opacity: 0.7;
 }
 
 .pay-detail {
@@ -5074,52 +5110,7 @@ input[type="checkbox"]:checked~.switch-track .switch-thumb {
   padding: 0 2px;
 }
 
-.pay-methods {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 4px;
-  margin-bottom: 10px;
-}
-
-.pay-btn {
-  border: 2px solid var(--border);
-  background: var(--surface);
-  border-radius: var(--radius-sm);
-  padding: 8px 4px;
-  cursor: pointer;
-  transition: var(--transition);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
-
-.pay-icon {
-  font-size: 18px;
-}
-
-.pay-name {
-  font-size: 10px;
-  font-weight: 500;
-  color: var(--text-muted);
-  text-align: center;
-  line-height: 1.2;
-}
-
-.pay-btn.active {
-  border-color: var(--primary);
-  background: #EBF5FB;
-}
-
-.pay-btn.active .pay-name {
-  color: var(--primary);
-  font-weight: 700;
-}
-
-.pay-btn:hover:not(.active) {
-  border-color: var(--primary-light);
-  background: var(--bg);
-}
+/* pay-btn v3 — styles déplacés en section Design Premium (ligne ~4190) */
 
 /* ReÃ§u v3 professionnel */
 .recu-pro {
@@ -7279,78 +7270,7 @@ a:focus-visible {
 }
 
 /* â”€â”€ Paiement POS PROFESSIONNEL (Elite) â€” UNIFIÃ‰ â”€â”€ */
-.pos-pay-block {
-  padding: 20px 24px 30px;
-  background: #F8FAFC;
-  flex-shrink: 0;
-  /* Toujours visible en bas */
-}
-
-.pay-label {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 12px;
-}
-
-.pay-methods {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.pay-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 16px 8px;
-  border: 1px solid rgba(0,0,0,0.06);
-  border-radius: 12px;
-  background: white;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-  font-family: var(--font);
-  color: var(--text-muted);
-}
-
-.pay-btn:hover {
-  border-color: var(--primary-light);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-  transform: translateY(-2px);
-  color: var(--primary);
-}
-
-.pay-btn.active {
-  border-color: var(--primary);
-  background: var(--primary);
-  color: white;
-  box-shadow: 0 6px 16px rgba(27, 111, 174, 0.3);
-  transform: translateY(-2px);
-}
-
-.pay-icon {
-  font-size: 24px;
-}
-
-.pay-btn.active .pay-icon {
-  color: white;
-}
-
-.pay-btn.active .pay-name {
-  color: white;
-}
-
-.pay-name {
-  font-size: 11px;
-  font-weight: 700;
-  white-space: nowrap;
-}
+/* pay-btn Elite — styles centralisés en section Premium */
 
 .pay-detail {
   padding: 10px;
