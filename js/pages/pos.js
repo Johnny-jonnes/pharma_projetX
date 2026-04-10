@@ -1382,6 +1382,30 @@ async function validerVente() {
 // REÇU OFFICIEL v3 — Professionnel et complet
 // ═══════════════════════════════════════════════════════════════════
 async function afficherRecu(saleId, items, saleData) {
+  // ── Defensive: normaliser les items pour accepter les 2 formats ──
+  // posCart: { name, qty, unitPrice, total, dci, dosage, requiresPrescription }
+  // saleItems: { productName, quantity, unitPrice, total }
+  const normalizedItems = (items || []).map(i => ({
+    name: i.name || i.productName || 'Article',
+    qty: i.qty || i.quantity || 0,
+    unitPrice: i.unitPrice || 0,
+    total: i.total || ((i.qty || i.quantity || 0) * (i.unitPrice || 0)),
+    dci: i.dci || null,
+    dosage: i.dosage || null,
+    requiresPrescription: i.requiresPrescription || false,
+  }));
+
+  // ── Defensive: saleData fallbacks ──
+  saleData = saleData || {};
+  saleData.total = saleData.total || 0;
+  saleData.discount = saleData.discount || 0;
+  saleData.subtotal = saleData.subtotal || saleData.total;
+  saleData.paymentMethod = saleData.paymentMethod || 'cash';
+  saleData.patientName = saleData.patientName || null;
+  saleData.patientPhone = saleData.patientPhone || null;
+  saleData.sellerName = saleData.sellerName || null;
+  saleData.paymentDetails = Array.isArray(saleData.paymentDetails) ? saleData.paymentDetails : [];
+
   const settings = await DB.dbGetAll('settings');
   const gs = k => settings.find(s => s.key === k)?.value;
   const nomPharma = gs('pharmacy_name') || 'Pharmacie Centrale de Conakry';
@@ -1390,10 +1414,10 @@ async function afficherRecu(saleId, items, saleData) {
   const emailPharma = gs('pharmacy_email') || '';
   const dnpmPharma = gs('pharmacy_dnpm') || 'LIC-DNPM-2024-001';
   const respPharma = gs('pharmacy_resp') || 'Pharmacien Responsable';
-  const payLabels = { cash: 'Espèces', orange_money: 'Orange Money Guinée', mtn_momo: 'MTN Mobile Money', credit: 'Vente à crédit', transfer: 'Virement bancaire' };
-  const now = new Date();
+  const payLabels = { cash: 'Espèces', orange_money: 'Orange Money Guinée', mtn_momo: 'MTN Mobile Money', credit: 'Vente à crédit', transfer: 'Virement bancaire', assurance: 'Assurance / Tiers Payant' };
+  const now = saleData.date ? new Date(saleData.date) : new Date();
   const cashRecv = saleData.cashReceived || 0;
-  const change = saleData.paymentMethod === 'cash' ? cashRecv - saleData.total : 0;
+  const change = saleData.paymentMethod === 'cash' ? Math.max(0, cashRecv - saleData.total) : 0;
   const refNum = String(saleId).padStart(8, '0');
 
   UI.modal(`🧾 Reçu de Vente — Réf. ${refNum}`, `
@@ -1478,7 +1502,7 @@ async function afficherRecu(saleId, items, saleData) {
           </tr>
         </thead>
         <tbody>
-          ${items.map((i, idx) => `
+          ${normalizedItems.map((i, idx) => `
             <tr class="${idx % 2 === 0 ? 'recu-row-even' : ''}">
               <td>
                 <div class="recu-drug-name">${i.name}${i.requiresPrescription ? ` <span class="tag-rx-print">Rx</span>` : ''}</div>
@@ -1847,6 +1871,7 @@ window.attachRx = attachRx;
 window.detachRx = detachRx;
 window.renderPOS = renderPOS;
 window.imprimerTicket = imprimerTicket;
+window.afficherRecu = afficherRecu;
 window.startBarcodeScan = startBarcodeScan;
 window.MobileMoneyGateway = MobileMoneyGateway;
 window.showGenericAlternatives = showGenericAlternatives;
