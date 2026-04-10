@@ -156,9 +156,14 @@ function renderSalesTable(data) {
       }
     },
     {
-      label: 'Actions', render: r => `
-      <button class="btn btn-xs btn-primary" onclick="viewSaleDetail(${r.id})">Détail</button>
-    ` },
+      label: 'Actions', render: r => {
+        const isPending = r.status === 'pending' && ['credit', 'assurance'].includes(r.paymentMethod);
+        return `
+          <button class="btn btn-xs btn-primary" onclick="viewSaleDetail(${r.id})">Détail</button>
+          ${isPending ? `<button class="btn btn-xs btn-success" style="margin-left:4px" onclick="settleDebt(${r.id})"><i data-lucide="check-circle" style="width:12px;height:12px"></i> Encaisser</button>` : ''}
+        `;
+      }
+    },
   ];
 
   UI.table(container, columns, data, { emptyMessage: 'Aucune vente pour cette période', emptyIcon: 'shopping-cart' });
@@ -207,10 +212,10 @@ async function viewSaleDetail(saleId) {
         </tfoot>
       </table>
     </div>
-    ${sale.paymentMethod === 'credit' && sale.status !== 'paid' ? `
+    ${['credit', 'assurance'].includes(sale.paymentMethod) && sale.status !== 'paid' && sale.status !== 'completed' ? `
       <div class="modal-actions" style="margin-top:20px; border-top: 1px solid var(--border); padding-top:15px; display:flex; justify-content:flex-end;">
-        <button class="btn btn-success" onclick="settleDebt(${saleId})">
-          <i data-lucide="check-circle"></i> Encaisser le remboursement (Régler la dette)
+        <button class="btn btn-success" onclick="UI.closeModal(); settleDebt(${saleId})">
+          <i data-lucide="check-circle"></i> ${sale.paymentMethod === 'assurance' ? 'Encaisser la part Assurance' : 'Encaisser la dette'}
         </button>
       </div>
     ` : ''}

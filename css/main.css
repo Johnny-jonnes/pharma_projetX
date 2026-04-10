@@ -6640,16 +6640,19 @@ a:focus-visible {
 /* Layout principal POS 2 colonnes */
 .pos-wrap {
   display: grid;
-  grid-template-columns: 1fr 420px;
-  gap: 20px;
+  grid-template-columns: 1fr 440px;
+  gap: 24px;
   min-height: calc(100vh - var(--topbar-h) - 48px);
 }
 
 .pos-left {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
   min-height: 0;
+  background: #F1F5F9;
+  border-radius: 20px;
+  padding: 20px;
 }
 
 .pos-right {
@@ -6778,8 +6781,8 @@ a:focus-visible {
   flex: 1;
   overflow-y: auto;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 14px;
   padding: 4px 2px;
   align-content: start;
 }
@@ -6922,10 +6925,10 @@ a:focus-visible {
 
 /* ── Sections du panneau droit POS ── */
 .pos-section {
-  padding: 18px 20px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 2px;
+  padding: 16px 20px;
+  background: white;
+  border-bottom: none;
+  margin-bottom: 0;
   flex-shrink: 0;
   position: relative;
 }
@@ -6938,15 +6941,16 @@ a:focus-visible {
 
 .pos-section-icon {
   font-size: 16px;
+  color: var(--primary);
 }
 
 .pos-section-title {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
-  color: var(--primary);
+  color: var(--text-muted);
   flex: 1;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
 }
 
 /* ── Section Client ── */
@@ -7415,9 +7419,9 @@ a:focus-visible {
 .cart-line {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--border);
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px dashed rgba(0,0,0,0.06);
 }
 
 .cart-line:last-child {
@@ -7455,12 +7459,12 @@ a:focus-visible {
 }
 
 .qty-ctrl {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  font-size: 14px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid rgba(0,0,0,0.08);
+  background: #F8FAFC;
+  font-size: 16px;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -7468,25 +7472,27 @@ a:focus-visible {
   cursor: pointer;
   padding: 0;
   color: var(--text-muted);
-  transition: all var(--transition);
+  transition: all 0.2s ease;
 }
 
 .qty-ctrl:hover {
-  background: var(--primary-light);
+  background: var(--primary);
   color: white;
-  border-color: var(--primary-light);
+  border-color: var(--primary);
+  transform: scale(1.1);
 }
 
 .qty-direct {
-  width: 40px;
+  width: 44px;
   text-align: center;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  font-size: 13px;
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 8px;
+  font-size: 14px;
   font-weight: 700;
   font-family: var(--font);
-  padding: 3px;
+  padding: 4px;
   outline: none;
+  background: #F8FAFC;
   -moz-appearance: textfield;
   appearance: textfield;
 }
@@ -7785,10 +7791,10 @@ a:focus-visible {
 /* ── Actions POS ── */
 .pos-actions-bar {
   display: flex;
-  gap: 8px;
-  padding: 12px 16px;
-  border-top: 1px solid var(--border);
-  background: var(--surface);
+  gap: 10px;
+  padding: 16px 20px;
+  background: white;
+  border-top: 1px solid rgba(0,0,0,0.04);
 }
 
 .pos-btn-cancel {
@@ -7801,10 +7807,11 @@ a:focus-visible {
 
 .pos-btn-validate {
   flex: 1;
-  padding: 12px 20px;
-  font-size: 14px;
-  font-weight: 700;
-  border-radius: var(--radius-sm);
+  padding: 14px 24px;
+  font-size: 15px;
+  font-weight: 800;
+  border-radius: 12px;
+  letter-spacing: 0.3px;
 }
 
 /* ── Outline button style ── */
