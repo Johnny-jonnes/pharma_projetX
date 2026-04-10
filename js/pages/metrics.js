@@ -120,10 +120,24 @@ async function renderMetrics(container) {
     const globalMargin = totalRevenue > 0 ? (totalProfit / totalRevenue * 100).toFixed(1) : '0.0';
 
     // ── DSO — Délai Moyen de Recouvrement ──
-    const creditSales = sales.filter(s => s.paymentMethod === 'credit');
+    const creditSales = sales.filter(s => ['credit', 'assurance'].includes(s.paymentMethod));
     const paidCredits = creditSales.filter(s => s.status === 'completed' || s.status === 'paid');
     const unpaidCredits = creditSales.filter(s => s.status === 'pending');
-    const totalCreances = unpaidCredits.reduce((a, s) => a + (s.total || 0), 0);
+    const totalCreances = unpaidCredits.reduce((a, s) => {
+        if (s.paymentMethod === 'assurance') {
+            // Pour l'assurance, la créance est la part de l'assurance (total de la vente moins les paiements du patient et sans compter les autres paiements combinés s'ils existent)
+            // Mais plus simplement, on peut prendre sale.total - (montant payé par patient) = dette assurance.
+            // Actuellement la dette est calculée via reduce, prenons s.total pour simplifier, ou s.debtAmount si c'est enregistré.
+            // On peut calculer la part assurance:
+            let debtAmount = s.total || 0;
+            if (s.paymentDetails && Array.isArray(s.paymentDetails)) {
+                const assurDetail = s.paymentDetails.find(d => d.method === 'assurance');
+                if (assurDetail) debtAmount = assurDetail.amount || 0;
+            }
+            return a + debtAmount;
+        }
+        return a + (s.total || 0);
+    }, 0);
     let dsoAvg = 0;
     if (paidCredits.length > 0) {
       const dsoDays = paidCredits.map(s => {
@@ -146,13 +160,19 @@ async function renderMetrics(container) {
       payBreakdown[m] = (payBreakdown[m] || 0) + (s.total || 0);
       payCount[m] = (payCount[m] || 0) + 1;
     });
-    // Include pending credit sales too
-    sales.filter(s => s.paymentMethod === 'credit' && s.status === 'pending').forEach(s => {
-      payBreakdown['credit'] = (payBreakdown['credit'] || 0) + (s.total || 0);
-      payCount['credit'] = (payCount['credit'] || 0) + 1;
+    // Include pending credit and assurance sales too
+    sales.filter(s => ['credit', 'assurance'].includes(s.paymentMethod) && s.status === 'pending').forEach(s => {
+      const m = s.paymentMethod;
+      let amount = s.total || 0;
+      if (m === 'assurance' && s.paymentDetails && Array.isArray(s.paymentDetails)) {
+          const assurDetail = s.paymentDetails.find(d => d.method === 'assurance');
+          if (assurDetail) amount = assurDetail.amount || 0;
+      }
+      payBreakdown[m] = (payBreakdown[m] || 0) + amount;
+      payCount[m] = (payCount[m] || 0) + 1;
     });
-    const payLabels = { cash:'Espèces', orange_money:'Orange Money', mtn_momo:'MTN MoMo', credit:'Crédit', transfer:'Virement', mobile_money:'Mobile Money', carte:'Carte Bancaire' };
-    const payColors = { cash:'#F39C12', orange_money:'#E74C3C', mtn_momo:'#FFCD00', credit:'#9B59B6', transfer:'#2ECC71', mobile_money:'#3498DB', carte:'#1ABC9C' };
+    const payLabels = { cash:'Espèces', orange_money:'Orange Money', mtn_momo:'MTN MoMo', credit:'Crédit', transfer:'Virement', mobile_money:'Mobile Money', carte:'Carte Bancaire', assurance: 'Couverture Assurance' };
+    const payColors = { cash:'#F39C12', orange_money:'#E74C3C', mtn_momo:'#FFCD00', credit:'#9B59B6', transfer:'#2ECC71', mobile_money:'#3498DB', carte:'#1ABC9C', assurance: '#27AE60' };
     const defaultPayColor = '#95A5A6';
 
     // ── Tendance 7 jours ──
