@@ -594,8 +594,12 @@ async function syncToSupabase() {
 
           // --- FILTRAGE PROACTIF DES COLONNES LOCALES ---
           // Ces colonnes n'existent pas sur Supabase et causeraient des erreurs 400
-          if (storeName === 'prescriptions') {
-            const localOnly = ['notes', 'patientName', 'dispensedAt', 'dispensedBy', 'saleId'];
+          const _localOnlyColumns = {
+            prescriptions: ['notes', 'patientName', 'dispensedAt', 'dispensedBy', 'saleId'],
+            sales: ['assuranceName', 'assuranceRef', 'assuranceAmount', 'paymentDetails'],
+          };
+          const localOnly = _localOnlyColumns[storeName];
+          if (localOnly) {
             localOnly.forEach(c => delete payload[c]);
           }
 

@@ -224,12 +224,24 @@ function renderFullPOSUI(container) {
           <div class="pos-searchfield">
             <span class="pos-searchicon"><i data-lucide="search"></i></span>
             <input id="pos-search" type="text" class="pos-searchinput"
-              placeholder="Nom médicament, DCI, code barre…" autocomplete="off">
+              placeholder="Nom, DCI, code-barres…" autocomplete="off">
             <button id="pos-clearsearch" class="pos-clearbtn" onclick="clearPosSearch()" style="display:none"><i data-lucide="x"></i></button>
           </div>
-          <button class="btn btn-sm btn-ghost" onclick="startBarcodeScan()" title="Scanner"><i data-lucide="camera"></i></button>
+          <button class="btn btn-sm btn-ghost" onclick="startBarcodeScan()" title="Scanner (F2)"><i data-lucide="camera"></i></button>
         </div>
-        <div class="pos-catbar" id="pos-catbar"></div>
+        <!-- Barre catégories + Tri -->
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          <div class="pos-catbar" id="pos-catbar" style="flex:1"></div>
+          <select id="pos-sort" class="pos-sort-select" onchange="applySort(this.value)">
+            <option value="default">Tri: Défaut</option>
+            <option value="name-az">Nom A→Z</option>
+            <option value="name-za">Nom Z→A</option>
+            <option value="price-asc">Prix ↑</option>
+            <option value="price-desc">Prix ↓</option>
+            <option value="stock-asc">Stock ↑</option>
+            <option value="stock-desc">Stock ↓</option>
+          </select>
+        </div>
         <div id="pos-grid" class="pos-grid"></div>
       </div>
 
@@ -395,15 +407,24 @@ function renderFullPOSUI(container) {
 
         <!-- ACTIONS -->
         <div class="pos-actions-bar">
-          <button class="btn btn-ghost pos-btn-cancel" onclick="viderPanier()" title="Vider le panier">
+          <button class="btn btn-ghost pos-btn-cancel" onclick="viderPanier()" title="Vider le panier (Échap)">
             <i data-lucide="trash-2"></i>
           </button>
           <button class="btn btn-secondary pos-btn-hold" onclick="mettreEnAttente()">
             <i data-lucide="pause"></i><span>Attente</span>
           </button>
           <button id="btn-valider" class="btn btn-success pos-btn-validate" onclick="validerVente()">
-            <i data-lucide="check-circle"></i><span>Valider la Vente</span>
+            <i data-lucide="check-circle"></i><span>Valider (F5)</span>
           </button>
+        </div>
+
+        <!-- DERNIÈRES VENTES -->
+        <div class="pos-section pos-section-history" id="pos-recent-sales">
+          <div class="pos-section-header">
+            <span class="pos-section-icon"><i data-lucide="clock"></i></span>
+            <span class="pos-section-title">Dernières ventes</span>
+          </div>
+          <div id="pos-recent-list" style="font-size:12px;color:var(--text-muted);padding:8px 0">Chargement...</div>
         </div>
 
       </div><!-- fin pos-right -->
@@ -414,6 +435,8 @@ function renderFullPOSUI(container) {
   buildCatBar();
   refreshGrid();
   initPosSearch();
+  initKeyboardShortcuts();
+  loadRecentSales();
   document.getElementById('pos-search').focus();
 
   // Restore held cart
@@ -479,22 +502,43 @@ function clearPosSearch() {
   refreshGrid();
 }
 
+let posSortMode = 'default';
+let posGridLimit = 80;
+
+function applySort(mode) {
+  posSortMode = mode;
+  refreshGrid();
+}
+
 function refreshGrid() {
   const grid = document.getElementById('pos-grid');
   if (!grid) return;
+  const isAdmin = ['admin', 'pharmacien'].includes(DB.AppState.currentUser?.role);
 
   let list = posProducts;
   if (posActiveCategory) list = list.filter(p => p.category === posActiveCategory);
   if (posSearch) list = list.filter(p =>
     (p.name || '').toLowerCase().includes(posSearch) ||
     (p.dci || '').toLowerCase().includes(posSearch) ||
-    (p.code || '').toLowerCase().includes(posSearch)
+    (p.code || '').toLowerCase().includes(posSearch) ||
+    (p.ean || '').toLowerCase().includes(posSearch) ||
+    (p.cip || '').toLowerCase().includes(posSearch)
   );
 
   list = [...list].sort((a, b) => {
     const qa = posStock[a.id] || 0, qb = posStock[b.id] || 0;
+    // Toujours mettre les ruptures en fin
     if ((qa > 0) !== (qb > 0)) return qa > 0 ? -1 : 1;
-    return a.name.localeCompare(b.name, 'fr');
+    // Tri utilisateur
+    switch (posSortMode) {
+      case 'name-az': return (a.name || '').localeCompare(b.name || '', 'fr');
+      case 'name-za': return (b.name || '').localeCompare(a.name || '', 'fr');
+      case 'price-asc': return (a.salePrice || 0) - (b.salePrice || 0);
+      case 'price-desc': return (b.salePrice || 0) - (a.salePrice || 0);
+      case 'stock-asc': return qa - qb;
+      case 'stock-desc': return qb - qa;
+      default: return (a.name || '').localeCompare(b.name || '', 'fr');
+    }
   });
 
   if (!list.length) {
@@ -503,28 +547,38 @@ function refreshGrid() {
     return;
   }
 
-  grid.innerHTML = list.slice(0, 60).map(p => {
+  const visibleList = list.slice(0, posGridLimit);
+  grid.innerHTML = visibleList.map(p => {
     const q = posStock[p.id] || 0;
     const inCart = posCart.find(c => c.productId === p.id);
     const rupt = q === 0;
     const low = q > 0 && q <= (p.minStock || 10);
     const alts = rupt ? findGenericAlternatives(p) : [];
+    const isRx = p.requiresPrescription;
+    const marginInfo = isAdmin && p.purchasePrice ? `<span class="prod-margin">Marge: ${Math.round(((p.salePrice - p.purchasePrice) / p.salePrice) * 100)}%</span>` : '';
     return `<div class="prod-card ${rupt ? 'prod-rupt' : ''} ${inCart ? 'prod-incart' : ''} ${low ? 'prod-low' : ''}"
        onclick="${rupt ? (alts.length ? `showGenericAlternatives(${p.id})` : "UI.toast('Rupture de stock — aucune alternative DCI en stock','error')") : `addToCart(${p.id})`}">
       <div class="prod-top">
-        ${p.requiresPrescription ? '<span class="tag-rx">Rx</span>' : ''}
+        ${isRx ? '<span class="tag-rx">Rx</span>' : '<span class="tag-otc">OTC</span>'}
         ${p.isControlled ? '<span class="tag-rx" style="background:#e74c3c">SC</span>' : ''}
         ${inCart ? `<span class="tag-cart">${inCart.qty}</span>` : ''}
       </div>
       <div class="prod-cat">${p.category || ''}</div>
       <div class="prod-name">${p.name}</div>
       <div class="prod-dci">${p.dci || p.brand || ''}</div>
+      ${marginInfo}
       <div class="prod-foot">
         <span class="prod-price">${UI.formatCurrency(p.salePrice)}</span>
-        <span class="prod-stock ${rupt ? 's-rupt' : low ? 's-low' : 's-ok'}">${rupt ? (alts.length ? '<i data-lucide="repeat"></i> Alternatives' : '<i data-lucide="x-circle"></i> Rupture') : q + ' u.'}</span>
+        <span class="prod-stock ${rupt ? 's-rupt' : low ? 's-low' : 's-ok'}">${rupt ? (alts.length ? '<i data-lucide="repeat"></i> Alt.' : '<i data-lucide="x-circle"></i> Rupture') : (low ? '<i data-lucide="alert-triangle"></i> ' : '') + q + ' u.'}</span>
       </div>
+      ${!rupt ? '<div class="prod-add-hover"><i data-lucide="plus-circle"></i> Ajouter</div>' : ''}
     </div>`;
   }).join('');
+
+  // Scroll infini
+  if (list.length > posGridLimit) {
+    grid.insertAdjacentHTML('beforeend', `<div id="pos-load-more" class="grid-empty" style="cursor:pointer;padding:20px" onclick="posGridLimit+=60;refreshGrid()"><i data-lucide="chevrons-down"></i> Afficher plus (${list.length - posGridLimit} restants)</div>`);
+  }
   if (window.lucide) lucide.createIcons();
 }
 
@@ -565,6 +619,8 @@ function addToCart(productId) {
     isControlled: !!p.isControlled, controlledClass: p.controlledClass || null,
     fefoLotNumber: fefoLot?.lotNumber || null, fefoLotId: fefoLot?.id || null,
   });
+  // Feedback visuel + sonore
+  posAddFeedback(p.name);
   refreshCartUI(); refreshGrid();
 }
 
@@ -1938,6 +1994,94 @@ window.afficherRecu = afficherRecu;
 window.startBarcodeScan = startBarcodeScan;
 window.MobileMoneyGateway = MobileMoneyGateway;
 window.showGenericAlternatives = showGenericAlternatives;
+window.applySort = applySort;
+window.loadRecentSales = loadRecentSales;
+
+// ═══════════════════════════════════════════════════════════════════
+// FEEDBACK AJOUT PANIER — Son + Animation
+// ═══════════════════════════════════════════════════════════════════
+function posAddFeedback(productName) {
+  // Son bip court
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = 800;
+    gain.gain.value = 0.08;
+    osc.start(); osc.stop(ctx.currentTime + 0.08);
+  } catch (e) { /* AudioContext non disponible */ }
+
+  // Flash visuel sur le panier
+  const panel = document.getElementById('pos-cart-panel');
+  if (panel) {
+    panel.style.transition = 'box-shadow 0.2s ease';
+    panel.style.boxShadow = '0 0 0 3px var(--success), var(--shadow-md)';
+    setTimeout(() => { panel.style.boxShadow = 'var(--shadow-md)'; }, 400);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// RACCOURCIS CLAVIER — F2 = Scan, F5 = Valider, Échap = Vider
+// ═══════════════════════════════════════════════════════════════════
+function initKeyboardShortcuts() {
+  document.addEventListener('keydown', function _posKeys(e) {
+    // Ne pas interférer si on est dans un input/textarea/modal
+    const tag = document.activeElement?.tagName?.toLowerCase();
+    const inInput = tag === 'input' || tag === 'textarea' || tag === 'select';
+
+    if (e.key === 'F2') {
+      e.preventDefault();
+      if (typeof startBarcodeScan === 'function') startBarcodeScan();
+    }
+    if (e.key === 'F5') {
+      e.preventDefault();
+      if (typeof validerVente === 'function') validerVente();
+    }
+    if (e.key === 'Escape' && !inInput) {
+      e.preventDefault();
+      if (typeof viderPanier === 'function') viderPanier();
+    }
+    // Ctrl+F = Focus recherche
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+      e.preventDefault();
+      document.getElementById('pos-search')?.focus();
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// HISTORIQUE — 3 dernières ventes
+// ═══════════════════════════════════════════════════════════════════
+async function loadRecentSales() {
+  const el = document.getElementById('pos-recent-list');
+  if (!el) return;
+  try {
+    const sales = await DB.dbGetAll('sales');
+    const recent = sales
+      .filter(s => s.status !== 'cancelled')
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .slice(0, 3);
+
+    if (!recent.length) {
+      el.innerHTML = '<span style="opacity:0.5">Aucune vente récente</span>';
+      return;
+    }
+
+    el.innerHTML = recent.map(s => {
+      const d = new Date(s.date);
+      const time = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+      const payLabels = { cash: '💵', orange_money: '📱', mtn_momo: '📱', credit: '📝', assurance: '🛡️', combined: '🔀' };
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--bg)">
+        <span>${payLabels[s.paymentMethod] || '💰'} ${s.patientName || 'Client'}</span>
+        <span style="font-weight:700;color:var(--primary)">${UI.formatCurrency(s.total)}</span>
+        <span style="opacity:0.5">${time}</span>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    el.innerHTML = '<span style="opacity:0.5">—</span>';
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════════
 // SUBSTITUTION GÉNÉRIQUE — Popup alternatives DCI

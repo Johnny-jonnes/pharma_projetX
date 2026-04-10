@@ -119,6 +119,12 @@ const MobileMoneyGateway = (() => {
     if (!navigator.onLine) return { queued: true };
 
     // En production — AfricasTalking API réelle
+    // En mode démo (clé sandbox), on ne fait PAS l'appel pour éviter les erreurs CORS
+    if (CFG.sms.apiKey.startsWith('demo-') || CFG.sms.username === 'sandbox') {
+      // Mode démo : enregistrer en file d'attente sans appel réseau
+      return { queued: true, demo: true };
+    }
+
     try {
       const body = new URLSearchParams({
         username: CFG.sms.username,
@@ -134,15 +140,14 @@ const MobileMoneyGateway = (() => {
       const data = await resp.json();
       const recipient = data?.SMSMessageData?.Recipients?.[0];
       if (recipient?.status === 'Success') {
-
         return { success: true, messageId: recipient.messageId };
       } else {
         console.warn('[SMS] Échec:', recipient);
         return { success: false };
       }
     } catch (err) {
-      // API de démo non accessible — message enregistré en file
-      console.warn('[SMS] API indisponible (mode démo):', err.message);
+      // API non accessible — message enregistré en file
+      console.warn('[SMS] API indisponible:', err.message);
       return { queued: true };
     }
   }
