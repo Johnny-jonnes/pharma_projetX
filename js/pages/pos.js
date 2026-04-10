@@ -452,6 +452,7 @@ function renderFullPOSUI(container) {
   initPosSearch();
   initKeyboardShortcuts();
   loadRecentSales();
+  if (typeof mobileInitPOS === 'function') mobileInitPOS();
   document.getElementById('pos-search').focus();
 
   // Restore held cart
@@ -2198,3 +2199,106 @@ function showGenericAlternatives(productId) {
 }
 
 Router.register('pos', renderPOS);
+
+// ═══════════════════════════════════════════════════════════════════
+// MOBILE — Navigation 3 vues (Produits | Panier | Menu)
+// ═══════════════════════════════════════════════════════════════════
+let _mobileCurrentVue = 'produits';
+
+function mobileShowVue(vue) {
+  if (window.innerWidth > 767) return; // Desktop — pas de tab bar
+
+  _mobileCurrentVue = vue;
+  const posLeft = document.querySelector('.pos-left');
+  const posRight = document.querySelector('.pos-right');
+  const sidebar = document.getElementById('app-sidebar');
+  const cartPanel = document.querySelector('.pos-cart-panel');
+
+  // Cacher tous les panneaux
+  if (posLeft) posLeft.style.display = 'none';
+  if (posRight) posRight.style.display = 'none';
+
+  // Désactiver le mode panel glissant en mode tab
+  if (cartPanel) {
+    cartPanel.style.position = 'relative';
+    cartPanel.style.transform = 'none';
+    cartPanel.style.maxHeight = 'none';
+    cartPanel.style.boxShadow = 'none';
+    cartPanel.style.borderRadius = '0';
+  }
+
+  if (vue === 'produits') {
+    if (posLeft) posLeft.style.display = 'block';
+  } else if (vue === 'panier') {
+    if (posRight) posRight.style.display = 'block';
+    if (cartPanel) cartPanel.classList.add('expanded');
+  } else if (vue === 'menu') {
+    // Ouvrir la sidebar comme drawer
+    if (sidebar) sidebar.classList.add('open');
+    const overlay = document.getElementById('sidebar-overlay');
+    if (overlay) overlay.classList.add('active');
+    // Quand la sidebar se ferme, revenir à la vue précédente
+    _mobileCurrentVue = 'produits';
+  }
+
+  // Mettre à jour les onglets actifs
+  document.querySelectorAll('#mobile-pos-tabbar .tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.vue === vue);
+  });
+}
+
+function mobileUpdateCartBadge() {
+  const badge = document.getElementById('mobile-cart-badge');
+  if (!badge) return;
+  const count = posCart.reduce((a, c) => a + c.qty, 0);
+  if (count > 0) {
+    badge.style.display = 'flex';
+    badge.textContent = count > 99 ? '99+' : count;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// Afficher / masquer la tab bar quand on entre/quitte le POS
+function mobileInitPOS() {
+  const tabbar = document.getElementById('mobile-pos-tabbar');
+  if (window.innerWidth > 767 || !tabbar) return;
+
+  tabbar.style.display = 'flex';
+  mobileShowVue('produits');
+  mobileUpdateCartBadge();
+}
+
+function mobileCleanupPOS() {
+  const tabbar = document.getElementById('mobile-pos-tabbar');
+  if (tabbar) tabbar.style.display = 'none';
+
+  // Restaurer les styles normaux
+  const posLeft = document.querySelector('.pos-left');
+  const posRight = document.querySelector('.pos-right');
+  const cartPanel = document.querySelector('.pos-cart-panel');
+  if (posLeft) posLeft.style.display = '';
+  if (posRight) posRight.style.display = '';
+  if (cartPanel) {
+    cartPanel.style.position = '';
+    cartPanel.style.transform = '';
+    cartPanel.style.maxHeight = '';
+    cartPanel.style.boxShadow = '';
+    cartPanel.style.borderRadius = '';
+  }
+}
+
+// Hook dans refreshCartUI pour mettre à jour le badge
+const _origRefreshCartUI = refreshCartUI;
+window._refreshCartUI = refreshCartUI;
+refreshCartUI = function() {
+  _origRefreshCartUI();
+  mobileUpdateCartBadge();
+};
+
+// Exposer les fonctions globalement
+window.mobileShowVue = mobileShowVue;
+window.mobileInitPOS = mobileInitPOS;
+window.mobileCleanupPOS = mobileCleanupPOS;
+window.mobileUpdateCartBadge = mobileUpdateCartBadge;
+
