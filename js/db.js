@@ -712,38 +712,19 @@ async function pullFromSupabase() {
     }
 
     const storesToPull = [
-      { name: 'settings', dateField: 'last_updated_at' },
-      { name: 'users', dateField: 'created_at' },
-      { name: 'patients', dateField: 'created_at' },
-      { name: 'products', dateField: 'lastUrlScan' },
-      { name: 'stock', dateField: 'lastScan' },
-      { name: 'suppliers', dateField: 'created_at' },
-      { name: 'purchaseOrders', dateField: 'date' },
-      { name: 'sales', dateField: 'date' },
-      { name: 'saleItems', dateField: 'addedAt' },
-      { name: 'cashRegister', dateField: 'timestamp' },
-      { name: 'returns', dateField: 'date' },
-      { name: 'prescriptions', dateField: 'date' }
+      'products', 'lots', 'stock', 'movements', 'suppliers', 'purchaseOrders',
+      'sales', 'saleItems', 'patients', 'prescriptions', 'alerts',
+      'cashRegister', 'auditLog', 'users', 'settings', 'returns'
     ];
 
-    await Promise.all(storesToPull.map(async ({ name: storeName, dateField }) => {
+    await Promise.all(storesToPull.map(async (storeName) => {
       try {
-        const lastSync = localStorage.getItem(`pharma_last_sync_${storeName}`) || '1970-01-01T00:00:00.000Z';
-        
-        let query = sb.from(storeName === 'users' ? 'app_users' : storeName).select('*').gt(dateField || 'created_at', lastSync).order(dateField || 'created_at', { ascending: true }).limit(500);
-        const { data, error } = await query;
+        const { data, error } = await sb.from(storeName === 'users' ? 'app_users' : storeName).select('*');
 
         if (error) throw error;
 
         if (data && data.length > 0) {
           hasChanges = true;
-          const maxDate = data.reduce((max, item) => {
-            const itemDate = item[dateField || 'created_at'];
-            return (itemDate && itemDate > max) ? itemDate : max;
-          }, lastSync);
-
-          localStorage.setItem(`pharma_last_sync_${storeName}`, maxDate);
-
           for (const item of data) {
             try {
               let localItem = { ...item, _synced: true, _updatedAt: item.updatedAt || Date.now() };
@@ -762,6 +743,33 @@ async function pullFromSupabase() {
                   if (localItem[key] !== undefined && localItem[key] !== null) {
                     localItem[key] = String(localItem[key]);
                   }
+                }
+              }
+
+              // Handle unique constraints
+              if (storeName === 'products' && localItem.code) {
+                const existing = await dbGetAll('products', 'code', !!localItem.code ? localItem.code : undefined);
+                if (existing.length > 0) {
+                  await _dbPutRaw(storeName, { ...localItem, id: existing[0].id });
+                  continue;
+                }
+              }
+              if (storeName === 'stock' && localItem.productId) {
+                const existing = await dbGetAll('stock', 'productId', localItem.productId);
+                if (existing.length > 0) {
+                  await _dbPutRaw(storeName, { ...localItem, id: existing[0].id });
+                  continue;
+                }
+              }
+              if (storeName === 'settings' && localItem.key) {
+                await _dbPutRaw(storeName, localItem);
+                continue;
+              }
+              if (storeName === 'users' && localItem.username) {
+                const existing = await dbGetAll('users', 'username', localItem.username);
+                if (existing.length > 0) {
+                  await _dbPutRaw(storeName, { ...localItem, id: existing[0].id });
+                  continue;
                 }
               }
 
