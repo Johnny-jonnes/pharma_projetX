@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════
-   PHARMAPROJET — mobile.css  v3.5.0
+   PHARMAPROJET — mobile.css  v4.0.0
    Couche responsive mobile-first — additive sur main.css
    Ne jamais modifier main.css directement pour le responsive.
    ═══════════════════════════════════════════════════════════════
@@ -14,17 +14,22 @@
        1.4  Navigation / sidebar
        1.5  Page headers
        1.6  KPI Grid
-       1.7  Charts row
+       1.7  → Fusionné dans §1.15
        1.8  Tableaux → Card-view
        1.9  Boutons & zones tactiles
        1.10 Formulaires anti-zoom iOS
        1.11 Modaux
-       1.12 POS (améliorations)
-       1.13 Toasts
-       1.14 Composants divers
+       1.12 POS Ultra Pro Mobile (vente complète)
+       1.13 Paramètres & Settings
+       1.14 Caisse Journalière
+       1.15 Graphiques / Charts
+       1.16 Reçu / Facture Mobile
+       1.17 Toasts
+       1.18 Composants Divers (grilles, panels, etc.)
    §2  Micro-mobile  ≤ 374px
    §3  Tablette  768px – 1023px
    §4  PWA Standalone (safe-area)
+   §5  Utilitaires mobiles globaux
    ═══════════════════════════════════════════════════════════════ */
 
 
@@ -280,31 +285,7 @@ img, canvas, video, iframe {
   }
 
 
-  /* ─────────────────────────────────────────────────────────────
-     §1.7  CHARTS ROW — Stack vertical
-     ───────────────────────────────────────────────────────────── */
-
-  .charts-row {
-    grid-template-columns: 1fr !important;
-    gap: var(--gap-mobile) !important;
-    margin-bottom: 16px !important;
-  }
-
-  .chart-wide,
-  .chart-narrow {
-    grid-column: 1 !important;
-  }
-
-  /* Les canvas charts s'adaptent à 100% de largeur */
-  .chart-card canvas {
-    width: 100% !important;
-    height: auto !important;
-    max-height: 220px;
-  }
-
-  .chart-card {
-    padding: 14px !important;
-  }
+  /* §1.7 Charts → Déplacé vers §1.15 (Graphiques — Responsive charts) */
 
 
   /* ─────────────────────────────────────────────────────────────
@@ -987,6 +968,12 @@ img, canvas, video, iframe {
   .charts-row {
     grid-template-columns: 1fr !important;
     gap: 12px !important;
+    margin-bottom: 16px !important;
+  }
+
+  .chart-wide,
+  .chart-narrow {
+    grid-column: 1 !important;
   }
 
   .chart-card {
