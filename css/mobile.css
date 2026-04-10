@@ -655,82 +655,138 @@ img, canvas, video, iframe {
 
   /* ─────────────────────────────────────────────────────────────
      §1.12  POS — Point de Vente ULTRA PRO Mobile
-     Permet de vendre directement depuis un smartphone
+     Permet de vendre directement depuis un smartphone.
+     Architecture :
+       .pos-wrap          → 1 colonne (au lieu de 2)
+         .pos-left        → catalogue (recherche + catégories + grille)
+           .pos-searchbar → TOUJOURS 100% visible
+           .pos-catbar    → scroll horizontal
+           .pos-grid      → scroll horizontal gauche ↔ droite
+         .pos-right       → panier glissant fixé en bas
      ───────────────────────────────────────────────────────────── */
 
   /* Layout POS : stack vertical, pas de hauteur fixe */
   .pos-wrap {
-    grid-template-columns: 1fr !important;
+    display: flex !important;
+    flex-direction: column !important;
     height: auto !important;
-    overflow: visible !important;
+    overflow-x: hidden !important;   /* empêche tout débordement horizontal */
     gap: 0 !important;
+    width: 100% !important;
+    max-width: 100vw !important;
   }
 
-  /* Catalogue produits — pleine largeur */
+  /* Catalogue produits — pleine largeur, padding réduit */
   .pos-left {
-    padding-right: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 12px !important;
+    box-sizing: border-box !important;
     max-height: none !important;
     overflow: visible !important;
     min-height: auto !important;
+    border-radius: 0 !important;
+    background: var(--bg, #F1F5F9) !important;
   }
 
-  /* Grille produits — responsive auto-fill au lieu de forcer 2 colonnes */
-  .pos-grid {
-    grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)) !important;
-    gap: 12px !important;
-    padding: 8px 4px 100px 4px !important; /* Padding bas pour le panier glissant */
-    max-height: calc(100vh - 200px); /* Laisse scroller sous le panier */
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+  /* ── Barre de recherche POS — INTÉGRALEMENT visible ── */
+  .pos-searchbar {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    gap: 6px !important;
   }
 
-  /* Retrait des overrides agressifs sur .prod-card pour hériter du beau design main.css */
-  .pos-card {
-    touch-action: manipulation;
-    cursor: pointer;
+  .pos-searchfield {
+    flex: 1 !important;
+    min-width: 0 !important;       /* clé : permet au flex-child de rétrécir */
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 0 12px !important;
+    border-radius: 14px !important;
   }
 
-  .pos-card:active {
-    transform: scale(0.96);
-    transition: transform 0.08s ease;
-  }
-
-  /* Grid empty — centré */
-  .grid-empty {
-    padding: 30px 16px !important;
-    font-size: 13px !important;
-  }
-
-  /* Barre de recherche POS — grande pour le pouce */
-  .pos-search input,
   .pos-searchinput {
-    font-size: 16px !important;
-    min-height: 48px !important;
-    border-radius: 12px !important;
+    font-size: 16px !important;     /* anti-zoom iOS */
+    min-height: 46px !important;
+    width: 100% !important;
+    padding: 10px 0 !important;
   }
 
-  /* Filtres catégories POS — scroll horizontal */
-  .pos-categories,
+  .pos-searchbar > .btn {
+    flex-shrink: 0 !important;
+    width: 46px !important;
+    height: 46px !important;
+    padding: 0 !important;
+  }
+
+  /* ── Filtres catégories POS — scroll horizontal ── */
   .pos-catbar {
+    display: flex !important;
     overflow-x: auto !important;
     flex-wrap: nowrap !important;
     scrollbar-width: none;
     -ms-overflow-style: none;
     gap: 6px !important;
-    padding-bottom: 4px;
+    padding: 4px 0 6px !important;
+    width: 100% !important;
   }
 
-  .pos-categories::-webkit-scrollbar,
   .pos-catbar::-webkit-scrollbar {
     display: none;
   }
 
-  .pos-cat-btn {
+  .cat-pill {
     flex-shrink: 0 !important;
-    white-space: nowrap;
+    white-space: nowrap !important;
     font-size: 12px !important;
-    padding: 8px 14px !important;
+    padding: 7px 14px !important;
     min-height: 36px;
+  }
+
+  /* ── Grille médicaments → SCROLL HORIZONTAL (swipe ↔) ── */
+  .pos-grid {
+    display: flex !important;            /* flex au lieu de grid */
+    flex-wrap: nowrap !important;        /* tout sur une seule ligne */
+    overflow-x: auto !important;         /* scroll gauche ↔ droite */
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch;   /* scroll fluide iOS */
+    scroll-snap-type: x mandatory;       /* snap magnétique */
+    gap: 12px !important;
+    padding: 8px 4px 100px 4px !important; /* espace bas pour le panier */
+    width: 100% !important;
+    box-sizing: border-box !important;
+    scrollbar-width: none;               /* cache la scrollbar */
+  }
+
+  .pos-grid::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Carte produit — largeur fixe pour le scroll horizontal */
+  .pos-grid > .prod-card {
+    flex: 0 0 155px !important;          /* largeur fixe, ne rétrécit pas */
+    max-width: 155px !important;
+    min-height: 140px !important;
+    scroll-snap-align: start;            /* snap au début de chaque carte */
+    touch-action: pan-x !important;      /* priorité au glissement horizontal */
+  }
+
+  .prod-card:active {
+    transform: scale(0.96);
+    transition: transform 0.08s ease;
+  }
+
+  .prod-card:hover {
+    transform: none !important;          /* pas de hover sur mobile */
+  }
+
+  /* Grid empty — centré, occupe toute la largeur */
+  .grid-empty {
+    flex: 0 0 100% !important;
+    padding: 30px 16px !important;
+    font-size: 13px !important;
+    text-align: center;
   }
 
   /* Panier — Panel glissant fixé en bas */
