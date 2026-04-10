@@ -25,6 +25,8 @@ async function renderCaisse(container) {
   };
   
   let totalSalesCounted = 0;
+  let assuranceSales = 0;
+  let assuranceCount = 0;
   
   todaySalesRaw.forEach(s => {
     // Avoid counting fully pending credit sales in the daily cash register
@@ -41,12 +43,15 @@ async function renderCaisse(container) {
         });
     } else if (s.paymentMethod === 'assurance' && Array.isArray(s.paymentDetails)) {
         // Only count the patient part (ticket modérateur) into today's caisse
+        assuranceCount++;
         s.paymentDetails.forEach(d => {
             if (d.method !== 'assurance') { // This is the patient's payment
                 const m = d.method || 'cash';
                 if (!breakdown[m]) breakdown[m] = { count: 0, total: 0 };
                 breakdown[m].count++;
                 breakdown[m].total += d.amount || 0;
+            } else {
+                assuranceSales += d.amount || 0; // The debt part
             }
         });
     } else {
@@ -273,7 +278,7 @@ async function renderCaisse(container) {
           <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:16px; box-shadow:var(--shadow-sm);">
             <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px; color:var(--text);">
               <div style="background:rgba(46, 204, 113, 0.1); color:#2ECC71; padding:6px; border-radius:6px;"><i data-lucide="landmark" style="width:20px;height:20px;"></i></div>
-              <h4 style="margin:0; font-size:15px; font-weight:600;">Banque & Crédits Récents</h4>
+              <h4 style="margin:0; font-size:15px; font-weight:600;">Banque, Crédits & Assurances</h4>
             </div>
             <div style="display:flex; flex-direction:column; gap:8px; font-size:13px;">
               <div style="display:flex; justify-content:space-between;">
@@ -288,11 +293,19 @@ async function renderCaisse(container) {
               </div>
               <div style="background:rgba(52, 152, 219, 0.1); border-radius:6px; padding:10px;">
                 <div style="display:flex; justify-content:space-between; color:#3498DB; margin-bottom:4px;">
-                  <span style="font-weight:600;"><i data-lucide="file-text" style="width:14px;height:14px;vertical-align:text-bottom;margin-right:4px;"></i>Nouvelles dettes du jour</span>
+                  <span style="font-weight:600;"><i data-lucide="file-text" style="width:14px;height:14px;vertical-align:text-bottom;margin-right:4px;"></i>Créances à recouvrer du jour</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:14px; color:#2980B9; margin-bottom:4px; padding-bottom:4px; border-bottom:1px dashed rgba(52, 152, 219, 0.3);">
+                  <span>↳ ${breakdown.credit?.count || 0} Vente(s) à Crédit</span>
+                  <span>${UI.formatCurrency(creditSales)}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:14px; color:#27ae60; margin-bottom:6px;">
+                  <span>↳ ${assuranceCount} Couverture(s) Assurance</span>
+                  <span>${UI.formatCurrency(assuranceSales)}</span>
                 </div>
                 <div style="display:flex; justify-content:space-between; font-size:16px; font-weight:bold; color:#2980B9;">
-                  <span>${breakdown.credit?.count || 0} dossier(s)</span>
-                  <span>${UI.formatCurrency(creditSales)}</span>
+                  <span>Total Créances Créées</span>
+                  <span>${UI.formatCurrency(creditSales + assuranceSales)}</span>
                 </div>
               </div>
             </div>

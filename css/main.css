@@ -7566,6 +7566,10 @@ a:focus-visible {
   padding-top: 10px;
 }
 
+.totals-total span {
+  color: white !important;
+}
+
 .totals-total span:last-child {
   color: white !important;
   font-size: 22px;
@@ -7681,6 +7685,10 @@ a:focus-visible {
 }
 
 .pay-btn.active .pay-icon {
+  color: white;
+}
+
+.pay-btn.active .pay-name {
   color: white;
 }
 
