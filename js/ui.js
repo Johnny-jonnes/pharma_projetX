@@ -188,95 +188,164 @@ const UI = {
     return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
   },
 
-  // ── Sync Monitoring ──
+  // ── Sync Monitoring (Intelligent) ──
   async openSyncMonitor() {
-    const modal = document.getElementById('sync-monitor-modal');
-    const list = document.getElementById('sync-monitor-list');
-    document.getElementById('current-device-id-display').textContent = 'Votre ID : ' + (AppState.deviceId || 'Inconnu');
+    var modal = document.getElementById('sync-monitor-modal');
+    var list = document.getElementById('sync-monitor-list');
+    document.getElementById('current-device-id-display').textContent = 'ID : ' + (AppState.deviceId || '?');
     
     list.innerHTML = '<div style="text-align:center; padding: 20px;"><div class="spinner"></div><p>Analyse du réseau...</p></div>';
     modal.style.display = 'flex';
 
     if (!navigator.onLine) {
-        list.innerHTML = '<div class="alert alert-warning">Vous êtes actuellement hors ligne. Impossible de voir les autres appareils.</div>';
+        list.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted);"><i data-lucide="wifi-off" style="width:40px;height:40px;margin-bottom:8px;"></i><p>Vous êtes hors ligne</p></div>';
+        if (window.lucide) lucide.createIcons({ root: list });
         return;
     }
 
     try {
-        const sb = await getSupabaseClient();
-        if (!sb) throw new Error('Supabase déconnecté');
+        var sb = await getSupabaseClient();
+        if (!sb) throw new Error('Supabase non configuré');
 
-        const { data, error } = await sb.from('settings').select('value').like('key', 'device_status_%');
-        if (error) throw error;
+        var res = await sb.from('settings').select('key, value').like('key', 'device_status_%');
+        if (res.error) throw res.error;
+        var data = res.data || [];
 
-        let html = '';
-        let hasAlerts = false;
-        let totalDevices = data.length;
-        let onlineCount = 0;
-        let pendingCount = 0;
-        
-        data.forEach(row => {
+        // Parse tous les appareils
+        var allDevices = [];
+        data.forEach(function(row) {
             try {
-                const status = JSON.parse(row.value);
-                const isCurrent = status.name === AppState.deviceName;
-                const isOnline = status.online && (Date.now() - status.last_sync < 60 * 60 * 1000);
-                const hasPending = status.pending > 0;
-                
-                if (hasPending && !isCurrent) hasAlerts = true;
-                if (isOnline) onlineCount++;
-                if (hasPending) pendingCount++;
-
-                const statusColor = hasPending ? 'var(--warning)' : (isOnline ? 'var(--success)' : 'var(--text-muted)');
-                const statusIcon = hasPending ? 'alert-triangle' : (isOnline ? 'check-circle' : 'clock');
-                const lastSyncDate = new Date(status.last_sync).toLocaleString('fr-FR', {
-                    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
-                });
-
-                var deviceIcon = (status.type === 'mobile') ? 'smartphone' : 'monitor';
-
-                html += '<div style="display:flex; justify-content:space-between; align-items:center; padding: 12px; background: rgba(0,0,0,0.05); border-radius: 8px; border-left: 4px solid ' + statusColor + ';">'
-                   + '<div style="display:flex; align-items:center; gap: 10px;">'
-                   + '<i data-lucide="' + deviceIcon + '" style="width:24px; height:24px; color: ' + (isOnline ? 'var(--primary)' : 'var(--text-muted)') + '"></i>'
-                   + '<div>'
-                   + '<div style="font-weight:600;">' + status.name + ' ' + (isCurrent ? '<span class="badge badge-info" style="font-size:0.7em;">(Cet Appareil)</span>' : '') + '</div>'
-                   + '<div style="font-size:0.8rem; color:var(--text-muted);">Dernier contact : ' + lastSyncDate + '</div>'
-                   + '</div>'
-                   + '</div>'
-                   + '<div style="display:flex; flex-direction:column; align-items:flex-end; gap: 4px;">'
-                   + '<span class="badge" style="background: ' + statusColor + '; color: white; display:flex; align-items:center; gap:4px;">'
-                   + '<i data-lucide="' + statusIcon + '" style="width:14px;height:14px;"></i> '
-                   + (hasPending ? status.pending + ' En Attente' : (isOnline ? 'Synchronisé' : 'Hors Ligne'))
-                   + '</span>'
-                   + '</div>'
-                   + '</div>';
+                var s = JSON.parse(row.value);
+                s._key = row.key;
+                allDevices.push(s);
             } catch(e) {}
         });
 
-        if (html === '') {
-            html = '<div style="text-align:center; padding:20px;">Aucun périphérique trouvé sur le réseau.</div>';
-        }
+        // INTELLIGENCE : Dédupliquer par nom (garder le plus récent)
+        var byName = {};
+        allDevices.forEach(function(d) {
+            if (!byName[d.name] || d.last_sync > byName[d.name].last_sync) {
+                byName[d.name] = d;
+            }
+        });
+        var devices = Object.values(byName);
 
-        // Résumé en haut de la liste
-        var summaryHtml = '<div style="display:flex; justify-content:space-around; padding:12px; margin-bottom:12px; background:var(--surface); border-radius:8px; border:1px solid var(--border);">'  
-           + '<div style="text-align:center;"><div style="font-size:1.5rem; font-weight:800; color:var(--primary);">' + totalDevices + '</div><div style="font-size:0.75rem; color:var(--text-muted);">Appareils</div></div>'
-           + '<div style="text-align:center;"><div style="font-size:1.5rem; font-weight:800; color:var(--success);">' + onlineCount + '</div><div style="font-size:0.75rem; color:var(--text-muted);">En ligne</div></div>'
-           + '<div style="text-align:center;"><div style="font-size:1.5rem; font-weight:800; color:' + (pendingCount > 0 ? 'var(--warning)' : 'var(--text-muted)') + ';">' + pendingCount + '</div><div style="font-size:0.75rem; color:var(--text-muted);">En attente</div></div>'
+        // Trier : appareils actifs d'abord, puis par date
+        var now = Date.now();
+        var ACTIVE_THRESHOLD = 48 * 60 * 60 * 1000; // 48h
+        devices.sort(function(a, b) {
+            var aActive = (now - a.last_sync) < ACTIVE_THRESHOLD;
+            var bActive = (now - b.last_sync) < ACTIVE_THRESHOLD;
+            if (aActive && !bActive) return -1;
+            if (!aActive && bActive) return 1;
+            return b.last_sync - a.last_sync;
+        });
+
+        // Compteurs
+        var activeDevices = devices.filter(function(d) { return (now - d.last_sync) < ACTIVE_THRESHOLD; });
+        var onlineCount = 0;
+        var pendingCount = 0;
+        var hasAlerts = false;
+
+        activeDevices.forEach(function(d) {
+            if (d.online && (now - d.last_sync < 3600000)) onlineCount++;
+            if (d.pending > 0) { pendingCount++; if (d.name !== AppState.deviceName) hasAlerts = true; }
+        });
+
+        // SVG Icons professionnels
+        var pcSvg = '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>';
+        var mobileSvg = '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>';
+
+        // Résumé
+        var summaryHtml = '<div style="display:flex; justify-content:space-around; padding:16px; margin-bottom:16px; background:linear-gradient(135deg, rgba(46,134,193,0.08), rgba(46,134,193,0.02)); border-radius:12px; border:1px solid var(--border);">'
+           + '<div style="text-align:center;"><div style="font-size:2rem; font-weight:800; color:var(--primary);">' + activeDevices.length + '</div><div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px;">Appareils</div></div>'
+           + '<div style="width:1px; background:var(--border);"></div>'
+           + '<div style="text-align:center;"><div style="font-size:2rem; font-weight:800; color:var(--success);">' + onlineCount + '</div><div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px;">En ligne</div></div>'
+           + '<div style="width:1px; background:var(--border);"></div>'
+           + '<div style="text-align:center;"><div style="font-size:2rem; font-weight:800; color:' + (pendingCount > 0 ? 'var(--warning)' : 'var(--text-muted)') + ';">' + pendingCount + '</div><div style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px;">En attente</div></div>'
            + '</div>';
 
-        list.innerHTML = summaryHtml + html;
+        // Liste des appareils
+        var html = '';
+        devices.forEach(function(status) {
+            var isCurrent = status.name === AppState.deviceName;
+            var isActive = (now - status.last_sync) < ACTIVE_THRESHOLD;
+            var isOnline = status.online && (now - status.last_sync < 3600000);
+            var hasPending = status.pending > 0;
+
+            if (!isActive) return; // Masquer les appareils inactifs >48h
+
+            var icon = (status.type === 'mobile') ? mobileSvg : pcSvg;
+            var iconColor = isOnline ? 'var(--primary)' : 'var(--text-muted)';
+            var borderColor = hasPending ? 'var(--warning)' : (isOnline ? 'var(--success)' : '#ddd');
+
+            var statusLabel = hasPending ? '<span style="color:var(--warning); font-weight:700;">' + status.pending + ' en attente</span>'
+                            : (isOnline ? '<span style="color:var(--success); font-weight:600;">Synchronisé</span>'
+                            : '<span style="color:var(--text-muted);">Hors ligne</span>');
+
+            var timeDiff = now - status.last_sync;
+            var timeAgo = '';
+            if (timeDiff < 60000) timeAgo = 'À l\'instant';
+            else if (timeDiff < 3600000) timeAgo = Math.floor(timeDiff / 60000) + ' min';
+            else if (timeDiff < 86400000) timeAgo = Math.floor(timeDiff / 3600000) + 'h';
+            else timeAgo = Math.floor(timeDiff / 86400000) + 'j';
+
+            var pulseAnim = isOnline ? 'style="width:8px;height:8px;border-radius:50%;background:var(--success);box-shadow:0 0 0 0 rgba(34,197,94,0.4);animation:pulse 2s infinite;"' : 'style="width:8px;height:8px;border-radius:50%;background:#ccc;"';
+
+            html += '<div style="display:flex; align-items:center; gap:14px; padding:14px 16px; background:var(--surface); border-radius:12px; border:1px solid var(--border); border-left:4px solid ' + borderColor + '; transition:all 0.2s;">'
+               + '<div style="color:' + iconColor + '; flex-shrink:0;">' + icon + '</div>'
+               + '<div style="flex:1; min-width:0;">'
+               + '<div style="display:flex; align-items:center; gap:8px;">'
+               + '<span style="font-weight:700; font-size:0.95rem;">' + status.name + '</span>'
+               + (isCurrent ? '<span style="background:var(--primary); color:white; font-size:0.6rem; padding:2px 6px; border-radius:4px; font-weight:600;">VOUS</span>' : '')
+               + '<div ' + pulseAnim + '></div>'
+               + '</div>'
+               + '<div style="display:flex; align-items:center; gap:12px; margin-top:4px; font-size:0.8rem; color:var(--text-muted);">'
+               + '<span>' + (status.type === 'mobile' ? '📱 Mobile' : '🖥️ Bureau') + '</span>'
+               + '<span>·</span>'
+               + '<span>' + timeAgo + '</span>'
+               + '<span>·</span>'
+               + statusLabel
+               + '</div>'
+               + '</div>'
+               + '</div>';
+        });
+
+        if (html === '') {
+            html = '<div style="text-align:center; padding:30px; color:var(--text-muted);"><p>Aucun appareil actif détecté</p></div>';
+        }
+
+        // Nettoyer les anciens doublons dans Supabase (silencieux)
+        var staleKeys = [];
+        allDevices.forEach(function(d) {
+            if (byName[d.name] && byName[d.name]._key !== d._key) {
+                staleKeys.push(d._key);
+            }
+        });
+        if (staleKeys.length > 0) {
+            staleKeys.forEach(function(k) {
+                sb.from('settings').delete().eq('key', k).then(function(){}).catch(function(){});
+            });
+        }
+
+        // Pulse animation CSS
+        var styleTag = '<style>@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(34,197,94,0.4)}70%{box-shadow:0 0 0 6px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}</style>';
+
+        list.innerHTML = styleTag + summaryHtml + html;
         if (window.lucide) lucide.createIcons({ root: list });
 
-        const badge = document.getElementById('device-sync-badge');
-        const icon = document.getElementById('device-sync-icon');
-        if (badge && icon) {
-           icon.style.color = hasAlerts ? 'var(--warning)' : 'var(--success)';
-           badge.style.display = totalDevices > 0 ? 'inline-block' : 'none';
-           badge.textContent = totalDevices;
+        // Badge topbar
+        var badge = document.getElementById('device-sync-badge');
+        var iconEl = document.getElementById('device-sync-icon');
+        if (badge && iconEl) {
+           iconEl.style.color = hasAlerts ? 'var(--warning)' : 'var(--success)';
+           badge.style.display = activeDevices.length > 0 ? 'inline-block' : 'none';
+           badge.textContent = activeDevices.length;
            badge.style.background = hasAlerts ? 'var(--warning)' : 'var(--primary)';
         }
 
     } catch (e) {
-        list.innerHTML = '<div class="alert alert-danger">Erreur réseau: ' + e.message + '</div>';
+        list.innerHTML = '<div style="padding:20px; text-align:center; color:var(--danger);"><p>Erreur : ' + e.message + '</p></div>';
     }
   }
 };
