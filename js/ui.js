@@ -265,7 +265,7 @@ const UI = {
         // Liste des appareils
         var html = '';
         devices.forEach(function(status) {
-            var isCurrent = status.name === AppState.deviceName;
+            var isCurrent = status._key === ('device_status_' + AppState.deviceId);
             var isActive = (now - status.last_sync) < ACTIVE_THRESHOLD;
             var isOnline = status.online && (now - status.last_sync < 3600000);
             var hasPending = status.pending > 0;

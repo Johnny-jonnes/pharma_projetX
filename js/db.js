@@ -53,13 +53,18 @@ function _generateStableDeviceId() {
 }
 
 var _stableId = _generateStableDeviceId();
-// Si un ID existe déjà en localStorage, on le garde (rétrocompatibilité)
-// Sinon on utilise l'ID stable
-if (!localStorage.getItem('pharma_device_id')) {
+// Forcer la migration vers l'ID stable — supprimer l'ancien aléatoire
+var _oldDeviceId = localStorage.getItem('pharma_device_id');
+if (_oldDeviceId && _oldDeviceId !== _stableId) {
+  // Ancien ID aléatoire détecté — on le remplace et on nettoie
+  localStorage.setItem('pharma_device_id', _stableId);
+  // Supprimer l'ancienne entrée de Supabase au prochain sync
+  localStorage.setItem('pharma_old_device_key', 'device_status_' + _oldDeviceId);
+} else if (!_oldDeviceId) {
   localStorage.setItem('pharma_device_id', _stableId);
 }
 if (!localStorage.getItem('pharma_device_name')) {
-  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry/i.test(navigator.userAgent);
+  var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry/i.test(navigator.userAgent);
   localStorage.setItem('pharma_device_name', isMobile ? 'Mobile Pharmacien' : 'PC Principal');
 }
 
@@ -649,6 +654,16 @@ async function syncToSupabase() {
     } catch (heartbeatErr) {
       // Silently ignore heartbeat errors
     }
+
+    // 🧹 Nettoyer l'ancien device_id migré (si applicable)
+    try {
+      var oldKey = localStorage.getItem('pharma_old_device_key');
+      if (oldKey) {
+        await sb.from('settings').delete().eq('key', oldKey);
+        localStorage.removeItem('pharma_old_device_key');
+        console.log('[Flash] 🧹 Ancien appareil nettoyé : ' + oldKey);
+      }
+    } catch(e) {}
 
     console.log(`[Flash] ⚡ Sync terminée — ${totalPendingCount} éléments envoyés`);
   } catch (globalError) {
