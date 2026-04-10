@@ -791,17 +791,6 @@ async function pullFromSupabase() {
       await window.updatePharmacyDisplay();
     }
     
-    // 🔥 AUTO-RAFRAICHISSEMENT DES VUES SI NOUVELLES DONNEES 🔥
-    if (hasChanges && window.Router && Router.currentPage) {
-      const safeToRefresh = ['dashboard', 'sales', 'reports', 'caisse', 'stock', 'returns'];
-      if (safeToRefresh.includes(Router.currentPage)) {
-        console.log('[Flash] Rafraîchissement silencieux de l\'UI:', Router.currentPage);
-        window._isBackgroundRefresh = true;
-        Router.render(Router.currentPage);
-        setTimeout(() => { window._isBackgroundRefresh = false; }, 100);
-      }
-    }
-
   } catch (e) {
     if (!e.message?.includes('Failed to fetch')) {
       console.warn('[Flash] Pull general error:', e);
