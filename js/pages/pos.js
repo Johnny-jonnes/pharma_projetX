@@ -288,17 +288,30 @@ function renderFullPOSUI(container) {
         <!-- PAIEMENT -->
         <div class="pos-pay-block">
           <div class="pay-methods">
-            <button class="pay-btn active" data-m="cash" onclick="selectPay(this)">Espèces</button>
-            <button class="pay-btn" data-m="orange_money" onclick="selectPay(this)">O.Money</button>
-            <button class="pay-btn" data-m="mtn_momo" onclick="selectPay(this)">MTN</button>
-            <button class="pay-btn" data-m="combined" onclick="selectPay(this)">Combiné</button>
-            <button class="pay-btn" data-m="assurance" onclick="selectPay(this)">Assur.</button>
-            <button class="pay-btn" data-m="credit" onclick="selectPay(this)">Crédit</button>
+            <button class="pay-btn active" data-m="cash" onclick="selectPay(this)">
+              <i data-lucide="banknote"></i><span>Espèces</span>
+            </button>
+            <button class="pay-btn" data-m="orange_money" onclick="selectPay(this)">
+              <i data-lucide="smartphone"></i><span>O.Money</span>
+            </button>
+            <button class="pay-btn" data-m="mtn_momo" onclick="selectPay(this)">
+              <i data-lucide="smartphone"></i><span>MTN</span>
+            </button>
+            <button class="pay-btn" data-m="combined" onclick="selectPay(this)">
+              <i data-lucide="split"></i><span>Combiné</span>
+            </button>
+            <button class="pay-btn" data-m="assurance" onclick="selectPay(this)">
+              <i data-lucide="shield-plus"></i><span>Assur.</span>
+            </button>
+            <button class="pay-btn" data-m="credit" onclick="selectPay(this)">
+              <i data-lucide="file-clock"></i><span>Crédit</span>
+            </button>
           </div>
 
           <div id="pay-cash" class="pay-detail">
              <label class="pay-detail-label">Montant reçu</label>
              <input id="cash-in" type="number" class="pay-input" placeholder="0" oninput="refreshChange()">
+             <div id="cash-shortcuts" class="cash-quick" style="margin-top:10px"></div>
              <div class="pay-detail-row" style="margin-top:10px"><span>Rendu</span><strong id="cash-change">—</strong></div>
           </div>
 
@@ -620,6 +633,9 @@ function refreshTotals() {
   const el2 = document.getElementById('pos-total');
   if (el1) el1.textContent = UI.formatCurrency(sub);
   if (el2) el2.textContent = UI.formatCurrency(tot);
+
+  // Générer les raccourcis de paiement cash
+  if (typeof buildCashShortcuts === 'function') buildCashShortcuts(tot);
 
   // Protection marge : vérifier que la remise ne fait pas passer sous le prix d'achat
   const totalPurchase = posCart.reduce((a, c) => a + (c.purchasePrice || 0) * c.qty, 0);
