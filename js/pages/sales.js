@@ -222,25 +222,48 @@ async function viewSaleDetail(saleId) {
   `, { size: 'large' });
   if (window.lucide) lucide.createIcons();
 
-  // Injecter bouton retour si éligible (délai 72h)
-  const _RETURN_MS = 72 * 60 * 60 * 1000;
+  // Injecter les boutons d'actions supplémentaires (Facture & Retour)
   const _saleAge = Date.now() - new Date(sale.date).getTime();
+  const _RETURN_MS = 72 * 60 * 60 * 1000;
   const _canReturn = _saleAge <= _RETURN_MS
     && ['completed', 'paid'].includes(sale.status)
     && sale.returnStatus !== 'fully_returned'
     && DB.AppState.currentUser?.role !== 'caissier';
-  if (_canReturn && typeof openNewReturn === 'function') {
-    const _hoursLeft = Math.max(0, Math.round((_RETURN_MS - _saleAge) / 3600000));
-    const _footer = document.querySelector('.modal-footer');
-    if (_footer) {
-      const _btn = document.createElement('button');
-      _btn.className = 'btn btn-warning';
-      _btn.style.marginRight = 'auto';
-      _btn.innerHTML = `<i data-lucide="undo-2"></i> Initier un Retour <span style="font-size:0.78em;opacity:0.8;margin-left:4px">(${_hoursLeft}h restantes)</span>`;
-      _btn.onclick = () => { UI.closeModal(); setTimeout(() => openNewReturn(saleId), 200); };
-      _footer.insertBefore(_btn, _footer.firstChild);
-      if (window.lucide) lucide.createIcons();
+
+  const _footer = document.querySelector('.modal-footer');
+  if (_footer) {
+    _footer.style.justifyContent = 'space-between';
+
+    const _leftActions = document.createElement('div');
+    _leftActions.style.display = 'flex';
+    _leftActions.style.gap = '8px';
+
+    // Bouton de retour (si autorisé)
+    if (_canReturn && typeof openNewReturn === 'function') {
+      const _hoursLeft = Math.max(0, Math.round((_RETURN_MS - _saleAge) / 3600000));
+      const _btnR = document.createElement('button');
+      _btnR.className = 'btn btn-warning';
+      _btnR.innerHTML = `<i data-lucide="undo-2"></i> Initier un Retour <span style="font-size:0.78em;opacity:0.8;margin-left:4px">(${_hoursLeft}h)</span>`;
+      _btnR.onclick = () => { UI.closeModal(); setTimeout(() => openNewReturn(saleId), 200); };
+      _leftActions.appendChild(_btnR);
     }
+
+    // Bouton Facture PRO
+    const _btnFacture = document.createElement('button');
+    _btnFacture.className = 'btn btn-primary';
+    _btnFacture.innerHTML = `<i data-lucide="printer"></i> Imprimer Facture PRO`;
+    _btnFacture.onclick = () => { 
+      UI.closeModal(); 
+      if (typeof afficherRecu === 'function') {
+        setTimeout(() => afficherRecu(saleId, items, sale), 200); 
+      } else {
+        UI.toast('Module reçu indisponible', 'error');
+      }
+    };
+    _leftActions.appendChild(_btnFacture);
+
+    _footer.insertBefore(_leftActions, _footer.firstChild);
+    if (window.lucide) lucide.createIcons();
   }
 }
 
