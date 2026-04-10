@@ -780,7 +780,9 @@ async function pullFromSupabase() {
           }
         }
       } catch (storeErr) {
-        console.warn(`[Flash] Store error ${storeName}:`, storeErr);
+        if (!storeErr?.message?.includes('Failed to fetch')) {
+          console.warn(`[Flash] Store error ${storeName}:`, storeErr);
+        }
       }
     }));
 
