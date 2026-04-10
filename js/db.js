@@ -32,12 +32,23 @@ let db = null;
 let _supabaseInstance = null;
 
 // App state manager
+// Device Identity — chaque appareil (PC, Mobile) reçoit un ID unique
+if (!localStorage.getItem('pharma_device_id')) {
+  localStorage.setItem('pharma_device_id', 'DEV_' + Math.random().toString(36).substr(2, 9).toUpperCase());
+}
+if (!localStorage.getItem('pharma_device_name')) {
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry/i.test(navigator.userAgent);
+  localStorage.setItem('pharma_device_name', isMobile ? 'Mobile Pharmacien' : 'PC Principal');
+}
+
 const AppState = {
   currentUser: null,
   currentPage: 'dashboard',
   theme: 'light',
   isOnline: navigator.onLine,
   pendingSyncCount: 0,
+  deviceId: localStorage.getItem('pharma_device_id'),
+  deviceName: localStorage.getItem('pharma_device_name'),
 };
 
 async function getSupabaseClient() {
@@ -456,31 +467,26 @@ async function syncToSupabase() {
 
   try {
     const sb = await getSupabaseClient();
-    if (!sb) {
-
-      return;
-    }
-    if (!navigator.onLine) {
-
-      return;
-    }
+    if (!sb) return;
+    if (!navigator.onLine) return;
 
     const storesToSync = ['products', 'lots', 'stock', 'movements', 'suppliers', 'purchaseOrders', 'sales', 'saleItems', 'patients', 'prescriptions', 'alerts', 'cashRegister', 'auditLog', 'users', 'settings', 'returns'];
 
-    for (const storeName of storesToSync) {
+    let totalPendingCount = 0;
+
+    // ⚡ FLASH SEND — Envoi parallèle de toutes les tables simultanément
+    await Promise.all(storesToSync.map(async (storeName) => {
       try {
         const all = await dbGetAll(storeName);
         const pending = all.filter(item => item._synced === false);
 
-        if (pending.length === 0) continue;
-
-
+        if (pending.length === 0) return;
+        totalPendingCount += pending.length;
 
         const payloads = pending.map(item => {
           const payload = {};
           for (const [key, value] of Object.entries(item)) {
             if (!key.startsWith('_')) {
-              // Sensitive columns that MUST remain Strings (even if numeric)
               const mustBeString = [
                 'username', 'password', 'code', 'lotNumber', 'phone', 'dnpm',
                 'pharmacy_phone', 'pharmacy_dnpm', 'pharmacy_name', 'key', 'value'
@@ -491,14 +497,10 @@ async function syncToSupabase() {
                 continue;
               }
 
-              // Global BigInt safety for any numeric or session field
               if (typeof value === 'string') {
                 if (value.startsWith('session_')) {
-                  // Extract numeric part from session_123456789
                   payload[key] = parseInt(value.replace('session_', '')) || 1;
                 } else if (/^\d+$/.test(value) && !value.startsWith('0')) {
-                  // Only convert strings that are purely numeric TO integers IF they don't start with 0
-                  // (preserving leading zeros for codes, phones, and passwords)
                   payload[key] = parseInt(value);
                 } else {
                   payload[key] = value;
@@ -508,10 +510,8 @@ async function syncToSupabase() {
               }
             }
           }
-          // Mapping _updatedAt to updatedAt for Supabase
           if (item._updatedAt) payload.updatedAt = item._updatedAt;
 
-          // Ensure userId is never null ONLY for tables that have a userId column in Supabase
           const tablesWithUserId = ['sales', 'movements', 'cashRegister', 'auditLog'];
           if (tablesWithUserId.includes(storeName)) {
             if (payload.userId === undefined || payload.userId === null) {
@@ -522,10 +522,10 @@ async function syncToSupabase() {
           return payload;
         });
 
-        // --- Resilient upsert: retry once stripping unknown columns ---
+        // Resilient upsert with column stripping
         let currentPayloads = payloads;
         let retries = 0;
-        const maxRetries = 10; // Enough to strip all unknown columns (purchaseOrders has 7+)
+        const maxRetries = 10;
         let lastError = null;
 
         while (retries <= maxRetries) {
@@ -545,11 +545,10 @@ async function syncToSupabase() {
             break;
           }
 
-          // Check if it's a missing column error — strip column and retry
           const colMatch = (error.message || '').match(/Could not find the '([^']+)' column/);
           if (colMatch && retries < maxRetries) {
             const badCol = colMatch[1];
-            console.warn(`[Sync] ⚠️ ${storeName}: stripping unknown column '${badCol}' and retrying...`);
+            console.warn(`[Flash] ⚡ ${storeName}: stripping '${badCol}'...`);
             currentPayloads = currentPayloads.map(p => {
               const { [badCol]: _, ...rest } = p;
               return rest;
@@ -562,17 +561,33 @@ async function syncToSupabase() {
         }
 
         if (lastError) {
-          console.error(`[Sync] ❌ Error in ${storeName}:`, lastError.message || lastError);
-          if (AppState.currentPage === 'settings') {
-            UI.toast(`Sync failed for ${storeName}: ${lastError.message}`, 'error');
-          }
+          console.error(`[Flash] ❌ ${storeName}:`, lastError.message || lastError);
         }
       } catch (storeError) {
-        console.error(`[Sync] Exception in ${storeName}:`, storeError);
+        console.error(`[Flash] Exception ${storeName}:`, storeError);
       }
+    }));
+
+    // 📡 Push Device Heartbeat — permet aux autres appareils de voir notre état
+    try {
+      const deviceStatus = {
+        name: AppState.deviceName,
+        last_sync: Date.now(),
+        pending: 0, // Après sync réussie, tout est à jour
+        online: true
+      };
+      await sb.from('settings').upsert({
+        key: `device_status_${AppState.deviceId}`,
+        value: JSON.stringify(deviceStatus),
+        updatedAt: new Date().toISOString()
+      }, { onConflict: 'key' });
+    } catch (heartbeatErr) {
+      // Silently ignore heartbeat errors
     }
+
+    console.log(`[Flash] ⚡ Sync terminée — ${totalPendingCount} éléments envoyés`);
   } catch (globalError) {
-    console.error('[Sync] Critical sync error:', globalError);
+    console.error('[Flash] Critical sync error:', globalError);
   } finally {
     _syncInProgress = false;
   }
@@ -580,15 +595,15 @@ async function syncToSupabase() {
 
 /**
  * PULL : Download data from Supabase to local IndexedDB
+ * ⚡ Flash Retrieve — Récupération parallèle de toutes les tables
  */
 async function pullFromSupabase() {
   try {
     const sb = await getSupabaseClient();
     if (!sb || !navigator.onLine) {
-      console.warn('[Sync] Cannot pull: No Supabase client or offline.');
+      console.warn('[Flash] Cannot pull: No Supabase client or offline.');
       return;
     }
-
 
     const storesToPull = [
       'products', 'lots', 'stock', 'movements', 'suppliers', 'purchaseOrders',
@@ -596,87 +611,79 @@ async function pullFromSupabase() {
       'cashRegister', 'auditLog', 'users', 'settings', 'returns'
     ];
 
-    for (const storeName of storesToPull) {
+    // ⚡ Flash Retrieve — Toutes les tables en parallèle
+    await Promise.all(storesToPull.map(async (storeName) => {
+      try {
+        const { data, error } = await sb.from(storeName === 'users' ? 'app_users' : storeName).select('*');
 
-      const { data, error } = await sb.from(storeName === 'users' ? 'app_users' : storeName).select('*');
+        if (error) {
+          console.warn(`[Flash] Could not pull ${storeName}:`, error.message);
+          return;
+        }
 
-      if (error) {
-        console.warn(`[Sync] Could not pull ${storeName}:`, error.message);
-        continue;
-      }
+        if (data && data.length > 0) {
+          for (const item of data) {
+            try {
+              const localItem = { ...item, _synced: true, _updatedAt: item.updatedAt || Date.now() };
 
-      if (data && data.length > 0) {
-
-        for (const item of data) {
-          try {
-            // Meta-data transformation: map back to local convention
-            const localItem = { ...item, _synced: true, _updatedAt: item.updatedAt || Date.now() };
-
-            // CRITICAL: Force sensitive fields to String to prevent numeric breakage
-            const mustBeString = [
-              'username', 'password', 'code', 'lotNumber', 'phone', 'dnpm',
-              'pharmacy_phone', 'pharmacy_dnpm', 'pharmacy_name', 'key', 'value'
-            ];
-            for (const key of Object.keys(localItem)) {
-              if (mustBeString.includes(key) || (storeName === 'settings' && key === 'value')) {
-                if (localItem[key] !== undefined && localItem[key] !== null) {
-                  localItem[key] = String(localItem[key]);
+              const mustBeString = [
+                'username', 'password', 'code', 'lotNumber', 'phone', 'dnpm',
+                'pharmacy_phone', 'pharmacy_dnpm', 'pharmacy_name', 'key', 'value'
+              ];
+              for (const key of Object.keys(localItem)) {
+                if (mustBeString.includes(key) || (storeName === 'settings' && key === 'value')) {
+                  if (localItem[key] !== undefined && localItem[key] !== null) {
+                    localItem[key] = String(localItem[key]);
+                  }
                 }
               }
-            }
 
-            // CRITICAL: Handle unique constraints to avoid ConstraintError
-            if (storeName === 'products' && localItem.code) {
-              const existing = await dbGetAll('products', 'code', localItem.code);
-              if (existing.length > 0) {
-                // IMPORTANT: preserve local ID to update existing record instead of creating conflict
-                await _dbPutRaw(storeName, { ...localItem, id: existing[0].id });
-                continue;
+              // Handle unique constraints
+              if (storeName === 'products' && localItem.code) {
+                const existing = await dbGetAll('products', 'code', localItem.code);
+                if (existing.length > 0) {
+                  await _dbPutRaw(storeName, { ...localItem, id: existing[0].id });
+                  continue;
+                }
               }
-            }
-            if (storeName === 'stock' && localItem.productId) {
-              const existing = await dbGetAll('stock', 'productId', localItem.productId);
-              if (existing.length > 0) {
-                await _dbPutRaw(storeName, { ...localItem, id: existing[0].id });
-                continue;
+              if (storeName === 'stock' && localItem.productId) {
+                const existing = await dbGetAll('stock', 'productId', localItem.productId);
+                if (existing.length > 0) {
+                  await _dbPutRaw(storeName, { ...localItem, id: existing[0].id });
+                  continue;
+                }
               }
-            }
-            if (storeName === 'settings' && localItem.key) {
-              const existing = await DB.dbGet('settings', localItem.key);
-              if (existing) {
-                console.log(`[Sync] Updating setting: ${localItem.key}`);
+              if (storeName === 'settings' && localItem.key) {
                 await _dbPutRaw(storeName, localItem);
-              } else {
-                console.log(`[Sync] Adding new setting: ${localItem.key}`);
-                await _dbPutRaw(storeName, localItem);
-              }
-              continue;
-            }
-            if (storeName === 'users' && localItem.username) {
-              const existing = await dbGetAll('users', 'username', localItem.username);
-              if (existing.length > 0) {
-                // Cloud/Supabase version MUST overwrite local user (especially for passwords)
-                await _dbPutRaw(storeName, { ...localItem, id: existing[0].id });
                 continue;
               }
-            }
+              if (storeName === 'users' && localItem.username) {
+                const existing = await dbGetAll('users', 'username', localItem.username);
+                if (existing.length > 0) {
+                  await _dbPutRaw(storeName, { ...localItem, id: existing[0].id });
+                  continue;
+                }
+              }
 
-            // Fallback to standard put
-            await _dbPutRaw(storeName, localItem);
-          } catch (itemError) {
-            console.warn(`[Sync] Failed to pull item for store ${storeName}:`, itemError, item);
-            // We continue to next item
+              await _dbPutRaw(storeName, localItem);
+            } catch (itemError) {
+              // Continue to next item silently
+            }
           }
         }
+      } catch (storeErr) {
+        console.warn(`[Flash] Store error ${storeName}:`, storeErr);
       }
-    }
+    }));
+
+    console.log('[Flash] ⚡ Pull terminé — données locales à jour');
 
     // Final refresh of display if settings were updated
     if (window.updatePharmacyDisplay) {
       await window.updatePharmacyDisplay();
     }
   } catch (e) {
-    console.error('[Sync] Pull failed:', e);
+    console.error('[Flash] Pull failed:', e);
   }
 }
 
@@ -919,4 +926,4 @@ if (typeof indexedDB !== 'undefined') {
   });
 }
 
-window.DB = { initDB, dbAdd, dbPut, dbGet, dbGetAll, dbGetRecent, dbDelete, dbCount, writeAudit, seedDemoData, syncToSupabase, pullFromSupabase, resetSupabaseClient, forceSyncAll, trackInstallation, STORES, AppState, doBackup, startAutoBackup, startAutoPull, autoBackupToStorage, restoreFromBackup };
+window.DB = { initDB, dbAdd, dbPut, dbGet, dbGetAll, dbGetRecent, dbDelete, dbCount, writeAudit, seedDemoData, syncToSupabase, pullFromSupabase, resetSupabaseClient, forceSyncAll, trackInstallation, getSupabaseClient, STORES, AppState, doBackup, startAutoBackup, startAutoPull, autoBackupToStorage, restoreFromBackup };

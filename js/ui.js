@@ -186,6 +186,85 @@ const UI = {
 
   getThemeColor(varName) {
     return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+  },
+
+  // ── Sync Monitoring ──
+  async openSyncMonitor() {
+    const modal = document.getElementById('sync-monitor-modal');
+    const list = document.getElementById('sync-monitor-list');
+    document.getElementById('current-device-id-display').textContent = 'Votre ID : ' + (AppState.deviceId || 'Inconnu');
+    
+    // UI Loading state
+    list.innerHTML = '<div style="text-align:center; padding: 20px;"><div class="spinner"></div><p>Analyse du réseau...</p></div>';
+    modal.style.display = 'flex';
+
+    if (!navigator.onLine) {
+        list.innerHTML = '<div class="alert alert-warning">Vous êtes actuellement hors ligne. Impossible de voir les autres appareils.</div>';
+        return;
+    }
+
+    try {
+        const sb = await getSupabaseClient();
+        if (!sb) throw new Error('Supabase déconnecté');
+
+        const { data, error } = await sb.from('settings').select('value').like('key', 'device_status_%');
+        if (error) throw error;
+
+        let html = '';
+        let hasAlerts = false;
+        
+        data.forEach(row => {
+            try {
+                const status = JSON.parse(row.value);
+                const isCurrent = status.name === AppState.deviceName;
+                const isOnline = status.online && (Date.now() - status.last_sync < 60 * 60 * 1000); // Online if synced in last hour
+                const hasPending = status.pending > 0;
+                
+                if (hasPending && !isCurrent) hasAlerts = true;
+
+                const statusColor = hasPending ? 'var(--warning)' : (isOnline ? 'var(--success)' : 'var(--text-muted)');
+                const statusIcon = hasPending ? 'alert-triangle' : (isOnline ? 'check-circle' : 'clock');
+                const lastSyncDate = new Date(status.last_sync).toLocaleString('fr-FR', {
+                    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+                });
+
+                html += \`
+                <div style="display:flex; justify-content:space-between; align-items:center; padding: 12px; background: rgba(0,0,0,0.05); border-radius: 8px; border-left: 4px solid \${statusColor};">
+                   <div style="display:flex; align-items:center; gap: 10px;">
+                      <i data-lucide="monitor" style="color: \${isOnline ? 'var(--primary)' : 'var(--text-muted)'}"></i>
+                      <div>
+                         <div style="font-weight:600;">\${status.name} \${isCurrent ? '<span class="badge badge-info" style="font-size:0.7em;">(Cet Appareil)</span>' : ''}</div>
+                         <div style="font-size:0.8rem; color:var(--text-muted);">Dernier contact : \${lastSyncDate}</div>
+                      </div>
+                   </div>
+                   <div style="display:flex; flex-direction:column; align-items:flex-end; gap: 4px;">
+                      <span class="badge" style="background: \${statusColor}; color: white; display:flex; align-items:center; gap:4px;">
+                         <i data-lucide="\${statusIcon}" style="width:14px;height:14px;"></i> 
+                         \${hasPending ? status.pending + ' En Attente' : (isOnline ? 'Synchronisé' : 'Hors Ligne')}
+                      </span>
+                   </div>
+                </div>\`;
+            } catch(e) {}
+        });
+
+        if (html === '') {
+            html = '<div style="text-align:center; padding:20px;">Aucun périphérique trouvé sur le réseau.</div>';
+        }
+
+        list.innerHTML = html;
+        if (window.lucide) lucide.createIcons({ root: list });
+
+        // Update badge
+        const badge = document.getElementById('device-sync-badge');
+        const icon = document.getElementById('device-sync-icon');
+        if (badge && icon) {
+           icon.style.color = hasAlerts ? 'var(--warning)' : 'var(--success)';
+           badge.style.display = hasAlerts ? 'inline-block' : 'none';
+        }
+
+    } catch (e) {
+        list.innerHTML = \`<div class="alert alert-danger">Erreur réseau: \${e.message}</div>\`;
+    }
   }
 };
 

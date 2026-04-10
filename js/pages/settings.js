@@ -265,6 +265,21 @@ async function renderSettings(container) {
              </div>
           </div>
           <hr style="margin: 1rem 0; opacity: 0.1;">
+          <h4 style="margin-bottom: 0.5rem; font-size: 0.9rem;"><i data-lucide="monitor" style="width:16px;height:16px;vertical-align:middle;margin-right:4px;"></i> Identité de cet Appareil</h4>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">Donnez un nom unique à cet appareil pour le distinguer dans le Moniteur de Réseau.</p>
+          <div class="form-grid" style="margin-bottom: 16px;">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Nom de l'appareil</label>
+                <input type="text" id="device-name-input" class="form-control" value="${localStorage.getItem('pharma_device_name') || 'Caisse 1'}" placeholder="Ex: PC Principal, Mobile Vente...">
+              </div>
+              <div class="form-group" style="display:flex;align-items:flex-end;">
+                <button type="button" class="btn btn-sm btn-primary" onclick="saveDeviceName()"><i data-lucide="save"></i> Enregistrer le nom</button>
+              </div>
+            </div>
+            <div style="font-size:0.75rem; color:var(--text-muted)">ID Appareil : <code>${localStorage.getItem('pharma_device_id') || 'N/A'}</code></div>
+          </div>
+          <hr style="margin: 1rem 0; opacity: 0.1;">
           <h4 style="margin-bottom: 0.5rem; font-size: 0.9rem;">Configuration Supabase (Cloud Sync)</h4>
           <form id="supabase-config-form" class="form-grid">
             <div class="form-group">
@@ -657,6 +672,20 @@ window.doBackup = doBackup;
 window.restoreBackup = restoreBackup;
 window.repairSync = repairSync;
 window.triggerPull = triggerPull;
+
+function saveDeviceName() {
+  const input = document.getElementById('device-name-input');
+  if (!input || !input.value.trim()) {
+    UI.toast('Veuillez entrer un nom pour cet appareil', 'warning');
+    return;
+  }
+  const name = input.value.trim();
+  localStorage.setItem('pharma_device_name', name);
+  if (DB.AppState) DB.AppState.deviceName = name;
+  UI.toast(`Appareil renommé : "${name}"`, 'success');
+}
+
+window.saveDeviceName = saveDeviceName;
 
 Router.register('login', renderLogin);
 Router.register('settings', renderSettings);

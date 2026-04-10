@@ -100,8 +100,34 @@ function findGenericAlternatives(product) {
 // Route registration is at the bottom of this file
 
 // ═══════════════════════════════════════════════════════════════════
-// RENDU PRINCIPAL
+// RENDU PRINCIPAL & VÉRIFICATION SYNC
 // ═══════════════════════════════════════════════════════════════════
+async function checkSyncConflicts() {
+   try {
+       const sb = await getSupabaseClient();
+       if (!sb || !navigator.onLine) return false;
+       
+       const { data, error } = await sb.from('settings').select('value').like('key', 'device_status_%');
+       if (error) return false;
+       
+       let hasPendingOtherDevice = false;
+       const localDeviceName = localStorage.getItem('pharma_device_name');
+       
+       for(const row of data) {
+           try {
+               const status = JSON.parse(row.value);
+               if (status.name !== localDeviceName && status.pending > 0) {
+                   hasPendingOtherDevice = true;
+                   break;
+               }
+           } catch(e) {}
+       }
+       return hasPendingOtherDevice;
+   } catch(e) {
+       return false;
+   }
+}
+
 async function renderPOS(container) {
   posCart = [];
   posCurrentPatient = null;
@@ -123,8 +149,19 @@ async function renderPOS(container) {
   window._posPatients = patients;
   window._posPrescriptions = prescriptions.filter(rx => ['pending', 'validated'].includes(rx.status));
 
+  // Vérifier s'il y a des conflits de synchro sur le réseau
+  const hasSyncWarning = await checkSyncConflicts();
+
   container.innerHTML = `
     <div class="pos-wrap">
+
+      <!-- Alert Sync Pending -->
+      <div id="pos-sync-warning" style="display:${hasSyncWarning ? 'block' : 'none'}; grid-column: 1 / -1; margin-bottom: 15px; background: rgba(239, 68, 68, 0.1); border-left: 4px solid var(--danger); padding: 12px 16px; border-radius: 8px;">
+          <div style="display:flex; align-items:center; gap: 10px; color: var(--danger); font-weight: 600;">
+              <i data-lucide="alert-octagon"></i>
+              <span>Attention : Un autre appareil possède des données non synchronisées. Le stock affiché pourrait être inexact.</span>
+          </div>
+      </div>
 
       <!-- ══ GAUCHE : Catalogue ══ -->
       <div class="pos-left">
