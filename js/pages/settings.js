@@ -697,7 +697,11 @@ function saveDeviceName() {
   const name = input.value.trim();
   localStorage.setItem('pharma_device_name', name);
   if (DB.AppState) DB.AppState.deviceName = name;
-  UI.toast(`Appareil renommé : "${name}"`, 'success');
+  UI.toast('Appareil renommé : "' + name + '"', 'success');
+  // Pousser le nouveau nom vers Supabase immédiatement
+  if (DB.syncToSupabase) {
+    DB.syncToSupabase();
+  }
 }
 
 window.saveDeviceName = saveDeviceName;
