@@ -711,16 +711,23 @@ async function loadDeviceCount() {
     if (!sb) { el.textContent = 'Non configuré'; return; }
     const { data, error } = await sb.from('settings').select('value').like('key', 'device_status_%');
     if (error) { el.textContent = 'Erreur'; return; }
-    var count = data ? data.length : 0;
-    var onlineNow = 0;
-    if (data) {
-      data.forEach(function(row) {
-        try {
-          var s = JSON.parse(row.value);
-          if (s.online && (Date.now() - s.last_sync < 3600000)) onlineNow++;
-        } catch(e) {}
-      });
-    }
+
+    // Même logique de déduplication que le Moniteur
+    var byName = {};
+    var now = Date.now();
+    var ACTIVE_THRESHOLD = 48 * 3600000;
+    (data || []).forEach(function(row) {
+      try {
+        var s = JSON.parse(row.value);
+        if (!byName[s.name] || s.last_sync > byName[s.name].last_sync) {
+          byName[s.name] = s;
+        }
+      } catch(e) {}
+    });
+    var devices = Object.values(byName).filter(function(d) { return (now - d.last_sync) < ACTIVE_THRESHOLD; });
+    var count = devices.length;
+    var onlineNow = devices.filter(function(d) { return d.online && (now - d.last_sync < 3600000); }).length;
+
     el.textContent = count + ' appareil' + (count > 1 ? 's' : '') + ' (' + onlineNow + ' en ligne)';
     el.className = 'badge ' + (count > 1 ? 'badge-warning' : 'badge-info');
     el.style.fontSize = '0.85rem';
