@@ -688,7 +688,7 @@ window.restoreBackup = restoreBackup;
 window.repairSync = repairSync;
 window.triggerPull = triggerPull;
 
-function saveDeviceName() {
+async function saveDeviceName() {
   const input = document.getElementById('device-name-input');
   if (!input || !input.value.trim()) {
     UI.toast('Veuillez entrer un nom pour cet appareil', 'warning');
@@ -697,10 +697,31 @@ function saveDeviceName() {
   const name = input.value.trim();
   localStorage.setItem('pharma_device_name', name);
   if (DB.AppState) DB.AppState.deviceName = name;
-  UI.toast('Appareil renommé : "' + name + '"', 'success');
-  // Pousser le nouveau nom vers Supabase immédiatement
-  if (DB.syncToSupabase) {
-    DB.syncToSupabase();
+
+  // Pousser le nouveau nom DIRECTEMENT vers Supabase
+  try {
+    var sb = await getSupabaseClient();
+    if (sb) {
+      var deviceId = localStorage.getItem('pharma_device_id');
+      var isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry/i.test(navigator.userAgent);
+      var heartbeat = {
+        key: 'device_status_' + deviceId,
+        value: JSON.stringify({
+          name: name,
+          last_sync: Date.now(),
+          pending: 0,
+          online: true,
+          type: isMobileDevice ? 'mobile' : 'desktop'
+        })
+      };
+      await sb.from('settings').upsert(heartbeat, { onConflict: 'key' });
+      UI.toast('✅ "' + name + '" — nom synchronisé !', 'success');
+      console.log('[Device] ✅ Nom mis à jour vers Supabase : ' + name);
+    } else {
+      UI.toast('Nom sauvegardé localement (pas de connexion cloud)', 'info');
+    }
+  } catch(e) {
+    UI.toast('Nom sauvegardé localement. Sync au prochain démarrage.', 'info');
   }
 }
 
