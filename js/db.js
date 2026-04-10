@@ -474,6 +474,10 @@ async function syncToSupabase() {
 
     let totalPendingCount = 0;
 
+    // Cache des colonnes invalides : éviter les 400 inutiles
+    var _colCache = {};
+    try { _colCache = JSON.parse(localStorage.getItem('pharma_bad_columns') || '{}'); } catch(e) {}
+
     // ⚡ FLASH SEND — Envoi parallèle de toutes les tables simultanément
     await Promise.all(storesToSync.map(async (storeName) => {
       try {
@@ -524,6 +528,16 @@ async function syncToSupabase() {
 
         // Resilient upsert with column stripping
         let currentPayloads = payloads;
+        // Pré-filtrer les colonnes connues comme invalides (depuis le cache)
+        var badCols = _colCache[storeName] || [];
+        if (badCols.length > 0) {
+          currentPayloads = currentPayloads.map(function(p) {
+            var clean = Object.assign({}, p);
+            badCols.forEach(function(c) { delete clean[c]; });
+            return clean;
+          });
+        }
+
         let retries = 0;
         const maxRetries = 10;
         let lastError = null;
@@ -548,11 +562,15 @@ async function syncToSupabase() {
           const colMatch = (error.message || '').match(/Could not find the '([^']+)' column/);
           if (colMatch && retries < maxRetries) {
             const badCol = colMatch[1];
-            console.warn(`[Flash] ⚡ ${storeName}: stripping '${badCol}'...`);
+            console.warn('[Flash] ⚡ ' + storeName + ': stripping \'' + badCol + '\' (cached)');
             currentPayloads = currentPayloads.map(p => {
               const { [badCol]: _, ...rest } = p;
               return rest;
             });
+            // Sauvegarder dans le cache
+            if (!_colCache[storeName]) _colCache[storeName] = [];
+            if (!_colCache[storeName].includes(badCol)) _colCache[storeName].push(badCol);
+            localStorage.setItem('pharma_bad_columns', JSON.stringify(_colCache));
             retries++;
           } else {
             lastError = error;
@@ -570,16 +588,21 @@ async function syncToSupabase() {
 
     // 📡 Push Device Heartbeat — permet aux autres appareils de voir notre état
     try {
+      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry/i.test(navigator.userAgent);
       const deviceStatus = {
         name: AppState.deviceName,
         last_sync: Date.now(),
         pending: 0,
-        online: true
+        online: true,
+        type: isMobileDevice ? 'mobile' : 'desktop'
       };
       var hbPayload = {
         key: 'device_status_' + AppState.deviceId,
         value: JSON.stringify(deviceStatus)
       };
+      // Pré-filtrer les colonnes invalides connues pour settings
+      var settingsBadCols = _colCache['settings'] || [];
+      settingsBadCols.forEach(function(c) { delete hbPayload[c]; });
       // Retry avec suppression de colonnes inconnues (comme le sync principal)
       for (var hbRetry = 0; hbRetry < 3; hbRetry++) {
         var hbRes = await sb.from('settings').upsert(hbPayload, { onConflict: 'key' });

@@ -232,9 +232,11 @@ const UI = {
                     day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
                 });
 
+                var deviceIcon = (status.type === 'mobile') ? 'smartphone' : 'monitor';
+
                 html += '<div style="display:flex; justify-content:space-between; align-items:center; padding: 12px; background: rgba(0,0,0,0.05); border-radius: 8px; border-left: 4px solid ' + statusColor + ';">'
                    + '<div style="display:flex; align-items:center; gap: 10px;">'
-                   + '<i data-lucide="monitor" style="color: ' + (isOnline ? 'var(--primary)' : 'var(--text-muted)') + '"></i>'
+                   + '<i data-lucide="' + deviceIcon + '" style="width:24px; height:24px; color: ' + (isOnline ? 'var(--primary)' : 'var(--text-muted)') + '"></i>'
                    + '<div>'
                    + '<div style="font-weight:600;">' + status.name + ' ' + (isCurrent ? '<span class="badge badge-info" style="font-size:0.7em;">(Cet Appareil)</span>' : '') + '</div>'
                    + '<div style="font-size:0.8rem; color:var(--text-muted);">Dernier contact : ' + lastSyncDate + '</div>'
