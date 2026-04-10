@@ -1471,6 +1471,23 @@ async function validerVente() {
 
     await DB.writeAudit('SALE', 'sales', saleId, { total, items: posCart.length, method, patient: posCurrentPatient?.name });
 
+    // ── ASSURANCE : Enregistrer la part patient en caisse immédiatement ──
+    if (method === 'assurance' && patientPart > 0) {
+      const pMethod = document.getElementById('assur-patient-method')?.value || 'cash';
+      const today = new Date().toISOString().split('T')[0];
+      try {
+        await DB.dbAdd('cashRegister', {
+          type: 'sale',
+          amount: patientPart,
+          paymentMethod: pMethod,
+          reason: `Ticket modérateur — Vente #${String(saleId).padStart(6, '0')} · ${posCurrentPatient?.name || 'Patient'} (Part patient sur assurance ${saleData.assuranceName || ''})`,
+          date: today,
+          timestamp: Date.now(),
+          userId: DB.AppState.currentUser?.id,
+        });
+      } catch (e) { console.warn('[Caisse] Erreur enregistrement ticket modérateur:', e); }
+    }
+
     // Envoi SMS reçu après paiement confirmé
     if (['orange_money', 'mtn_momo'].includes(method) && saleData.mmPhone) {
       await MobileMoneyGateway.sendSMSReceipt(saleData.mmPhone, method, total, saleId);
