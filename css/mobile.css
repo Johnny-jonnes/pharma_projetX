@@ -744,32 +744,60 @@ img, canvas, video, iframe {
     min-height: 36px;
   }
 
-  /* ── Grille médicaments → SCROLL HORIZONTAL (swipe ↔) ── */
+  /* ── Grille médicaments → Grille 2 colonnes, scroll vertical ──
+     Approche professionnelle type e-commerce (Amazon, Jumia).
+     Même avec 1000+ produits, le scroll vertical reste fluide.
+     Le pharmacien utilise la recherche et les catégories pour filtrer. */
   .pos-grid {
-    display: flex !important;            /* flex au lieu de grid */
-    flex-wrap: nowrap !important;        /* tout sur une seule ligne */
-    overflow-x: auto !important;         /* scroll gauche ↔ droite */
-    overflow-y: hidden !important;
-    -webkit-overflow-scrolling: touch;   /* scroll fluide iOS */
-    scroll-snap-type: x mandatory;       /* snap magnétique */
-    gap: 12px !important;
-    padding: 8px 4px 100px 4px !important; /* espace bas pour le panier */
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+    padding: 8px 2px 110px 2px !important; /* espace bas pour le panier */
+    max-height: calc(100vh - 230px);       /* hauteur dispo sous recherche+catégories */
+    overflow-y: auto !important;           /* scroll vertical naturel */
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch;     /* scroll fluide iOS */
     width: 100% !important;
     box-sizing: border-box !important;
-    scrollbar-width: none;               /* cache la scrollbar */
+    scrollbar-width: thin;
+    align-content: start;
   }
 
-  .pos-grid::-webkit-scrollbar {
-    display: none;
-  }
-
-  /* Carte produit — largeur fixe pour le scroll horizontal */
+  /* Carte produit — s'adapte à la colonne, design compact et lisible */
   .pos-grid > .prod-card {
-    flex: 0 0 155px !important;          /* largeur fixe, ne rétrécit pas */
-    max-width: 155px !important;
-    min-height: 140px !important;
-    scroll-snap-align: start;            /* snap au début de chaque carte */
-    touch-action: pan-x !important;      /* priorité au glissement horizontal */
+    min-height: 0 !important;
+    padding: 10px !important;
+    border-radius: 12px !important;
+    touch-action: manipulation !important;
+  }
+
+  /* Texte du nom — 2 lignes max, tronqué proprement */
+  .pos-grid > .prod-card .prod-name {
+    font-size: 12px !important;
+    line-height: 1.3 !important;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .pos-grid > .prod-card .prod-dci {
+    font-size: 10px !important;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .pos-grid > .prod-card .prod-price {
+    font-size: 12px !important;
+    font-weight: 700 !important;
+  }
+
+  .pos-grid > .prod-card .prod-stock {
+    font-size: 9px !important;
   }
 
   .prod-card:active {
@@ -781,9 +809,9 @@ img, canvas, video, iframe {
     transform: none !important;          /* pas de hover sur mobile */
   }
 
-  /* Grid empty — centré, occupe toute la largeur */
+  /* Grid empty — centré */
   .grid-empty {
-    flex: 0 0 100% !important;
+    grid-column: 1 / -1 !important;
     padding: 30px 16px !important;
     font-size: 13px !important;
     text-align: center;
