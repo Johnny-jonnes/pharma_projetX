@@ -631,46 +631,451 @@ img, canvas, video, iframe {
 
 
   /* ─────────────────────────────────────────────────────────────
-     §1.12  POS — Améliorations du point de vente
-     (base dans main.css lignes 8987–9053)
+     §1.12  POS — Point de Vente ULTRA PRO Mobile
+     Permet de vendre directement depuis un smartphone
      ───────────────────────────────────────────────────────────── */
 
-  /* Grille produits — 2 colonnes serrées */
-  .pos-grid {
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)) !important;
-    gap: 10px !important;
+  /* Layout POS : stack vertical, pas de hauteur fixe */
+  .pos-layout {
+    grid-template-columns: 1fr !important;
+    height: auto !important;
+    overflow: visible !important;
+    gap: 0 !important;
   }
 
-  /* Carte produit POS */
+  /* Catalogue produits — pleine largeur */
+  .pos-left {
+    padding-right: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    min-height: auto !important;
+  }
+
+  /* Grille produits — 2 colonnes adaptées au doigt */
+  .pos-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+    padding: 8px 0 !important;
+    max-height: 45vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Carte produit POS — compacte et tactile */
   .pos-card {
     padding: 10px 8px !important;
     touch-action: manipulation;
     cursor: pointer;
+    border-radius: 10px !important;
   }
 
   .pos-card:active {
-    transform: scale(0.97);
+    transform: scale(0.96);
     transition: transform 0.08s ease;
   }
 
-  /* Panneau panier — safe area bas */
+  .pos-card-name {
+    font-size: 12px !important;
+    line-height: 1.3;
+  }
+
+  .pos-card-price {
+    font-size: 13px !important;
+  }
+
+  .pos-card-stock {
+    font-size: 10px !important;
+  }
+
+  /* Barre de recherche POS — grande pour le pouce */
+  .pos-search input,
+  .pos-searchinput {
+    font-size: 16px !important;
+    min-height: 48px !important;
+    border-radius: 12px !important;
+  }
+
+  /* Filtres catégories POS — scroll horizontal */
+  .pos-categories,
+  .pos-cat-bar {
+    overflow-x: auto !important;
+    flex-wrap: nowrap !important;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    gap: 6px !important;
+    padding-bottom: 4px;
+  }
+
+  .pos-categories::-webkit-scrollbar,
+  .pos-cat-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .pos-cat-btn {
+    flex-shrink: 0 !important;
+    white-space: nowrap;
+    font-size: 12px !important;
+    padding: 8px 14px !important;
+    min-height: 36px;
+  }
+
+  /* Panier — Panel glissant fixé en bas */
+  .pos-right {
+    max-height: none !important;
+    border-radius: 0 !important;
+    border: none !important;
+  }
+
   .pos-cart-panel {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 80 !important;
+    background: var(--surface) !important;
+    border-radius: 20px 20px 0 0 !important;
+    box-shadow: 0 -4px 30px rgba(0,0,0,0.15) !important;
+    max-height: 70vh !important;
+    overflow-y: auto !important;
+    transform: translateY(calc(100% - 60px));
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     padding-bottom: calc(16px + var(--safe-bottom)) !important;
   }
 
-  /* Recherche POS — grand sur mobile */
-  .pos-search input {
+  .pos-cart-panel.expanded {
+    transform: translateY(0) !important;
+  }
+
+  /* Handle de glissement du panier */
+  .pos-cart-header {
+    cursor: pointer;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--surface);
+    padding: 16px !important;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .pos-cart-header::before {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 4px;
+    background: var(--border-dark);
+    border-radius: 2px;
+    margin: 0 auto 10px;
+  }
+
+  /* Items du panier */
+  .cart-line {
+    padding: 10px 14px !important;
+    font-size: 13px;
+  }
+
+  .cart-line-name {
+    font-size: 13px !important;
+  }
+
+  /* Bloc totaux du panier */
+  .pos-totals-block {
+    padding: 12px 14px !important;
+  }
+
+  /* Zone paiement */
+  .payment-tabs {
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    scrollbar-width: none;
+    gap: 6px !important;
+    padding-bottom: 4px;
+  }
+
+  .payment-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .pay-tab {
+    flex-shrink: 0 !important;
+    font-size: 11px !important;
+    padding: 8px 12px !important;
+    min-height: 40px !important;
+    white-space: nowrap;
+  }
+
+  /* Label du payment actif — force blanc */
+  .pay-tab.active {
+    color: white !important;
+  }
+
+  /* Détails paiement dans le POS */
+  .pay-detail-row {
+    flex-direction: column !important;
+    gap: 4px !important;
+  }
+
+  .pay-input {
     font-size: 16px !important;
-    min-height: var(--tap-min) !important;
+    min-height: 44px !important;
+  }
+
+  /* Bouton Valider la Vente — GROS */
+  .pos-validate-btn,
+  .btn-validate-sale {
+    min-height: 54px !important;
+    font-size: 16px !important;
+    font-weight: 700 !important;
+    border-radius: 14px !important;
+    width: 100% !important;
+  }
+
+  /* Cash shortcuts */
+  .cash-shortcuts {
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+  }
+
+  .cash-shortcuts .btn {
+    flex: 1 !important;
+    min-width: 60px !important;
+    font-size: 12px !important;
+    padding: 8px 6px !important;
+  }
+
+  /* Client badge / barre patient */
+  .client-badge {
+    font-size: 12px !important;
+    padding: 8px 10px !important;
+    flex-wrap: wrap;
+    gap: 6px;
   }
 
 
   /* ─────────────────────────────────────────────────────────────
-     §1.13  TOASTS — Repositionnement mobile
+     §1.13  PARAMÈTRES — Page Settings responsive
+     ───────────────────────────────────────────────────────────── */
+
+  .settings-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  .settings-card {
+    padding: 16px !important;
+    border-radius: 12px !important;
+  }
+
+  .settings-card-title {
+    font-size: 15px !important;
+    gap: 8px !important;
+    flex-wrap: wrap;
+  }
+
+  .settings-card-wide {
+    grid-column: 1 !important;
+  }
+
+  /* Formulaires dans les paramètres */
+  .settings-card .form-row {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+
+  .settings-card .form-group {
+    width: 100% !important;
+  }
+
+  /* Toggle switches */
+  .setting-toggle,
+  .toggle-switch {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+  }
+
+  /* Utilisateurs */
+  .user-item {
+    padding: 12px 14px !important;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .user-avatar {
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 14px !important;
+  }
+
+
+  /* ─────────────────────────────────────────────────────────────
+     §1.14  CAISSE JOURNALIÈRE — Responsive complet
+     ───────────────────────────────────────────────────────────── */
+
+  /* Recap cards caisse — 1 colonne */
+  .caisse-recap {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .caisse-total-card {
+    padding: 16px !important;
+  }
+
+  .caisse-total-val {
+    font-size: 22px !important;
+  }
+
+  .caisse-total-label {
+    font-size: 12px !important;
+  }
+
+  /* Breakdown paiements — 2 colonnes */
+  .payment-breakdown-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .pay-breakdown-card {
+    padding: 12px 10px !important;
+    flex-direction: column !important;
+    text-align: center;
+    gap: 6px !important;
+  }
+
+  .pay-bd-val {
+    font-size: 16px !important;
+  }
+
+  .pay-bd-label {
+    font-size: 11px !important;
+  }
+
+  /* Détail calcul — grilles internes 1 colonne */
+  #tab-caisse-detail > .dash-panel > div[style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* Tabs caisse — scroll horizontal */
+  .tabs-bar {
+    overflow-x: auto !important;
+    flex-wrap: nowrap !important;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    gap: 4px !important;
+  }
+
+  .tabs-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab-btn {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+    font-size: 12px !important;
+    padding: 8px 14px !important;
+    min-height: 40px;
+  }
+
+
+  /* ─────────────────────────────────────────────────────────────
+     §1.15  GRAPHIQUES — Responsive charts
+     ───────────────────────────────────────────────────────────── */
+
+  .charts-row {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .chart-card {
+    padding: 14px !important;
+    overflow: hidden;
+  }
+
+  .chart-card canvas {
+    width: 100% !important;
+    height: auto !important;
+    max-height: 200px;
+  }
+
+  .chart-title {
+    font-size: 14px !important;
+  }
+
+  /* Metrics page — force 1 colonne */
+  .metrics-grid,
+  [class*="metrics"] > div[style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+  }
+
+
+  /* ─────────────────────────────────────────────────────────────
+     §1.16  REÇU / FACTURE — Adapté mobile
+     ───────────────────────────────────────────────────────────── */
+
+  .recu-pro {
+    padding: 14px !important;
+    font-size: 12px !important;
+  }
+
+  .recu-header {
+    flex-direction: column !important;
+    gap: 12px !important;
+    text-align: center;
+  }
+
+  .recu-orgname {
+    font-size: 16px !important;
+  }
+
+  .recu-docblock {
+    text-align: center;
+  }
+
+  .recu-transaction-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  .recu-table {
+    font-size: 11px !important;
+  }
+
+  .recu-table th,
+  .recu-table td {
+    padding: 6px 4px !important;
+    font-size: 11px !important;
+  }
+
+  .recu-actions {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .recu-actions .btn {
+    width: 100% !important;
+    justify-content: center;
+  }
+
+  /* Encart assurance/patient sur facture — stack vertical */
+  .recu-pro > div[style*="justify-content:space-between"][style*="margin-bottom:15px"] {
+    flex-direction: column !important;
+    gap: 12px;
+  }
+
+  .recu-pro > div[style*="justify-content:space-between"][style*="margin-bottom:15px"] > div[style*="text-align:right"] {
+    text-align: left !important;
+  }
+
+
+  /* ─────────────────────────────────────────────────────────────
+     §1.17  TOASTS — Repositionnement mobile
      ───────────────────────────────────────────────────────────── */
 
   #toast-container {
-    bottom: calc(16px + var(--safe-bottom)) !important;
+    bottom: calc(70px + var(--safe-bottom)) !important;
     top: auto !important;
     left: var(--content-padding) !important;
     right: var(--content-padding) !important;
@@ -687,7 +1092,7 @@ img, canvas, video, iframe {
 
 
   /* ─────────────────────────────────────────────────────────────
-     §1.14  COMPOSANTS DIVERS
+     §1.18  COMPOSANTS DIVERS — Mobile
      ───────────────────────────────────────────────────────────── */
 
   /* Cartes génériques */
@@ -728,6 +1133,22 @@ img, canvas, video, iframe {
     width: 100% !important;
   }
 
+  /* Panels dashboard */
+  .dash-panel {
+    padding: 14px !important;
+    border-radius: 12px !important;
+  }
+
+  .panel-header {
+    flex-direction: column !important;
+    gap: 8px !important;
+    align-items: flex-start !important;
+  }
+
+  .panel-title {
+    font-size: 14px !important;
+  }
+
   /* Stat/info boxes */
   .info-grid,
   .stats-grid {
@@ -765,7 +1186,7 @@ img, canvas, video, iframe {
     margin-bottom: 12px;
   }
 
-  /* Grilles diverses (2 colonnes ou flex-wrap) */
+  /* Grilles diverses */
   .grid-2, .grid-3, .grid-4 {
     grid-template-columns: 1fr !important;
     gap: var(--gap-mobile) !important;
@@ -773,6 +1194,13 @@ img, canvas, video, iframe {
 
   .grid-2 {
     grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Toutes les grilles inline avec minmax > 250px — 1 colonne auto */
+  div[style*="grid-template-columns"][style*="minmax(250px"],
+  div[style*="grid-template-columns"][style*="minmax(300px"],
+  div[style*="grid-template-columns"][style*="minmax(380px"] {
+    grid-template-columns: 1fr !important;
   }
 
   /* PWA Install Banner — repositionné */
@@ -784,6 +1212,28 @@ img, canvas, video, iframe {
     transform: none !important;
     border-radius: var(--radius) !important;
     padding: 12px 14px !important;
+  }
+
+  /* Sale detail in modal */
+  .sale-detail .detail-meta {
+    flex-direction: column !important;
+    gap: 6px !important;
+  }
+
+  /* Reports bottom */
+  .reports-bottom {
+    flex-direction: column !important;
+  }
+
+  /* Prescriptions grid */
+  .rx-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Patients table detail */
+  .patient-detail {
+    flex-direction: column !important;
+    gap: 12px !important;
   }
 
 
