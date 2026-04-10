@@ -234,7 +234,7 @@ function renderFullPOSUI(container) {
       </div>
 
       <!-- ══ DROITE : Panier ══ -->
-      <div class="pos-right pos-cart-panel" id="pos-cart-panel">
+      <div class="pos-right" id="pos-cart-panel">
         <div class="pos-cart-header" onclick="this.parentElement.classList.toggle('expanded')">
             <div style="display:flex; align-items:center; gap:10px">
                 <i data-lucide="shopping-basket"></i><span style="font-weight:700">Votre Panier</span>
@@ -260,6 +260,7 @@ function renderFullPOSUI(container) {
           <div class="pos-section-header">
             <span class="pos-section-icon"><i data-lucide="file-text"></i></span>
             <span class="pos-section-title">Ordonnance</span>
+            <div style="flex:1"></div>
             <label class="toggle-switch"><input type="checkbox" id="rx-toggle" onchange="onRxToggle(this.checked)"><span class="toggle-track"><span class="toggle-thumb"></span></span></label>
           </div>
           <div id="rx-detail" style="display:none">
@@ -273,7 +274,8 @@ function renderFullPOSUI(container) {
           <div class="pos-section-header">
             <span class="pos-section-icon"><i data-lucide="shopping-cart"></i></span>
             <span class="pos-section-title">Panier</span>
-            <span class="cart-count-badge" id="cart-count">0</span>
+            <div style="flex:1"></div>
+            <span class="cart-count-badge" id="cart-count">0 art.</span>
           </div>
           <div class="pos-cart-body" id="pos-cart-items"></div>
         </div>
@@ -282,7 +284,7 @@ function renderFullPOSUI(container) {
         <div class="pos-totals-block">
           <div class="totals-row"><span>Sous-total</span><span id="pos-subtotal">0 GNF</span></div>
           <div class="totals-row"><span>Remise</span><input id="pos-discount" type="number" class="disc-input" value="0" min="0" oninput="refreshTotals()"></div>
-          <div class="totals-row totals-total"><span>TOTAL</span><span id="pos-total">0 GNF</span></div>
+          <div class="totals-row totals-total"><span>TOTAL À PAYER</span><span id="pos-total">0 GNF</span></div>
         </div>
 
         <!-- PAIEMENT -->
@@ -292,16 +294,16 @@ function renderFullPOSUI(container) {
               <i data-lucide="banknote"></i><span>Espèces</span>
             </button>
             <button class="pay-btn" data-m="orange_money" onclick="selectPay(this)">
-              <i data-lucide="smartphone"></i><span>O.Money</span>
+              <i data-lucide="smartphone"></i><span>O. Money</span>
             </button>
             <button class="pay-btn" data-m="mtn_momo" onclick="selectPay(this)">
-              <i data-lucide="smartphone"></i><span>MTN</span>
+              <i data-lucide="smartphone"></i><span>MTN MoMo</span>
             </button>
             <button class="pay-btn" data-m="combined" onclick="selectPay(this)">
-              <i data-lucide="split"></i><span>Combiné</span>
+              <i data-lucide="split"></i><span>Mixte</span>
             </button>
             <button class="pay-btn" data-m="assurance" onclick="selectPay(this)">
-              <i data-lucide="shield-plus"></i><span>Assur.</span>
+              <i data-lucide="shield-plus"></i><span>Assurance</span>
             </button>
             <button class="pay-btn" data-m="credit" onclick="selectPay(this)">
               <i data-lucide="file-clock"></i><span>Crédit</span>
@@ -309,15 +311,15 @@ function renderFullPOSUI(container) {
           </div>
 
           <div id="pay-cash" class="pay-detail">
-             <label class="pay-detail-label">Montant reçu</label>
+             <label class="pay-detail-label">Montant encaissé</label>
              <input id="cash-in" type="number" class="pay-input" placeholder="0" oninput="refreshChange()">
              <div id="cash-shortcuts" class="cash-quick" style="margin-top:10px"></div>
-             <div class="pay-detail-row" style="margin-top:10px"><span>Rendu</span><strong id="cash-change">—</strong></div>
+             <div class="pay-detail-row" style="margin-top:14px"><span>Monnaie à rendre</span><strong id="cash-change">—</strong></div>
           </div>
 
           <div id="pay-mobile" class="pay-detail" style="display:none">
-            <label class="pay-detail-label">Numéro du patient</label>
-            <input id="mm-phone" type="tel" class="pay-input" placeholder="+224 6XX XXX XXX" oninput="refreshMmPhone()">
+            <label class="pay-detail-label">Numéro de téléphone client</label>
+            <input id="mm-phone" type="tel" class="pay-input" placeholder="6XX XXX XXX" oninput="refreshMmPhone()">
             <div id="mm-state" class="mm-state mm-idle" style="margin-top:12px">
               <button class="btn btn-sm btn-primary mm-send-btn" style="width:100%" onclick="initMobilePay()">
                 <i data-lucide="send"></i> Envoyer la demande de paiement
@@ -328,7 +330,7 @@ function renderFullPOSUI(container) {
           <div id="pay-combined" class="pay-detail" style="display:none">
             <div class="combined-info" style="background:rgba(46,134,193,0.08);border:1px solid rgba(46,134,193,0.2);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--text-muted)">
               <i data-lucide="info" style="width:14px;height:14px;vertical-align:text-bottom;margin-right:4px"></i>
-              Divisez le paiement entre deux modes.
+              Saisissez les montants pour chaque mode de paiement.
             </div>
             <div class="combined-split-row" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px">
               <div style="flex:1;min-width:140px">
@@ -355,37 +357,58 @@ function renderFullPOSUI(container) {
           </div>
 
           <div id="pay-assurance" class="pay-detail" style="display:none">
-            <input id="assur-name" type="text" class="pay-input" placeholder="Organisme (Assurance/Entreprise)" style="margin-bottom:8px">
-            <input id="assur-amount" type="number" class="pay-input" placeholder="Montant Pris par Assurance" oninput="calcAssurance()">
-            <div style="margin:12px 0; font-weight:700">Reste à payer Patient : <span id="assur-patient-part">0 GNF</span></div>
-            <div style="display:flex; gap:10px">
-               <select id="assur-patient-method" class="pay-input" style="flex:1" onchange="calcAssurance()">
-                  <option value="cash">Espèces</option>
-                  <option value="orange_money">Orange Money</option>
-                  <option value="mtn_momo">MTN MoMo</option>
-               </select>
-               <input id="assur-patient-recv" type="number" class="pay-input" style="flex:1" placeholder="Montant reçu" oninput="calcAssurance()">
+            <label class="pay-detail-label">Organisme & Prise en charge</label>
+            <input id="assur-name" type="text" class="pay-input" placeholder="Nom de l'assurance / Entreprise" style="margin-bottom:8px">
+            <input id="assur-ref" type="text" class="pay-input" placeholder="Réf. Prise en charge" style="margin-bottom:8px">
+            <input id="assur-amount" type="number" class="pay-input" placeholder="Montant Assurance" oninput="calcAssurance()">
+            
+            <div style="margin:15px 0 10px 0; font-weight:700; color:var(--text-muted); font-size:12px; text-transform:uppercase; letter-spacing:0.5px">Règlement Patient (Ticket modérateur)</div>
+            <div style="background:rgba(0,0,0,0.02); padding:12px; border-radius:8px; border:1px solid var(--border)">
+              <div style="display:flex; justify-content:space-between; margin-bottom:10px">
+                <span style="font-size:13px">Reste à payer :</span>
+                <span id="assur-patient-part" style="font-weight:800; color:var(--primary-color)">0 GNF</span>
+              </div>
+              <div style="display:flex; gap:10px">
+                 <select id="assur-patient-method" class="pay-input" style="flex:1" onchange="calcAssurance()">
+                    <option value="cash">Espèces</option>
+                    <option value="orange_money">Orange Money</option>
+                    <option value="mtn_momo">MTN MoMo</option>
+                 </select>
+                 <input id="assur-patient-recv" type="number" class="pay-input" style="flex:1" placeholder="Montant reçu" oninput="calcAssurance()">
+              </div>
+              <div id="assur-patient-mobile" style="margin-top:10px; display:none">
+                 <input id="assur-patient-phone" type="tel" class="pay-input" placeholder="6XX XXX XXX">
+              </div>
             </div>
-            <div id="assur-status" style="font-size:12px; margin-top:8px"></div>
+            <div id="assur-status" style="font-size:12px; margin-top:10px; text-align:center"></div>
           </div>
 
           <div id="pay-credit" class="pay-detail" style="display:none">
-            <label class="pay-detail-label">Date d'échéance</label>
+            <label class="pay-detail-label">Date d'échéance du crédit</label>
             <input id="credit-date" type="date" class="pay-input" value="${new Date(Date.now() + 30 * 864e5).toISOString().split('T')[0]}">
+            <div class="info-box-small" style="margin-top:10px">
+              <i data-lucide="info"></i>
+              <span>Le patient doit être identifié pour valider une vente à crédit.</span>
+            </div>
           </div>
         </div>
 
         <!-- ACTIONS -->
         <div class="pos-actions-bar">
-          <button class="btn btn-ghost pos-btn-cancel" onclick="viderPanier()"><i data-lucide="trash-2"></i></button>
-          <button class="btn btn-secondary pos-btn-hold" onclick="mettreEnAttente()"><i data-lucide="pause"></i> Attente</button>
+          <button class="btn btn-ghost pos-btn-cancel" onclick="viderPanier()" title="Vider le panier">
+            <i data-lucide="trash-2"></i>
+          </button>
+          <button class="btn btn-secondary pos-btn-hold" onclick="mettreEnAttente()">
+            <i data-lucide="pause"></i><span>Attente</span>
+          </button>
           <button id="btn-valider" class="btn btn-success pos-btn-validate" onclick="validerVente()">
-            <i data-lucide="check-circle"></i> Valider la Vente
+            <i data-lucide="check-circle"></i><span>Valider la Vente</span>
           </button>
         </div>
 
       </div><!-- fin pos-right -->
     </div><!-- fin pos-wrap -->
+
   `;
 
   buildCatBar();
