@@ -78,6 +78,9 @@ const AppState = {
   deviceName: localStorage.getItem('pharma_device_name'),
 };
 
+let _realtimeSubscription = null;
+let _realtimeTimeout = null;
+
 async function getSupabaseClient() {
   if (_supabaseInstance) return _supabaseInstance;
   try {
@@ -86,6 +89,26 @@ async function getSupabaseClient() {
     const key = settings.find(s => s.key === 'supabase_key')?.value;
     if (url && key && window.supabase) {
       _supabaseInstance = window.supabase.createClient(url.trim(), key.trim());
+
+      // ==========================================
+      // ⚡ FLASH SYNC : ACTIVATION REALTIME
+      // ==========================================
+      if (!_realtimeSubscription) {
+        _realtimeSubscription = _supabaseInstance.channel('flash-sync-channel')
+          .on('postgres_changes', { event: '*', schema: 'public' }, (payload) => {
+            // Un changement a eu lieu sur le serveur (ex: vente sur une autre caisse)
+            // On patiente 1.5s (debounce) pour regrouper les appels multiples
+            clearTimeout(_realtimeTimeout);
+            _realtimeTimeout = setTimeout(() => {
+              console.log('[Flash] ⚡ Changement distant détecté, déclenchement pull', payload.table);
+              pullFromSupabase().catch(() => {});
+            }, 1500);
+          })
+          .subscribe((status) => {
+             if (status === 'SUBSCRIBED') console.log('[Flash] 📡 Connecté au temps réel Supabase');
+          });
+      }
+
       return _supabaseInstance;
     }
   } catch (e) {
@@ -891,19 +914,18 @@ function startAutoBackup() {
 
 /**
  * AUTO-PULL : Synchronisation cloud → local automatique
- * Déclenché toutes les 5 minutes si en ligne
+ * Déclenché toutes les 15 secondes si en ligne pour un effet Flash (quasi-instantané)
  */
 function startAutoPull() {
   setInterval(async () => {
     if (AppState.isOnline) {
       try {
         await pullFromSupabase();
-        console.log('[Sync] ⬇️ Pull automatique effectué');
       } catch (e) {
         console.warn('[Sync] Auto-pull échoué:', e);
       }
     }
-  }, 5 * 60 * 1000); // 5 minutes
+  }, 15 * 1000); // 15 secondes
 }
 
 /**
