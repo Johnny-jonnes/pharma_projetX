@@ -264,8 +264,11 @@ const UI = {
 
         // Liste des appareils
         var html = '';
+        var _myDeviceId = localStorage.getItem('pharma_device_id');
+        console.log('[Monitor] Mon device_id localStorage:', _myDeviceId);
+        console.log('[Monitor] Appareils trouvés:', devices.map(function(d) { return d._key + ' → ' + d.name; }));
         devices.forEach(function(status) {
-            var isCurrent = status._key === ('device_status_' + (DB.AppState.deviceId || localStorage.getItem('pharma_device_id')));
+            var isCurrent = status._key === ('device_status_' + _myDeviceId);
             var isActive = (now - status.last_sync) < ACTIVE_THRESHOLD;
             var isOnline = status.online && (now - status.last_sync < 3600000);
             var hasPending = status.pending > 0;
