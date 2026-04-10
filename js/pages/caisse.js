@@ -25,8 +25,12 @@ async function renderCaisse(container) {
   };
   
   let totalSalesCounted = 0;
-  let assuranceSales = 0;
-  let assuranceCount = 0;
+  let assuranceSalesTotal = 0;  // Montant total des couvertures créées aujourd'hui
+  let assurancePending = 0;     // Montant NON encore encaissé (ce qu'on attend des entreprises)
+  let assurancePaid = 0;        // Montant DÉJÀ encaissé aujourd'hui
+  let assuranceCount = 0;       // Nombre total de couvertures
+  let assurancePendingCount = 0;
+  let assurancePaidCount = 0;
   
   todaySalesRaw.forEach(s => {
     // Avoid counting fully pending credit sales in the daily cash register
@@ -34,14 +38,25 @@ async function renderCaisse(container) {
 
     totalSalesCounted++;
 
+    // ── Helper: comptabilise la part assurance d'une vente ──
+    const trackAssurance = (amount) => {
+      assuranceCount++;
+      assuranceSalesTotal += amount;
+      if (s.status === 'pending') {
+        assurancePendingCount++;
+        assurancePending += amount;
+      } else {
+        assurancePaidCount++;
+        assurancePaid += amount;
+      }
+    };
+
     if (s.paymentMethod === 'combined' && Array.isArray(s.paymentDetails) && s.paymentDetails.length > 0) {
         // Paiement mixte avec détails → ventiler chaque composante
         s.paymentDetails.forEach(d => {
             const m = d.method || 'cash';
             if (m === 'assurance') {
-                // La part assurance d'un combined est une dette, pas du cash
-                assuranceCount++;
-                assuranceSales += d.amount || 0;
+                trackAssurance(d.amount || 0);
             } else {
                 if (!breakdown[m]) breakdown[m] = { count: 0, total: 0 };
                 breakdown[m].count++;
@@ -50,7 +65,7 @@ async function renderCaisse(container) {
         });
     } else if (s.paymentMethod === 'assurance' && Array.isArray(s.paymentDetails) && s.paymentDetails.length > 0) {
         // Assurance avec détails → seul le ticket modérateur (part patient) va en caisse
-        assuranceCount++;
+        let assurPartAmount = 0;
         s.paymentDetails.forEach(d => {
             if (d.method !== 'assurance') { // Part patient
                 const m = d.method || 'cash';
@@ -58,13 +73,13 @@ async function renderCaisse(container) {
                 breakdown[m].count++;
                 breakdown[m].total += d.amount || 0;
             } else {
-                assuranceSales += d.amount || 0; // Part assurance = dette
+                assurPartAmount += d.amount || 0;
             }
         });
+        trackAssurance(assurPartAmount);
     } else if (s.paymentMethod === 'assurance') {
         // Assurance SANS paymentDetails (anciennes données) → tout est dette
-        assuranceCount++;
-        assuranceSales += s.total || 0;
+        trackAssurance(s.total || 0);
     } else if (s.paymentMethod === 'combined') {
         // Combined SANS paymentDetails (données incomplètes) → fallback espèces
         if (!breakdown.cash) breakdown.cash = { count: 0, total: 0 };
@@ -315,18 +330,30 @@ async function renderCaisse(container) {
           <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:16px; box-shadow:var(--shadow-sm);">
             <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px; color:var(--text);">
               <div style="background:rgba(52, 152, 219, 0.1); color:#3498DB; padding:6px; border-radius:6px;"><i data-lucide="file-text" style="width:20px;height:20px;"></i></div>
-              <h4 style="margin:0; font-size:15px; font-weight:600;">Nouvelles Créances (Dettes)</h4>
+              <h4 style="margin:0; font-size:15px; font-weight:600;">Créances Journalières</h4>
             </div>
             <div style="display:flex; flex-direction:column; gap:8px; font-size:13px;">
               <div style="display:flex; justify-content:space-between;">
                 <span class="text-muted">Ventes à Crédit (${breakdown.credit?.count || 0})</span> <strong style="color:#2980B9">${UI.formatCurrency(creditSales)}</strong>
               </div>
-              <div style="display:flex; justify-content:space-between; padding-bottom:8px; border-bottom:1px solid var(--border);">
-                <span class="text-muted">Couvertures Assurance (${assuranceCount})</span> <strong style="color:#27ae60">${UI.formatCurrency(assuranceSales)}</strong>
+              <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-top:4px;">Couvertures Assurance (${assuranceCount})</div>
+              ${assurancePendingCount > 0 ? `
+              <div style="display:flex; justify-content:space-between; padding:6px 10px; background:rgba(231,76,60,0.06); border-radius:6px; border-left:3px solid #e74c3c;">
+                <span style="color:#e74c3c; font-weight:600;">⏳ En attente (${assurancePendingCount})</span> <strong style="color:#e74c3c">${UI.formatCurrency(assurancePending)}</strong>
               </div>
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
-                <span style="font-weight:600; font-size:14px;">Total Créances du Jour</span>
-                <strong style="font-size:16px; color:#2980B9;">${UI.formatCurrency(creditSales + assuranceSales)}</strong>
+              ` : `
+              <div style="display:flex; justify-content:space-between;">
+                <span class="text-muted">⏳ En attente</span> <strong style="color:var(--text-muted)">0 FG</strong>
+              </div>
+              `}
+              ${assurancePaidCount > 0 ? `
+              <div style="display:flex; justify-content:space-between; padding:6px 10px; background:rgba(39,174,96,0.06); border-radius:6px; border-left:3px solid #27ae60;">
+                <span style="color:#27ae60; font-weight:600;">✅ Déjà réglées (${assurancePaidCount})</span> <strong style="color:#27ae60">${UI.formatCurrency(assurancePaid)}</strong>
+              </div>
+              ` : ''}
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; padding-top:8px; border-top:1px solid var(--border);">
+                <span style="font-weight:600; font-size:14px;">Dettes Restantes</span>
+                <strong style="font-size:18px; color:${(creditSales + assurancePending) > 0 ? '#e74c3c' : 'var(--success-color)'};">${UI.formatCurrency(creditSales + assurancePending)}</strong>
               </div>
             </div>
           </div>
