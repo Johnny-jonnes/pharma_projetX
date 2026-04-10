@@ -922,7 +922,7 @@ function startAutoBackup() {
 
 /**
  * AUTO-PULL : Synchronisation cloud → local automatique
- * Déclenché toutes les 3 secondes si en ligne pour un effet Flash complet
+ * Déclenché toutes les 500 millisecondes (Ultra-Flash) pour un effet instantané pur
  */
 function startAutoPull() {
   setInterval(async () => {
@@ -933,7 +933,7 @@ function startAutoPull() {
         console.warn('[Sync] Auto-pull échoué:', e);
       }
     }
-  }, 3 * 1000); // 3 secondes
+  }, 500); // 500 millisecondes (Ultra-Flash)
 }
 
 /**
