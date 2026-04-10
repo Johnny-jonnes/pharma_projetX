@@ -800,6 +800,11 @@ async function pullFromSupabase() {
       await window.updatePharmacyDisplay();
     }
     
+    // Si le Point de Vente (POS) est ouvert, on rafraîchit les données localement
+    if (window.location.hash === '#pos' && typeof refreshPOSData === 'function') {
+        await refreshPOSData();
+    }
+    
   } catch (e) {
     const msg = e.message || '';
     if (!msg.includes('Failed to fetch') && !msg.includes('NetworkError') && !msg.includes('network error')) {

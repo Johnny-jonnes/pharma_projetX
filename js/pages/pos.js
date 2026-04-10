@@ -134,29 +134,84 @@ async function renderPOS(container) {
   posCurrentRx = null;
   posMobilePayState = 'idle';
 
-  const [products, stockAll, patients, prescriptions, lots] = await Promise.all([
+  // 1. Rendu immédiat du squelette HTML (Instantané)
+  container.innerHTML = `
+    <div class="pos-wrap">
+      <div id="pos-sync-warning" style="display:none; grid-column: 1 / -1; margin-bottom: 15px; background: rgba(239, 68, 68, 0.1); border-left: 4px solid var(--danger); padding: 12px 16px; border-radius: 8px;">
+          <div style="display:flex; align-items:center; gap: 10px; color: var(--danger); font-weight: 600;">
+              <i data-lucide="alert-octagon"></i>
+              <span>Attention : Un autre appareil possède des données non synchronisées. Le stock affiché pourrait être inexact.</span>
+          </div>
+      </div>
+
+      <div class="pos-left">
+        <div class="pos-searchbar">
+          <div class="pos-searchfield">
+            <span class="pos-searchicon"><i data-lucide="search"></i></span>
+            <input id="pos-search" type="text" class="pos-searchinput" placeholder="Chargement..." disabled>
+          </div>
+        </div>
+        <div class="pos-catbar" id="pos-catbar">
+           <div class="skeleton" style="width:100px;height:32px;border-radius:20px"></div>
+        </div>
+        <div id="pos-grid" class="pos-grid">
+           <div class="loading-state" style="grid-column:1/-1;padding:40px"><div class="spinner"></div><p>Récupération des médicaments...</p></div>
+        </div>
+      </div>
+
+      <div class="pos-right pos-cart-panel" id="pos-cart-panel">
+        <div class="pos-cart-header">
+            <div style="display:flex; align-items:center; gap:10px">
+                <i data-lucide="shopping-basket"></i><span style="font-weight:700">Votre Panier</span>
+            </div>
+        </div>
+        <div class="pos-section"><div class="pos-section-title">Patient</div><div id="client-search-trigger" class="client-selector-box"><span>...</span></div></div>
+        <div class="pos-section pos-section-cart"><div class="pos-section-title">Panier</div><div class="pos-cart-body" id="pos-cart-items"></div></div>
+        <div class="pos-totals-block">
+           <div class="totals-row"><span>TOTAL À PAYER</span><span id="pos-total">0 GNF</span></div>
+        </div>
+        <div class="pos-actions-bar">
+          <button class="btn btn-success pos-btn-validate" style="width:100%;opacity:0.5" disabled>Initialisation...</button>
+        </div>
+      </div>
+    </div>
+  `;
+  if (window.lucide) lucide.createIcons();
+
+  // 2. Chargement des données en tâche de fond (Local DB)
+  Promise.all([
     DB.dbGetAll('products'),
     DB.dbGetAll('stock'),
     DB.dbGetAll('patients'),
     DB.dbGetAll('prescriptions'),
     DB.dbGetAll('lots'),
-  ]);
+  ]).then(([products, stockAll, patients, prescriptions, lots]) => {
+    posProducts = products.filter(p => p.status !== 'inactive');
+    posStock = {};
+    stockAll.forEach(s => { posStock[s.productId] = s.quantity; });
+    posLots = lots.filter(l => l.status === 'active');
+    window._posPatients = patients;
+    window._posPrescriptions = prescriptions.filter(rx => ['pending', 'validated'].includes(rx.status));
 
-  posProducts = products.filter(p => p.status !== 'inactive');
-  posStock = {};
-  stockAll.forEach(s => { posStock[s.productId] = s.quantity; });
-  posLots = lots.filter(l => l.status === 'active');
-  window._posPatients = patients;
-  window._posPrescriptions = prescriptions.filter(rx => ['pending', 'validated'].includes(rx.status));
+    // 3. Remplacement du squelette par l'UI complète
+    renderFullPOSUI(container);
+  });
 
-  // Vérifier s'il y a des conflits de synchro sur le réseau
-  const hasSyncWarning = await checkSyncConflicts();
+  // 4. Vérification des conflits (Réseau) - Totalement asynchrone
+  checkSyncConflicts().then(hasSyncWarning => {
+    const warnEl = document.getElementById('pos-sync-warning');
+    if (warnEl && hasSyncWarning) warnEl.style.display = 'block';
+  });
+}
 
+/**
+ * Remplace le squelette par l'interface interactive une fois les données prêtes
+ */
+function renderFullPOSUI(container) {
+  // On conserve le même wrap
   container.innerHTML = `
     <div class="pos-wrap">
-
-      <!-- Alert Sync Pending -->
-      <div id="pos-sync-warning" style="display:${hasSyncWarning ? 'block' : 'none'}; grid-column: 1 / -1; margin-bottom: 15px; background: rgba(239, 68, 68, 0.1); border-left: 4px solid var(--danger); padding: 12px 16px; border-radius: 8px;">
+      <div id="pos-sync-warning" style="display:none; grid-column: 1 / -1; margin-bottom: 15px; background: rgba(239, 68, 68, 0.1); border-left: 4px solid var(--danger); padding: 12px 16px; border-radius: 8px;">
           <div style="display:flex; align-items:center; gap: 10px; color: var(--danger); font-weight: 600;">
               <i data-lucide="alert-octagon"></i>
               <span>Attention : Un autre appareil possède des données non synchronisées. Le stock affiché pourrait être inexact.</span>
@@ -178,13 +233,11 @@ async function renderPOS(container) {
         <div id="pos-grid" class="pos-grid"></div>
       </div>
 
-      <!-- ══ DROITE : Panier complet ══ -->
+      <!-- ══ DROITE : Panier ══ -->
       <div class="pos-right pos-cart-panel" id="pos-cart-panel">
-        <!-- MOBILE HEADER TOGGLE -->
         <div class="pos-cart-header" onclick="this.parentElement.classList.toggle('expanded')">
             <div style="display:flex; align-items:center; gap:10px">
-                <i data-lucide="shopping-basket"></i>
-                <span style="font-weight:700">Votre Panier</span>
+                <i data-lucide="shopping-basket"></i><span style="font-weight:700">Votre Panier</span>
             </div>
             <i data-lucide="chevron-up" class="cart-toggle-icon"></i>
         </div>
@@ -194,120 +247,78 @@ async function renderPOS(container) {
           <div class="pos-section-header">
             <span class="pos-section-icon"><i data-lucide="user"></i></span>
             <span class="pos-section-title">Patient</span>
-            <button class="btn btn-xs btn-outline" onclick="showQuickNewClient()" title="Nouveau patient"><i data-lucide="plus"></i> Nouveau Patient</button>
+            <button class="btn btn-xs btn-outline" onclick="showQuickNewClient()"><i data-lucide="plus"></i> Nouveau</button>
           </div>
-          <div class="client-selection-area">
-            <div id="client-search-trigger" class="client-selector-box" onclick="showPatientRepertory()">
-              <i data-lucide="search"></i>
-              <span>Cliquez ici pour choisir un patient...</span>
-            </div>
+          <div id="client-search-trigger" class="client-selector-box" onclick="showPatientRepertory()">
+            <i data-lucide="search"></i><span>Choisir un patient...</span>
           </div>
           <div id="client-badge" style="display:none"></div>
         </div>
 
-        <!-- ORDONNANCE — section visible et bien marquée -->
+        <!-- ORDONNANCE -->
         <div class="pos-section pos-section-rx" id="pos-rx-section">
           <div class="pos-section-header">
             <span class="pos-section-icon"><i data-lucide="file-text"></i></span>
-            <span class="pos-section-title">Vente sur Ordonnance</span>
-            <label class="toggle-switch">
-              <input type="checkbox" id="rx-toggle" onchange="onRxToggle(this.checked)">
-              <span class="toggle-track"><span class="toggle-thumb"></span></span>
-            </label>
+            <span class="pos-section-title">Ordonnance</span>
+            <label class="toggle-switch"><input type="checkbox" id="rx-toggle" onchange="onRxToggle(this.checked)"><span class="toggle-track"><span class="toggle-thumb"></span></span></label>
           </div>
           <div id="rx-detail" style="display:none">
-            <div class="rx-info-row">
-              <span class="rx-info-text">Liez une ordonnance validée pour charger automatiquement les médicaments prescrits.</span>
-              <button class="btn btn-sm btn-primary" onclick="openRxPicker()"><i data-lucide="link"></i> Choisir une Rx</button>
-            </div>
-            <div id="rx-badge" style="display:none"></div>
+            <button class="btn btn-sm btn-primary" style="width:100%" onclick="openRxPicker()"><i data-lucide="link"></i> Lier une ordonnance</button>
+            <div id="rx-badge" style="display:none; margin-top:10px"></div>
           </div>
         </div>
 
-        <!-- ARTICLES DU PANIER -->
+        <!-- PANIER ARTICLES -->
         <div class="pos-section pos-section-cart">
           <div class="pos-section-header">
             <span class="pos-section-icon"><i data-lucide="shopping-cart"></i></span>
             <span class="pos-section-title">Panier</span>
-            <span class="cart-count-badge" id="cart-count">0 article</span>
+            <span class="cart-count-badge" id="cart-count">0</span>
           </div>
-          <div class="pos-cart-body" id="pos-cart-items">
-            <div class="cart-placeholder">
-              <div class="cart-placeholder-icon"><i data-lucide="shopping-cart"></i></div>
-              <div class="cart-placeholder-text">Panier vide</div>
-              <div class="cart-placeholder-sub">Cliquez sur un médicament à gauche pour l'ajouter</div>
-            </div>
-          </div>
+          <div class="pos-cart-body" id="pos-cart-items"></div>
         </div>
 
-        <!-- TOTAUX & REMISE -->
+        <!-- TOTAUX -->
         <div class="pos-totals-block">
-          <div class="totals-row">
-            <span class="totals-label">Sous-total</span>
-            <span id="pos-subtotal" class="totals-value">0 GNF</span>
-          </div>
-          <div class="totals-row">
-            <span class="totals-label">Remise</span>
-            <div class="discount-controls">
-              <button class="disc-btn" onclick="quickDiscount(5)">-5%</button>
-              <button class="disc-btn" onclick="quickDiscount(10)">-10%</button>
-              <button class="disc-btn" onclick="quickDiscount(15)">-15%</button>
-              <input id="pos-discount" type="number" class="disc-input" value="0" min="0" step="100" oninput="refreshTotals()"> GNF
-            </div>
-          </div>
-          <div class="totals-row totals-total">
-            <span>TOTAL À PAYER</span>
-            <span id="pos-total">0 GNF</span>
-          </div>
+          <div class="totals-row"><span>Sous-total</span><span id="pos-subtotal">0 GNF</span></div>
+          <div class="totals-row"><span>Remise</span><input id="pos-discount" type="number" class="disc-input" value="0" min="0" oninput="refreshTotals()"></div>
+          <div class="totals-row totals-total"><span>TOTAL</span><span id="pos-total">0 GNF</span></div>
         </div>
 
-        <!-- MODE DE PAIEMENT -->
+        <!-- PAIEMENT -->
         <div class="pos-pay-block">
-          <div class="pay-label">Mode de paiement</div>
           <div class="pay-methods">
-            <button class="pay-btn active" data-m="cash"         onclick="selectPay(this)"><span class="pay-icon"><i data-lucide="banknote"></i></span><span class="pay-name">Espèces</span></button>
-            <button class="pay-btn"        data-m="orange_money" onclick="selectPay(this)"><span class="pay-icon"><i data-lucide="smartphone"></i></span><span class="pay-name">Orange Money</span></button>
-            <button class="pay-btn"        data-m="mtn_momo"     onclick="selectPay(this)"><span class="pay-icon"><i data-lucide="smartphone"></i></span><span class="pay-name">MTN MoMo</span></button>
-            <button class="pay-btn"        data-m="combined"     onclick="selectPay(this)"><span class="pay-icon"><i data-lucide="split"></i></span><span class="pay-name">Combiné</span></button>
-            <button class="pay-btn"        data-m="assurance"    onclick="selectPay(this)"><span class="pay-icon"><i data-lucide="shield-plus"></i></span><span class="pay-name">Couverture</span></button>
-            <button class="pay-btn"        data-m="credit"       onclick="selectPay(this)"><span class="pay-icon"><i data-lucide="file-clock"></i></span><span class="pay-name">Crédit</span></button>
+            <button class="pay-btn active" data-m="cash" onclick="selectPay(this)">Espèces</button>
+            <button class="pay-btn" data-m="orange_money" onclick="selectPay(this)">O.Money</button>
+            <button class="pay-btn" data-m="mtn_momo" onclick="selectPay(this)">MTN</button>
+            <button class="pay-btn" data-m="combined" onclick="selectPay(this)">Combiné</button>
+            <button class="pay-btn" data-m="assurance" onclick="selectPay(this)">Assur.</button>
+            <button class="pay-btn" data-m="credit" onclick="selectPay(this)">Crédit</button>
           </div>
 
-          <!-- Détail Espèces -->
           <div id="pay-cash" class="pay-detail">
-            <div class="pay-detail-row">
-              <label class="pay-detail-label">Montant reçu (GNF)</label>
-              <input id="cash-in" type="number" class="pay-input" placeholder="0" oninput="refreshChange()">
-            </div>
-            <div id="cash-shortcuts" class="cash-quick"></div>
-            <div class="pay-detail-row">
-              <label class="pay-detail-label">Monnaie à rendre</label>
-              <strong id="cash-change" class="change-amount">—</strong>
-            </div>
+             <label class="pay-detail-label">Montant reçu</label>
+             <input id="cash-in" type="number" class="pay-input" placeholder="0" oninput="refreshChange()">
+             <div class="pay-detail-row" style="margin-top:10px"><span>Rendu</span><strong id="cash-change">—</strong></div>
           </div>
 
-          <!-- Détail Mobile Money -->
           <div id="pay-mobile" class="pay-detail" style="display:none">
-            <div class="pay-detail-row">
-              <label class="pay-detail-label">Numéro du patient</label>
-              <input id="mm-phone" type="tel" class="pay-input" placeholder="+224 6XX XXX XXX" oninput="refreshMmPhone()">
-            </div>
-            <div id="mm-state" class="mm-state mm-idle">
-              <button class="btn btn-sm btn-primary mm-send-btn" onclick="initMobilePay()">
+            <label class="pay-detail-label">Numéro du patient</label>
+            <input id="mm-phone" type="tel" class="pay-input" placeholder="+224 6XX XXX XXX" oninput="refreshMmPhone()">
+            <div id="mm-state" class="mm-state mm-idle" style="margin-top:12px">
+              <button class="btn btn-sm btn-primary mm-send-btn" style="width:100%" onclick="initMobilePay()">
                 <i data-lucide="send"></i> Envoyer la demande de paiement
               </button>
             </div>
           </div>
 
-          <!-- Détail Paiement Combiné -->
           <div id="pay-combined" class="pay-detail" style="display:none">
             <div class="combined-info" style="background:rgba(46,134,193,0.08);border:1px solid rgba(46,134,193,0.2);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--text-muted)">
               <i data-lucide="info" style="width:14px;height:14px;vertical-align:text-bottom;margin-right:4px"></i>
-              Divisez le paiement entre deux modes. Le total doit couvrir le montant dû.
+              Divisez le paiement entre deux modes.
             </div>
             <div class="combined-split-row" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px">
-              <div style="flex:1;min-width:180px">
-                <label class="pay-detail-label" style="margin-bottom:6px;display:block">1er mode</label>
+              <div style="flex:1;min-width:140px">
                 <select id="combined-method-1" class="pay-input" style="margin-bottom:8px" onchange="onCombinedChange()">
                   <option value="cash">Espèces</option>
                   <option value="orange_money">Orange Money</option>
@@ -315,8 +326,7 @@ async function renderPOS(container) {
                 </select>
                 <input id="combined-amount-1" type="number" class="pay-input" placeholder="Montant 1" oninput="refreshCombined()">
               </div>
-              <div style="flex:1;min-width:180px">
-                <label class="pay-detail-label" style="margin-bottom:6px;display:block">2ème mode</label>
+              <div style="flex:1;min-width:140px">
                 <select id="combined-method-2" class="pay-input" style="margin-bottom:8px" onchange="onCombinedChange()">
                   <option value="orange_money">Orange Money</option>
                   <option value="cash">Espèces</option>
@@ -326,73 +336,35 @@ async function renderPOS(container) {
               </div>
             </div>
             <div id="combined-phone-row" style="display:none;margin-bottom:12px">
-              <label class="pay-detail-label">Numéro Mobile Money</label>
-              <input id="combined-mm-phone" type="tel" class="pay-input" placeholder="+224 6XX XXX XXX">
+              <input id="combined-mm-phone" type="tel" class="pay-input" placeholder="6XX XXX XXX">
             </div>
-            <div id="combined-status" style="padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;text-align:center;background:var(--bg);color:var(--text-muted)">Saisissez les montants</div>
+            <div id="combined-status" style="padding:8px;font-size:13px;font-weight:600;text-align:center">Saisissez les montants</div>
           </div>
 
-          <!-- Détail Prise en Charge / Assurance -->
           <div id="pay-assurance" class="pay-detail" style="display:none">
-            <div class="combined-info" style="background:rgba(46,175,125,0.08);border:1px solid rgba(46,175,125,0.2);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--success-color)">
-              <i data-lucide="shield-check" style="width:14px;height:14px;vertical-align:text-bottom;margin-right:4px"></i>
-              Prise en charge (Tiers-Payant). La part Assurance sera enregistrée comme Créance.
+            <input id="assur-name" type="text" class="pay-input" placeholder="Organisme (Assurance/Entreprise)" style="margin-bottom:8px">
+            <input id="assur-amount" type="number" class="pay-input" placeholder="Montant Pris par Assurance" oninput="calcAssurance()">
+            <div style="margin:12px 0; font-weight:700">Reste à payer Patient : <span id="assur-patient-part">0 GNF</span></div>
+            <div style="display:flex; gap:10px">
+               <select id="assur-patient-method" class="pay-input" style="flex:1" onchange="calcAssurance()">
+                  <option value="cash">Espèces</option>
+                  <option value="orange_money">Orange Money</option>
+                  <option value="mtn_momo">MTN MoMo</option>
+               </select>
+               <input id="assur-patient-recv" type="number" class="pay-input" style="flex:1" placeholder="Montant reçu" oninput="calcAssurance()">
             </div>
-            <div class="pay-detail-row">
-              <label class="pay-detail-label">Organisme (Assurance/Entreprise) *</label>
-              <input id="assur-name" type="text" class="pay-input" placeholder="Ex: SAHAM, INAM, Ogar...">
-            </div>
-            <div class="pay-detail-row">
-              <label class="pay-detail-label">Numéro Prise en Charge / Matricule (Optionnel)</label>
-              <input id="assur-ref" type="text" class="pay-input" placeholder="Réf...">
-            </div>
-            <div class="pay-detail-row">
-              <label class="pay-detail-label">Montant Pris en charge par l'organisme (GNF) *</label>
-              <input id="assur-amount" type="number" class="pay-input" placeholder="Saisir montant" oninput="calcAssurance()">
-            </div>
-            
-            <hr style="margin:16px 0; border:1px dashed var(--border)">
-            
-            <div class="pay-detail-row">
-              <label class="pay-detail-label" style="color:var(--primary); font-weight:700">Ticket Modérateur (Reste à payer Patient)</label>
-              <strong id="assur-patient-part" style="font-size:20px; color:var(--text)">—</strong>
-            </div>
-            <div class="combined-split-row" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px">
-              <div style="flex:1;min-width:140px">
-                 <label class="pay-detail-label">Méthode Patient</label>
-                 <select id="assur-patient-method" class="pay-input" onchange="calcAssurance()">
-                    <option value="cash">Espèces</option>
-                    <option value="orange_money">Orange Money</option>
-                    <option value="mtn_momo">MTN MoMo</option>
-                 </select>
-              </div>
-              <div style="flex:1;min-width:140px" id="assur-patient-recv-wrap">
-                 <label class="pay-detail-label">Montant reçu Patient (GNF)</label>
-                 <input id="assur-patient-recv" type="number" class="pay-input" placeholder="0" oninput="calcAssurance()">
-              </div>
-              <div style="flex:1;min-width:140px;display:none" id="assur-patient-phone-wrap">
-                 <label class="pay-detail-label">Numéro MM Patient</label>
-                 <input id="assur-patient-phone" type="tel" class="pay-input" placeholder="+224...">
-              </div>
-            </div>
-            <div id="assur-status" style="font-size:13px;font-weight:600;margin-top:4px"></div>
-            <div class="credit-warn" style="margin-top:12px"><i data-lucide="alert-triangle"></i> Un patient doit obligatoirement être sélectionné</div>
+            <div id="assur-status" style="font-size:12px; margin-top:8px"></div>
           </div>
 
-          <!-- Détail Crédit -->
           <div id="pay-credit" class="pay-detail" style="display:none">
-            <div class="pay-detail-row">
-              <label class="pay-detail-label">Date d'échéance</label>
-              <input id="credit-date" type="date" class="pay-input"
-                value="${new Date(Date.now() + 30 * 864e5).toISOString().split('T')[0]}">
-            </div>
-            <div class="credit-warn"><i data-lucide="alert-triangle"></i> Vente à crédit — un patient doit être sélectionné</div>
+            <label class="pay-detail-label">Date d'échéance</label>
+            <input id="credit-date" type="date" class="pay-input" value="${new Date(Date.now() + 30 * 864e5).toISOString().split('T')[0]}">
           </div>
         </div>
 
-        <!-- BOUTONS D'ACTION -->
+        <!-- ACTIONS -->
         <div class="pos-actions-bar">
-          <button class="btn btn-ghost pos-btn-cancel" onclick="viderPanier()"><i data-lucide="trash-2"></i> Vider</button>
+          <button class="btn btn-ghost pos-btn-cancel" onclick="viderPanier()"><i data-lucide="trash-2"></i></button>
           <button class="btn btn-secondary pos-btn-hold" onclick="mettreEnAttente()"><i data-lucide="pause"></i> Attente</button>
           <button id="btn-valider" class="btn btn-success pos-btn-validate" onclick="validerVente()">
             <i data-lucide="check-circle"></i> Valider la Vente
@@ -418,6 +390,21 @@ async function renderPOS(container) {
     if (posCurrentPatient) renderClientBadge(posCurrentPatient);
   }
   if (window.lucide) lucide.createIcons();
+}
+
+/**
+ * Rafraîchit les données du POS (produits/stocks) depuis la DB locale.
+ * Utile pour les mises à jour en arrière-plan sans recharger toute la page.
+ */
+async function refreshPOSData() {
+  const [products, stockAll] = await Promise.all([
+    DB.dbGetAll('products'),
+    DB.dbGetAll('stock')
+  ]);
+  posProducts = products.filter(p => p.status !== 'inactive');
+  posStock = {};
+  stockAll.forEach(s => { posStock[s.productId] = s.quantity; });
+  if (typeof refreshGrid === 'function') refreshGrid();
 }
 
 // ═══════════════════════════════════════════════════════════════════
