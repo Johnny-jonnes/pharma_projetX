@@ -523,21 +523,18 @@ async function syncToSupabase() {
             }
           }
 
+          // Filtrer les colonnes invalides DANS le payload avant qu'il ne soit construit
+          var storeBadCols = _colCache[storeName] || [];
+          if (storeBadCols.length > 0) {
+            for (var bi = 0; bi < storeBadCols.length; bi++) {
+              delete payload[storeBadCols[bi]];
+            }
+          }
+
           return payload;
         });
 
-        // Pré-filtrer les colonnes connues comme invalides AVANT l'envoi
-        var badCols = _colCache[storeName] || [];
         var currentPayloads = payloads;
-        if (badCols.length > 0) {
-          currentPayloads = payloads.map(function(p) {
-            var clean = {};
-            for (var k in p) {
-              if (badCols.indexOf(k) === -1) clean[k] = p[k];
-            }
-            return clean;
-          });
-        }
 
         let retries = 0;
         const maxRetries = 10;
