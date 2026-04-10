@@ -592,7 +592,14 @@ async function syncToSupabase() {
             }
           }
 
-          // Filtrer les colonnes invalides DANS le payload avant qu'il ne soit construit
+          // --- FILTRAGE PROACTIF DES COLONNES LOCALES ---
+          // Ces colonnes n'existent pas sur Supabase et causeraient des erreurs 400
+          if (storeName === 'prescriptions') {
+            const localOnly = ['notes', 'patientName', 'dispensedAt', 'dispensedBy', 'saleId'];
+            localOnly.forEach(c => delete payload[c]);
+          }
+
+          // Filtrer les colonnes invalides DANS le payload (via auto-apprentissage du cache)
           var storeBadCols = _colCache[storeName] || [];
           if (storeBadCols.length > 0) {
             for (var bi = 0; bi < storeBadCols.length; bi++) {
@@ -629,7 +636,10 @@ async function syncToSupabase() {
           const colMatch = (error.message || '').match(/Could not find the '([^']+)' column/);
           if (colMatch && retries < maxRetries) {
             const badCol = colMatch[1];
-            console.warn('[Flash] ⚡ ' + storeName + ': stripping \'' + badCol + '\' (cached)');
+            // On ne log que si c'est une nouvelle découverte
+            if (!_colCache[storeName] || !_colCache[storeName].includes(badCol)) {
+              console.log('[Flash] ⚡ ' + storeName + ': apprentissage nouvelle colonne local-only \'' + badCol + '\'');
+            }
             currentPayloads = currentPayloads.map(p => {
               const { [badCol]: _, ...rest } = p;
               return rest;
