@@ -138,7 +138,16 @@ function renderSalesTable(data) {
     { label: 'Date & Heure', render: r => UI.formatDateTime(new Date(r.date).getTime()) },
     { label: 'Articles', render: r => `<span class="badge badge-neutral">${r.itemCount || '—'} art.</span>` },
     { label: 'Remise', render: r => r.discount > 0 ? `<span class="text-warning">-${UI.formatCurrency(r.discount)}</span>` : '—' },
-    { label: 'Total', render: r => `<strong class="text-success">${UI.formatCurrency(r.total)}</strong>` },
+    { label: 'Total', render: r => {
+      if (r.paymentMethod === 'assurance' && r.assuranceAmount && r.status === 'pending') {
+        const patientPart = Math.max(0, r.total - r.assuranceAmount);
+        return `<div style="line-height:1.4">
+          <strong class="text-success">${UI.formatCurrency(r.total)}</strong>
+          <div style="font-size:10px;color:var(--text-muted)">🛡️ ${UI.formatCurrency(r.assuranceAmount)} · 👤 ${UI.formatCurrency(patientPart)}</div>
+        </div>`;
+      }
+      return `<strong class="text-success">${UI.formatCurrency(r.total)}</strong>`;
+    }},
     { label: 'Paiement', render: r => UI.paymentMethodBadge(r.paymentMethod) },
     {
       label: 'Statut', render: r => {
