@@ -1203,6 +1203,24 @@ img, canvas, video, iframe {
     grid-template-columns: 1fr !important;
   }
 
+  /* Metrics page — grilles 4 colonnes → 2 colonnes mobile */
+  div[style*="grid-template-columns: repeat(4"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  /* Metrics page — grilles 2 colonnes asymétriques → stack */
+  div[style*="grid-template-columns:1.5fr"],
+  div[style*="grid-template-columns: 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Metrics hero banner — stack vertical */
+  div[style*="grid-template-columns:1fr auto"][style*="color:white"] {
+    grid-template-columns: 1fr !important;
+    padding: 20px 16px !important;
+  }
+
   /* PWA Install Banner — repositionné */
   #pwa-install-banner {
     bottom: calc(12px + var(--safe-bottom)) !important;
