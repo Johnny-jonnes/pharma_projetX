@@ -201,9 +201,36 @@ img, canvas, video, iframe {
     font-size: 10px;
   }
 
-  /* Safe area sur le footer sidebar */
+  /* Safe area sur le footer sidebar et styling de la déconnexion */
   #app-sidebar .sidebar-footer {
     padding-bottom: calc(16px + var(--safe-bottom)) !important;
+  }
+
+  /* Zone utilisateur et déconnexion */
+  #app-sidebar .sidebar-user {
+    padding: 12px 14px !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-radius: 12px !important;
+    margin-top: 10px !important;
+  }
+
+  /* Rendre le bouton de déconnexion gros et rouge sur mobile */
+  #app-sidebar .sidebar-logout {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 44px !important;
+    height: 44px !important;
+    background: rgba(231, 76, 60, 0.15) !important;
+    color: var(--danger) !important;
+    border-radius: 10px !important;
+    flex-shrink: 0 !important;
+  }
+
+  #app-sidebar .sidebar-logout i,
+  #app-sidebar .sidebar-logout svg {
+    width: 20px !important;
+    height: 20px !important;
   }
 
   /* Overlay — empêche interaction avec l'arrière-plan */
