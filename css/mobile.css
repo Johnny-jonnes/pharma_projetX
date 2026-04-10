@@ -744,77 +744,17 @@ img, canvas, video, iframe {
     min-height: 36px;
   }
 
-  /* ── Grille médicaments → Grille 2 colonnes, scroll vertical ──
-     Approche professionnelle type e-commerce (Amazon, Jumia).
-     Même avec 1000+ produits, le scroll vertical reste fluide.
-     Le pharmacien utilise la recherche et les catégories pour filtrer. */
+  /* ── Grille médicaments — IDENTIQUE au desktop ──
+     Aucun override de grille. Le design desktop s'applique tel quel.
+     Seuls ajouts : padding bas pour le panier flottant + touch feedback. */
   .pos-grid {
-    display: grid !important;
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 10px !important;
-    padding: 8px 2px 110px 2px !important; /* espace bas pour le panier */
-    max-height: calc(100vh - 230px);       /* hauteur dispo sous recherche+catégories */
-    overflow-y: auto !important;           /* scroll vertical naturel */
-    overflow-x: hidden !important;
-    -webkit-overflow-scrolling: touch;     /* scroll fluide iOS */
-    width: 100% !important;
-    box-sizing: border-box !important;
-    scrollbar-width: thin;
-    align-content: start;
-  }
-
-  /* Carte produit — s'adapte à la colonne, design compact et lisible */
-  .pos-grid > .prod-card {
-    min-height: 0 !important;
-    padding: 10px !important;
-    border-radius: 12px !important;
-    touch-action: manipulation !important;
-  }
-
-  /* Texte du nom — 2 lignes max, tronqué proprement */
-  .pos-grid > .prod-card .prod-name {
-    font-size: 12px !important;
-    line-height: 1.3 !important;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .pos-grid > .prod-card .prod-dci {
-    font-size: 10px !important;
-    display: -webkit-box;
-    -webkit-line-clamp: 1;
-    line-clamp: 1;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .pos-grid > .prod-card .prod-price {
-    font-size: 12px !important;
-    font-weight: 700 !important;
-  }
-
-  .pos-grid > .prod-card .prod-stock {
-    font-size: 9px !important;
+    padding-bottom: 110px !important;    /* espace sous le panier glissant */
+    -webkit-overflow-scrolling: touch;
   }
 
   .prod-card:active {
-    transform: scale(0.96);
+    transform: scale(0.97);
     transition: transform 0.08s ease;
-  }
-
-  .prod-card:hover {
-    transform: none !important;          /* pas de hover sur mobile */
-  }
-
-  /* Grid empty — centré */
-  .grid-empty {
-    grid-column: 1 / -1 !important;
-    padding: 30px 16px !important;
-    font-size: 13px !important;
-    text-align: center;
   }
 
   /* Panier — Panel glissant fixé en bas */
@@ -1493,11 +1433,7 @@ img, canvas, video, iframe {
     font-size: 16px !important;
   }
 
-  /* POS grid → 2 colonnes serrées */
-  .pos-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 8px !important;
-  }
+  /* POS grid supprimé pour hériter du comportement desktop naturel */
 
   /* Topbar — encore moins d'espace */
   .topbar-btn {

@@ -7454,7 +7454,10 @@ a:focus-visible {
     max-height: none;
   }
 
-  /* .pos-grid géré par mobile.css — supprimé pour éviter les conflits */
+  /* .pos-grid — design desktop responsive, aussi utilisé sur mobile */
+  .pos-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
 }
 
 @media (max-width: 768px) {
@@ -8659,7 +8662,10 @@ kbd {
     align-items: center;
   }
 
-  /* .pos-grid géré par mobile.css — supprimé pour éviter les conflits */
+  .pos-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+  }
 
   /* Native Touch Feel */
   .btn,
