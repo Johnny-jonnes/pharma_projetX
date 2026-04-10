@@ -1,4 +1,4 @@
-﻿/* PHARMA_PROJET â€” Design System v5 */
+/* PHARMA_PROJET â€” Design System v5 */
 /* Premium Health-Tech Identity Â· Neo-Professional Medical */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -7454,9 +7454,7 @@ a:focus-visible {
     max-height: none;
   }
 
-  .pos-grid {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  }
+  /* .pos-grid géré par mobile.css — supprimé pour éviter les conflits */
 }
 
 @media (max-width: 768px) {
@@ -8661,10 +8659,7 @@ kbd {
     align-items: center;
   }
 
-  .pos-grid {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 12px;
-  }
+  /* .pos-grid géré par mobile.css — supprimé pour éviter les conflits */
 
   /* Native Touch Feel */
   .btn,
