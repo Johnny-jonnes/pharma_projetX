@@ -920,20 +920,28 @@ function startAutoBackup() {
   console.log('[Backup] ✅ Auto-backup démarré (toutes les 30 min)');
 }
 
+let _autoPullTimer = null;
 /**
  * AUTO-PULL : Synchronisation cloud → local automatique
- * Déclenché toutes les 500 millisecondes (Ultra-Flash) pour un effet instantané pur
+ * Boucle récursive intelligente (ne s'empile pas) déclenchée toutes les 2.5 secondes.
+ * S'arrête drastiquement si la connexion internet coupe pour épargner le téléphone.
  */
 function startAutoPull() {
-  setInterval(async () => {
-    if (AppState.isOnline) {
+  if (_autoPullTimer) clearTimeout(_autoPullTimer);
+  
+  const loop = async () => {
+    if (navigator.onLine && AppState.isOnline) {
       try {
         await pullFromSupabase();
       } catch (e) {
-        console.warn('[Sync] Auto-pull échoué:', e);
+        // Silencieux pour ne pas spammer la console lors de micro-coupures
       }
     }
-  }, 500); // 500 millisecondes (Ultra-Flash)
+    // Reprogramme le prochain pull UNIQUEMENT après la fin du précédent
+    _autoPullTimer = setTimeout(loop, 2500); 
+  };
+  
+  loop();
 }
 
 /**
