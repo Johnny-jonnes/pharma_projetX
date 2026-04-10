@@ -1424,8 +1424,8 @@ async function afficherRecu(saleId, items, saleData) {
       <div style="display:flex; justify-content:space-between; margin-bottom:15px; padding:12px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm);">
         <div>
           <div style="font-size:10px; font-weight:800; color:var(--text-muted); text-transform:uppercase; margin-bottom:4px;">Facturé à (Prise en charge)</div>
-          <div style="font-size:16px; font-weight:800; color:var(--primary-color);">${saleData.assuranceName || 'Nom de l\\'assurance'}</div>
-          <div style="font-size:13px; color:var(--text); margin-top:2px;">N° Prise en Charge : <strong>${saleData.assuranceRef || 'Non Renseigné'}</strong></div>
+          <div style="font-size:16px; font-weight:800; color:var(--primary-color);">${saleData.assuranceName || "Nom de l'assurance"}</div>
+          <div style="font-size:13px; color:var(--text); margin-top:2px;">N° Prise en Charge : <strong>${saleData.assuranceRef || "Non Renseigné"}</strong></div>
         </div>
         <div style="text-align:right;">
           <div style="font-size:10px; font-weight:800; color:var(--text-muted); text-transform:uppercase; margin-bottom:4px;">Patient Bénéficiaire</div>
