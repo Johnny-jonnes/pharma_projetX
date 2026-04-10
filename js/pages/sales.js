@@ -488,51 +488,94 @@ async function settleDebt(saleId) {
   const sale = await DB.dbGet('sales', saleId);
   if (!sale) { UI.toast('Vente introuvable', 'error'); return; }
 
-  const debtAmount = sale.paymentMethod === 'assurance' ? (sale.assuranceAmount || sale.total) : sale.total;
+  const isAssurance = sale.paymentMethod === 'assurance';
+  const debtAmount = isAssurance ? (sale.assuranceAmount || sale.total) : sale.total;
+  const patientPart = isAssurance ? Math.max(0, sale.total - debtAmount) : 0;
 
-  // Show modal to choose payment method for the debt settlement
-  UI.modal('<i data-lucide="check-circle" class="modal-icon-inline"></i> Encaisser la dette', `
-    <div class="form-grid">
-      <div class="info-box-small" style="margin-bottom:16px; background:rgba(46,175,125,0.08); border:1px solid rgba(46,175,125,0.2); border-radius:8px; padding:14px;">
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:4px;">Montant de la dette</div>
-        <div style="font-size:24px;font-weight:800;color:var(--success)">${UI.formatCurrency(debtAmount)}</div>
-        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Patient : <strong>${sale.patientName || 'Non renseigné'}</strong> · Vente #${String(saleId).padStart(6, '0')}</div>
-        ${sale.paymentMethod === 'assurance' ? `<div style="font-size:11px;color:var(--primary);margin-top:4px;">Facture Assurance : ${sale.assuranceName || ''}</div>` : ''}
+  UI.modal('<i data-lucide="receipt" class="modal-icon-inline"></i> Encaissement', `
+    <div style="display:flex;flex-direction:column;gap:20px">
+
+      <!-- EN-TÊTE MONTANT -->
+      <div style="background:linear-gradient(135deg, #0F1D3A 0%, #1A56DB 100%); border-radius:16px; padding:24px; color:white; text-align:center">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;opacity:0.7;margin-bottom:8px">
+          ${isAssurance ? '💼 Montant dû par l\'entreprise' : '💰 Montant total à encaisser'}
+        </div>
+        <div style="font-size:36px;font-weight:900;letter-spacing:-1px">${UI.formatCurrency(debtAmount)}</div>
+        <div style="font-size:13px;opacity:0.8;margin-top:8px">
+          Vente <strong>#${String(saleId).padStart(6, '0')}</strong>
+          ${sale.patientName ? ' · ' + sale.patientName : ''}
+        </div>
       </div>
-      <div class="form-group">
-        <label>Comment le client règle-t-il ? *</label>
-        <div class="pay-methods-grid" id="debt-pay-methods">
-          <button type="button" class="pay-method-btn active" data-method="cash" onclick="selectDebtPayMethod(this)">
-            <i data-lucide="banknote"></i> Espèces
+
+      ${isAssurance ? `
+      <!-- VENTILATION ASSURANCE -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div style="background:rgba(26,86,219,0.06);border:1.5px solid rgba(26,86,219,0.15);border-radius:12px;padding:16px;text-align:center">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--primary);font-weight:700;margin-bottom:6px">🛡️ Part Entreprise</div>
+          <div style="font-size:22px;font-weight:800;color:var(--primary)">${UI.formatCurrency(debtAmount)}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px">${sale.assuranceName || 'Assurance'}</div>
+        </div>
+        <div style="background:rgba(46,175,125,0.06);border:1.5px solid rgba(46,175,125,0.15);border-radius:12px;padding:16px;text-align:center">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--success);font-weight:700;margin-bottom:6px">👤 Part Patient</div>
+          <div style="font-size:22px;font-weight:800;color:var(--success)">${UI.formatCurrency(patientPart)}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Ticket modérateur payé</div>
+        </div>
+      </div>
+      ` : ''}
+
+      <!-- MODE DE PAIEMENT -->
+      <div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-bottom:10px">Mode de règlement</div>
+        <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:10px" id="debt-pay-methods">
+          <button type="button" class="pay-method-btn active" data-method="cash" onclick="selectDebtPayMethod(this)"
+            style="display:flex;align-items:center;gap:10px;padding:14px 16px;border:2px solid var(--primary);border-radius:12px;background:linear-gradient(135deg, rgba(46,134,193,0.08), rgba(26,86,219,0.12));cursor:pointer;font-family:inherit;text-align:left;position:relative">
+            <span style="font-size:20px">💵</span>
+            <div><div style="font-size:13px;font-weight:700;color:var(--primary)">Espèces</div><div style="font-size:10px;color:var(--text-muted)">Paiement en liquide</div></div>
           </button>
-          <button type="button" class="pay-method-btn" data-method="orange_money" onclick="selectDebtPayMethod(this)">
-            <i data-lucide="smartphone"></i> Orange Money
+          <button type="button" class="pay-method-btn" data-method="orange_money" onclick="selectDebtPayMethod(this)"
+            style="display:flex;align-items:center;gap:10px;padding:14px 16px;border:2px solid var(--border);border-radius:12px;background:var(--surface);cursor:pointer;font-family:inherit;text-align:left">
+            <span style="font-size:20px">📱</span>
+            <div><div style="font-size:13px;font-weight:700;color:var(--text)">Orange Money</div><div style="font-size:10px;color:var(--text-muted)">Mobile Money</div></div>
           </button>
-          <button type="button" class="pay-method-btn" data-method="mtn_momo" onclick="selectDebtPayMethod(this)">
-            <i data-lucide="smartphone"></i> MTN MoMo
+          <button type="button" class="pay-method-btn" data-method="mtn_momo" onclick="selectDebtPayMethod(this)"
+            style="display:flex;align-items:center;gap:10px;padding:14px 16px;border:2px solid var(--border);border-radius:12px;background:var(--surface);cursor:pointer;font-family:inherit;text-align:left">
+            <span style="font-size:20px">📲</span>
+            <div><div style="font-size:13px;font-weight:700;color:var(--text)">MTN MoMo</div><div style="font-size:10px;color:var(--text-muted)">Mobile Money</div></div>
           </button>
-          <button type="button" class="pay-method-btn" data-method="transfer" onclick="selectDebtPayMethod(this)">
-            <i data-lucide="landmark"></i> Virement bancaire / Chèque
+          <button type="button" class="pay-method-btn" data-method="transfer" onclick="selectDebtPayMethod(this)"
+            style="display:flex;align-items:center;gap:10px;padding:14px 16px;border:2px solid var(--border);border-radius:12px;background:var(--surface);cursor:pointer;font-family:inherit;text-align:left">
+            <span style="font-size:20px">🏦</span>
+            <div><div style="font-size:13px;font-weight:700;color:var(--text)">Virement / Chèque</div><div style="font-size:10px;color:var(--text-muted)">Bancaire</div></div>
           </button>
         </div>
       </div>
-      <div class="form-group">
-        <label>Référence de paiement (optionnel)</label>
-        <input type="text" id="debt-pay-ref" class="form-control" placeholder="N° transaction, reçu, etc.">
+
+      <!-- RÉFÉRENCE -->
+      <div>
+        <label style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:6px">Référence de paiement (optionnel)</label>
+        <input type="text" id="debt-pay-ref" style="width:100%;padding:12px 16px;border:2px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;background:var(--surface)" placeholder="N° transaction, reçu, chèque...">
       </div>
+
     </div>
   `, {
     footer: `
       <button class="btn btn-secondary" onclick="UI.closeModal()">Annuler</button>
-      <button class="btn btn-success" onclick="confirmSettleDebt(${saleId})"><i data-lucide="check-circle"></i> Confirmer l'encaissement</button>
+      <button class="btn btn-success" style="padding:12px 24px;font-size:14px;font-weight:700" onclick="confirmSettleDebt(${saleId})"><i data-lucide="check-circle"></i> Confirmer l'encaissement de ${UI.formatCurrency(debtAmount)}</button>
     `
   });
+
   if (window.lucide) lucide.createIcons();
 }
 
 function selectDebtPayMethod(btn) {
-  btn.closest('.pay-methods-grid').querySelectorAll('.pay-method-btn').forEach(b => b.classList.remove('active'));
+  btn.closest('#debt-pay-methods').querySelectorAll('.pay-method-btn').forEach(b => {
+    b.style.borderColor = 'var(--border)';
+    b.style.background = 'var(--surface)';
+    b.classList.remove('active');
+  });
   btn.classList.add('active');
+  btn.style.borderColor = 'var(--primary)';
+  btn.style.background = 'linear-gradient(135deg, rgba(46,134,193,0.08), rgba(26,86,219,0.12))';
 }
 
 async function confirmSettleDebt(saleId) {
