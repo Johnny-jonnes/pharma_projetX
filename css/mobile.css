@@ -711,7 +711,7 @@ img, canvas, video, iframe {
 
   /* Filtres catégories POS — scroll horizontal */
   .pos-categories,
-  .pos-cat-bar {
+  .pos-catbar {
     overflow-x: auto !important;
     flex-wrap: nowrap !important;
     scrollbar-width: none;
@@ -721,7 +721,7 @@ img, canvas, video, iframe {
   }
 
   .pos-categories::-webkit-scrollbar,
-  .pos-cat-bar::-webkit-scrollbar {
+  .pos-catbar::-webkit-scrollbar {
     display: none;
   }
 
