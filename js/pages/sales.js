@@ -493,74 +493,74 @@ async function settleDebt(saleId) {
   const patientPart = isAssurance ? Math.max(0, sale.total - debtAmount) : 0;
 
   UI.modal('<i data-lucide="receipt" class="modal-icon-inline"></i> Encaissement', `
-    <div style="display:flex;flex-direction:column;gap:20px">
+    <div style="display:flex;flex-direction:column;gap:16px">
 
-      <!-- EN-TÊTE MONTANT -->
-      <div style="background:linear-gradient(135deg, #0F1D3A 0%, #1A56DB 100%); border-radius:16px; padding:24px; color:white; text-align:center">
-        <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;opacity:0.7;margin-bottom:8px">
-          ${isAssurance ? '💼 Montant dû par l\'entreprise' : '💰 Montant total à encaisser'}
+      <!-- MONTANT PRINCIPAL -->
+      <div style="text-align:center;padding:20px;background:#F8FAFC;border-radius:14px;border:2px solid #E2E8F0">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#64748B;font-weight:700;margin-bottom:6px">
+          ${isAssurance ? '\ud83d\udee1\ufe0f Montant d\u00fb par l\'entreprise' : '\ud83d\udcb0 Montant total \u00e0 encaisser'}
         </div>
-        <div style="font-size:36px;font-weight:900;letter-spacing:-1px">${UI.formatCurrency(debtAmount)}</div>
-        <div style="font-size:13px;opacity:0.8;margin-top:8px">
-          Vente <strong>#${String(saleId).padStart(6, '0')}</strong>
-          ${sale.patientName ? ' · ' + sale.patientName : ''}
+        <div style="font-size:38px;font-weight:900;color:#0F172A;letter-spacing:-1px">${UI.formatCurrency(debtAmount)}</div>
+        <div style="font-size:12px;color:#94A3B8;margin-top:6px">
+          Vente <strong style="color:#475569">#${String(saleId).padStart(6, '0')}</strong>
+          ${sale.patientName ? ' \u00b7 <strong style="color:#475569">' + sale.patientName + '</strong>' : ''}
         </div>
       </div>
 
       ${isAssurance ? `
-      <!-- VENTILATION ASSURANCE -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div style="background:rgba(26,86,219,0.06);border:1.5px solid rgba(26,86,219,0.15);border-radius:12px;padding:16px;text-align:center">
-          <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--primary);font-weight:700;margin-bottom:6px">🛡️ Part Entreprise</div>
-          <div style="font-size:22px;font-weight:800;color:var(--primary)">${UI.formatCurrency(debtAmount)}</div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:4px">${sale.assuranceName || 'Assurance'}</div>
+      <!-- VENTILATION -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div style="background:#EBF5FB;border-radius:10px;padding:14px;text-align:center;border:2px solid #BEE3F8">
+          <div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#1E40AF;font-weight:800;margin-bottom:5px">\ud83d\udee1\ufe0f PART ENTREPRISE</div>
+          <div style="font-size:20px;font-weight:900;color:#1E40AF">${UI.formatCurrency(debtAmount)}</div>
+          <div style="font-size:10px;color:#6B7280;margin-top:3px">${sale.assuranceName || 'Assurance'}</div>
         </div>
-        <div style="background:rgba(46,175,125,0.06);border:1.5px solid rgba(46,175,125,0.15);border-radius:12px;padding:16px;text-align:center">
-          <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--success);font-weight:700;margin-bottom:6px">👤 Part Patient</div>
-          <div style="font-size:22px;font-weight:800;color:var(--success)">${UI.formatCurrency(patientPart)}</div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Ticket modérateur payé</div>
+        <div style="background:#ECFDF5;border-radius:10px;padding:14px;text-align:center;border:2px solid #A7F3D0">
+          <div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#065F46;font-weight:800;margin-bottom:5px">\ud83d\udc64 PART PATIENT</div>
+          <div style="font-size:20px;font-weight:900;color:#065F46">${UI.formatCurrency(patientPart)}</div>
+          <div style="font-size:10px;color:#6B7280;margin-top:3px">${patientPart > 0 ? '\u00c0 encaisser' : 'D\u00e9j\u00e0 pay\u00e9'}</div>
         </div>
       </div>
       ` : ''}
 
       <!-- MODE DE PAIEMENT -->
       <div>
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-bottom:10px">Mode de règlement</div>
-        <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:10px" id="debt-pay-methods">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#64748B;margin-bottom:8px">Mode de r\u00e8glement</div>
+        <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:8px" id="debt-pay-methods">
           <button type="button" class="pay-method-btn active" data-method="cash" onclick="selectDebtPayMethod(this)"
-            style="display:flex;align-items:center;gap:10px;padding:14px 16px;border:2px solid var(--primary);border-radius:12px;background:linear-gradient(135deg, rgba(46,134,193,0.08), rgba(26,86,219,0.12));cursor:pointer;font-family:inherit;text-align:left;position:relative">
-            <span style="font-size:20px">💵</span>
-            <div><div style="font-size:13px;font-weight:700;color:var(--primary)">Espèces</div><div style="font-size:10px;color:var(--text-muted)">Paiement en liquide</div></div>
+            style="display:flex;align-items:center;gap:8px;padding:12px;border:2px solid #1E40AF;border-radius:10px;background:#EBF5FB;cursor:pointer;font-family:inherit;text-align:left">
+            <span style="font-size:18px">\ud83d\udcb5</span>
+            <div><div style="font-size:12px;font-weight:700;color:#1E40AF">Esp\u00e8ces</div><div style="font-size:9px;color:#6B7280">Liquide</div></div>
           </button>
           <button type="button" class="pay-method-btn" data-method="orange_money" onclick="selectDebtPayMethod(this)"
-            style="display:flex;align-items:center;gap:10px;padding:14px 16px;border:2px solid var(--border);border-radius:12px;background:var(--surface);cursor:pointer;font-family:inherit;text-align:left">
-            <span style="font-size:20px">📱</span>
-            <div><div style="font-size:13px;font-weight:700;color:var(--text)">Orange Money</div><div style="font-size:10px;color:var(--text-muted)">Mobile Money</div></div>
+            style="display:flex;align-items:center;gap:8px;padding:12px;border:2px solid #E2E8F0;border-radius:10px;background:#FFFFFF;cursor:pointer;font-family:inherit;text-align:left">
+            <span style="font-size:18px">\ud83d\udcf1</span>
+            <div><div style="font-size:12px;font-weight:700;color:#0F172A">Orange Money</div><div style="font-size:9px;color:#6B7280">Mobile</div></div>
           </button>
           <button type="button" class="pay-method-btn" data-method="mtn_momo" onclick="selectDebtPayMethod(this)"
-            style="display:flex;align-items:center;gap:10px;padding:14px 16px;border:2px solid var(--border);border-radius:12px;background:var(--surface);cursor:pointer;font-family:inherit;text-align:left">
-            <span style="font-size:20px">📲</span>
-            <div><div style="font-size:13px;font-weight:700;color:var(--text)">MTN MoMo</div><div style="font-size:10px;color:var(--text-muted)">Mobile Money</div></div>
+            style="display:flex;align-items:center;gap:8px;padding:12px;border:2px solid #E2E8F0;border-radius:10px;background:#FFFFFF;cursor:pointer;font-family:inherit;text-align:left">
+            <span style="font-size:18px">\ud83d\udcf2</span>
+            <div><div style="font-size:12px;font-weight:700;color:#0F172A">MTN MoMo</div><div style="font-size:9px;color:#6B7280">Mobile</div></div>
           </button>
           <button type="button" class="pay-method-btn" data-method="transfer" onclick="selectDebtPayMethod(this)"
-            style="display:flex;align-items:center;gap:10px;padding:14px 16px;border:2px solid var(--border);border-radius:12px;background:var(--surface);cursor:pointer;font-family:inherit;text-align:left">
-            <span style="font-size:20px">🏦</span>
-            <div><div style="font-size:13px;font-weight:700;color:var(--text)">Virement / Chèque</div><div style="font-size:10px;color:var(--text-muted)">Bancaire</div></div>
+            style="display:flex;align-items:center;gap:8px;padding:12px;border:2px solid #E2E8F0;border-radius:10px;background:#FFFFFF;cursor:pointer;font-family:inherit;text-align:left">
+            <span style="font-size:18px">\ud83c\udfe6</span>
+            <div><div style="font-size:12px;font-weight:700;color:#0F172A">Virement / Ch\u00e8que</div><div style="font-size:9px;color:#6B7280">Bancaire</div></div>
           </button>
         </div>
       </div>
 
       <!-- RÉFÉRENCE -->
       <div>
-        <label style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:6px">Référence de paiement (optionnel)</label>
-        <input type="text" id="debt-pay-ref" style="width:100%;padding:12px 16px;border:2px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;background:var(--surface)" placeholder="N° transaction, reçu, chèque...">
+        <label style="font-size:11px;font-weight:600;color:#64748B;display:block;margin-bottom:5px">R\u00e9f\u00e9rence (optionnel)</label>
+        <input type="text" id="debt-pay-ref" style="width:100%;padding:10px 14px;border:2px solid #E2E8F0;border-radius:8px;font-size:13px;font-family:inherit;background:#FFFFFF" placeholder="N\u00b0 transaction, re\u00e7u...">
       </div>
 
     </div>
   `, {
     footer: `
       <button class="btn btn-secondary" onclick="UI.closeModal()">Annuler</button>
-      <button class="btn btn-success" style="padding:12px 24px;font-size:14px;font-weight:700" onclick="confirmSettleDebt(${saleId})"><i data-lucide="check-circle"></i> Confirmer l'encaissement de ${UI.formatCurrency(debtAmount)}</button>
+      <button class="btn btn-success" style="padding:10px 20px;font-size:13px;font-weight:700" onclick="confirmSettleDebt(${saleId})"><i data-lucide="check-circle"></i> Encaisser ${UI.formatCurrency(debtAmount)}</button>
     `
   });
 
@@ -569,13 +569,13 @@ async function settleDebt(saleId) {
 
 function selectDebtPayMethod(btn) {
   btn.closest('#debt-pay-methods').querySelectorAll('.pay-method-btn').forEach(b => {
-    b.style.borderColor = 'var(--border)';
-    b.style.background = 'var(--surface)';
+    b.style.borderColor = '#E2E8F0';
+    b.style.background = '#FFFFFF';
     b.classList.remove('active');
   });
   btn.classList.add('active');
-  btn.style.borderColor = 'var(--primary)';
-  btn.style.background = 'linear-gradient(135deg, rgba(46,134,193,0.08), rgba(26,86,219,0.12))';
+  btn.style.borderColor = '#1E40AF';
+  btn.style.background = '#EBF5FB';
 }
 
 async function confirmSettleDebt(saleId) {
