@@ -3,7 +3,7 @@
  * Cache-first PWA strategy pour fonctionnement 100% offline
  */
 
-const CACHE_NAME = 'pharma-cache-v5.1.0-debug';
+const CACHE_NAME = 'pharma-cache-v5.2.0-fix-cache';
 const ASSETS = [
   './',
   './index.html',
@@ -77,6 +77,8 @@ self.addEventListener('fetch', event => {
   // Skip non-GET and chrome-extension
   if (event.request.method !== 'GET') return;
   if (event.request.url.startsWith('chrome-extension')) return;
+  // CRITICAL: NEVER cache Supabase API calls, or else data like device names stays stale!
+  if (event.request.url.includes('supabase.co')) return;
 
   event.respondWith(
     caches.match(event.request).then(cached => {
