@@ -192,7 +192,7 @@ const UI = {
   async openSyncMonitor() {
     var modal = document.getElementById('sync-monitor-modal');
     var list = document.getElementById('sync-monitor-list');
-    document.getElementById('current-device-id-display').textContent = 'ID : ' + (AppState.deviceId || '?');
+    document.getElementById('current-device-id-display').textContent = 'ID : ' + (DB.AppState.deviceId || localStorage.getItem('pharma_device_id') || '?');
     
     list.innerHTML = '<div style="text-align:center; padding: 20px;"><div class="spinner"></div><p>Analyse du réseau...</p></div>';
     modal.style.display = 'flex';
@@ -204,7 +204,7 @@ const UI = {
     }
 
     try {
-        var sb = await getSupabaseClient();
+        var sb = await DB.getSupabaseClient();
         if (!sb) throw new Error('Supabase non configuré');
 
         var res = await sb.from('settings').select('key, value').like('key', 'device_status_%');
@@ -246,7 +246,7 @@ const UI = {
 
         activeDevices.forEach(function(d) {
             if (d.online && (now - d.last_sync < 3600000)) onlineCount++;
-            if (d.pending > 0) { pendingCount++; if (d.name !== AppState.deviceName) hasAlerts = true; }
+            if (d.pending > 0) { pendingCount++; if (d.name !== (DB.AppState.deviceName || localStorage.getItem('pharma_device_name'))) hasAlerts = true; }
         });
 
         // SVG Icons professionnels
@@ -265,7 +265,7 @@ const UI = {
         // Liste des appareils
         var html = '';
         devices.forEach(function(status) {
-            var isCurrent = status._key === ('device_status_' + AppState.deviceId);
+            var isCurrent = status._key === ('device_status_' + (DB.AppState.deviceId || localStorage.getItem('pharma_device_id')));
             var isActive = (now - status.last_sync) < ACTIVE_THRESHOLD;
             var isOnline = status.online && (now - status.last_sync < 3600000);
             var hasPending = status.pending > 0;
@@ -363,9 +363,9 @@ const UI = {
 window._purgeOldDevices = async function() {
   if (!confirm('Supprimer TOUS les appareils sauf le vôtre ?\nLes autres appareils réapparaîtront à leur prochaine connexion.')) return;
   try {
-    var sb = await getSupabaseClient();
+    var sb = await DB.getSupabaseClient();
     if (!sb) return;
-    var myKey = 'device_status_' + (AppState.deviceId || localStorage.getItem('pharma_device_id'));
+    var myKey = 'device_status_' + (DB.AppState.deviceId || localStorage.getItem('pharma_device_id'));
     var allDevices = window._monitorAllDevices || [];
     var deleted = 0;
     for (var i = 0; i < allDevices.length; i++) {

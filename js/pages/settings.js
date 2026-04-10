@@ -723,6 +723,11 @@ async function saveDeviceName() {
         console.log('[Device] ✅ Nom mis à jour : ' + name);
       }
       if (window.loadDeviceCount) loadDeviceCount();
+      // Rafraîchir le moniteur s'il est ouvert
+      var monitorModal = document.getElementById('sync-monitor-modal');
+      if (monitorModal && monitorModal.style.display === 'flex' && window.UI && UI.openSyncMonitor) {
+        UI.openSyncMonitor();
+      }
     } else {
       UI.toast('Nom sauvegardé localement', 'info');
     }
