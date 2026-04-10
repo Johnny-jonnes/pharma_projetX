@@ -93,19 +93,26 @@ async function getSupabaseClient() {
       // ==========================================
       // ⚡ FLASH SYNC : ACTIVATION REALTIME
       // ==========================================
-      if (!_realtimeSubscription) {
+      if (!_realtimeSubscription && navigator.onLine) {
         _realtimeSubscription = _supabaseInstance.channel('flash-sync-channel')
           .on('postgres_changes', { event: '*', schema: 'public' }, (payload) => {
-            // Un changement a eu lieu sur le serveur (ex: vente sur une autre caisse)
-            // On patiente 1.5s (debounce) pour regrouper les appels multiples
             clearTimeout(_realtimeTimeout);
             _realtimeTimeout = setTimeout(() => {
               console.log('[Flash] ⚡ Changement distant détecté, déclenchement pull', payload.table);
               pullFromSupabase().catch(() => {});
             }, 1500);
           })
-          .subscribe((status) => {
-             if (status === 'SUBSCRIBED') console.log('[Flash] 📡 Connecté au temps réel Supabase');
+          .subscribe((status, err) => {
+             if (status === 'SUBSCRIBED') {
+               console.log('[Flash] 📡 Connecté au temps réel Supabase');
+             } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+               // Silencieusement arrêter le channel si Realtime est désactivé sur Supabase
+               // Cela évite le spam "WebSocket connection failed" dans la console
+               if (_realtimeSubscription) {
+                  _supabaseInstance.removeChannel(_realtimeSubscription);
+                  _realtimeSubscription = null;
+               }
+             }
           });
       }
 
@@ -794,7 +801,8 @@ async function pullFromSupabase() {
     }
     
   } catch (e) {
-    if (!e.message?.includes('Failed to fetch')) {
+    const msg = e.message || '';
+    if (!msg.includes('Failed to fetch') && !msg.includes('NetworkError') && !msg.includes('network error')) {
       console.warn('[Flash] Pull general error:', e);
     }
   } finally {
