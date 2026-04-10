@@ -204,14 +204,27 @@ img, canvas, video, iframe {
   /* Safe area sur le footer sidebar et styling de la déconnexion */
   #app-sidebar .sidebar-footer {
     padding-bottom: calc(16px + var(--safe-bottom)) !important;
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    position: relative !important;
+    z-index: 10 !important;
   }
 
-  /* Zone utilisateur et déconnexion */
+  /* Force la visibilité du badge TrillionX sur mobile */
+  #app-sidebar .premium-badge {
+    display: flex !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  /* Zone utilisateur statique */
   #app-sidebar .sidebar-user {
     padding: 12px 14px !important;
     background: rgba(255, 255, 255, 0.1) !important;
     border-radius: 12px !important;
     margin-top: 10px !important;
+    display: flex !important;
   }
 
   /* Rendre le bouton de déconnexion gros et rouge sur mobile */
@@ -225,6 +238,8 @@ img, canvas, video, iframe {
     color: var(--danger) !important;
     border-radius: 10px !important;
     flex-shrink: 0 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
   }
 
   #app-sidebar .sidebar-logout i,
