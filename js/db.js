@@ -625,16 +625,18 @@ async function syncToSupabase() {
 
     // 📡 Push Device Heartbeat — permet aux autres appareils de voir notre état
     try {
+      var currentDeviceName = localStorage.getItem('pharma_device_name') || AppState.deviceName;
+      var currentDeviceId = localStorage.getItem('pharma_device_id') || AppState.deviceId;
       const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry/i.test(navigator.userAgent);
       const deviceStatus = {
-        name: AppState.deviceName,
+        name: currentDeviceName,
         last_sync: Date.now(),
         pending: 0,
         online: true,
         type: isMobileDevice ? 'mobile' : 'desktop'
       };
       var hbPayload = {
-        key: 'device_status_' + AppState.deviceId,
+        key: 'device_status_' + currentDeviceId,
         value: JSON.stringify(deviceStatus)
       };
       // Pré-filtrer les colonnes invalides connues pour settings

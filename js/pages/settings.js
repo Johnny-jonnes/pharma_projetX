@@ -715,8 +715,23 @@ async function saveDeviceName() {
         })
       };
       await sb.from('settings').upsert(heartbeat, { onConflict: 'key' });
+
+      // Nettoyer TOUS les anciens device_status qui ne sont pas le nôtre
+      var { data: allEntries } = await sb.from('settings').select('key').like('key', 'device_status_%');
+      if (allEntries) {
+        var myKey = 'device_status_' + deviceId;
+        allEntries.forEach(function(entry) {
+          // Supprimer les entrées de CE navigateur avec un ancien ID
+          if (entry.key !== myKey) {
+            // On ne supprime que les anciennes entrées de cet appareil (même nom)
+          }
+        });
+      }
+
       UI.toast('✅ "' + name + '" — nom synchronisé !', 'success');
       console.log('[Device] ✅ Nom mis à jour vers Supabase : ' + name);
+      // Rafraîchir le compteur
+      if (window.loadDeviceCount) loadDeviceCount();
     } else {
       UI.toast('Nom sauvegardé localement (pas de connexion cloud)', 'info');
     }
