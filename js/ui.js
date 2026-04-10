@@ -328,8 +328,20 @@ const UI = {
         // Pulse animation CSS
         var styleTag = '<style>@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(34,197,94,0.4)}70%{box-shadow:0 0 0 6px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}</style>';
 
-        list.innerHTML = styleTag + summaryHtml + html;
+        // Bouton purge si doublons détectés
+        var purgeHtml = '';
+        if (devices.length > 1) {
+          purgeHtml = '<div style="text-align:center; margin-top:12px; padding-top:12px; border-top:1px dashed var(--border);">'
+            + '<button onclick="window._purgeOldDevices()" style="background:none; border:1px solid var(--danger); color:var(--danger); padding:6px 16px; border-radius:8px; cursor:pointer; font-size:0.8rem;">'
+            + '🧹 Purger les anciens appareils (garder seulement le mien)'
+            + '</button></div>';
+        }
+
+        list.innerHTML = styleTag + summaryHtml + html + purgeHtml;
         if (window.lucide) lucide.createIcons({ root: list });
+
+        // Stocker les données pour la purge
+        window._monitorAllDevices = allDevices;
 
         // Badge topbar
         var badge = document.getElementById('device-sync-badge');
@@ -344,6 +356,28 @@ const UI = {
     } catch (e) {
         list.innerHTML = '<div style="padding:20px; text-align:center; color:var(--danger);"><p>Erreur : ' + e.message + '</p></div>';
     }
+  }
+};
+
+// Fonction de purge globale
+window._purgeOldDevices = async function() {
+  if (!confirm('Supprimer TOUS les appareils sauf le vôtre ?\nLes autres appareils réapparaîtront à leur prochaine connexion.')) return;
+  try {
+    var sb = await getSupabaseClient();
+    if (!sb) return;
+    var myKey = 'device_status_' + (AppState.deviceId || localStorage.getItem('pharma_device_id'));
+    var allDevices = window._monitorAllDevices || [];
+    var deleted = 0;
+    for (var i = 0; i < allDevices.length; i++) {
+      if (allDevices[i]._key !== myKey) {
+        await sb.from('settings').delete().eq('key', allDevices[i]._key);
+        deleted++;
+      }
+    }
+    if (window.UI && UI.toast) UI.toast('🧹 ' + deleted + ' ancien(s) appareil(s) supprimé(s)', 'success');
+    if (window.UI && UI.openSyncMonitor) UI.openSyncMonitor();
+  } catch(e) {
+    if (window.UI && UI.toast) UI.toast('Erreur : ' + e.message, 'danger');
   }
 };
 
