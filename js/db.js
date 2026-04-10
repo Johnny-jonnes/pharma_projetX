@@ -475,8 +475,20 @@ async function syncToSupabase() {
     let totalPendingCount = 0;
 
     // Cache des colonnes invalides : éviter les 400 inutiles
+    // Colonnes CONNUES comme inexistantes dans Supabase (fallback hardcodé)
+    var _knownBadCols = {
+      saleItems: ['lotNumber'],
+      sales: ['paymentDetails']
+    };
     var _colCache = {};
     try { _colCache = JSON.parse(localStorage.getItem('pharma_bad_columns') || '{}'); } catch(e) {}
+    // Fusionner le hardcodé avec le cache dynamique
+    for (var tbl in _knownBadCols) {
+      if (!_colCache[tbl]) _colCache[tbl] = [];
+      for (var ci = 0; ci < _knownBadCols[tbl].length; ci++) {
+        if (_colCache[tbl].indexOf(_knownBadCols[tbl][ci]) === -1) _colCache[tbl].push(_knownBadCols[tbl][ci]);
+      }
+    }
 
     // ⚡ FLASH SEND — Envoi parallèle de toutes les tables simultanément
     await Promise.all(storesToSync.map(async (storeName) => {
