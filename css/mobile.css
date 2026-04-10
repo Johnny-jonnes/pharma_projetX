@@ -659,7 +659,7 @@ img, canvas, video, iframe {
      ───────────────────────────────────────────────────────────── */
 
   /* Layout POS : stack vertical, pas de hauteur fixe */
-  .pos-layout {
+  .pos-wrap {
     grid-template-columns: 1fr !important;
     height: auto !important;
     overflow: visible !important;
@@ -857,6 +857,24 @@ img, canvas, video, iframe {
   }
 
   /* Client badge / barre patient */
+  .client-badge-card {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    padding: 10px !important;
+    min-width: 0 !important; /* Empeche le débordement sur les petits écrans */
+  }
+
+  .client-badge-card .badge-info {
+    min-width: 0 !important;
+    flex: 1 !important;
+  }
+
+  .client-badge-card strong {
+    font-size: 14px !important;
+    white-space: normal !important;
+    word-break: break-all;
+  }
+
   .client-badge {
     font-size: 12px !important;
     padding: 8px 10px !important;
