@@ -689,18 +689,18 @@ window.repairSync = repairSync;
 window.triggerPull = triggerPull;
 
 async function saveDeviceName() {
-  const input = document.getElementById('device-name-input');
+  var input = document.getElementById('device-name-input');
   if (!input || !input.value.trim()) {
     UI.toast('Veuillez entrer un nom pour cet appareil', 'warning');
     return;
   }
-  const name = input.value.trim();
+  var name = input.value.trim();
   localStorage.setItem('pharma_device_name', name);
   if (DB.AppState) DB.AppState.deviceName = name;
 
   // Pousser le nouveau nom DIRECTEMENT vers Supabase
   try {
-    var sb = await getSupabaseClient();
+    var sb = await DB.getSupabaseClient();
     if (sb) {
       var deviceId = localStorage.getItem('pharma_device_id');
       var isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry/i.test(navigator.userAgent);
@@ -714,29 +714,21 @@ async function saveDeviceName() {
           type: isMobileDevice ? 'mobile' : 'desktop'
         })
       };
-      await sb.from('settings').upsert(heartbeat, { onConflict: 'key' });
-
-      // Nettoyer TOUS les anciens device_status qui ne sont pas le nôtre
-      var { data: allEntries } = await sb.from('settings').select('key').like('key', 'device_status_%');
-      if (allEntries) {
-        var myKey = 'device_status_' + deviceId;
-        allEntries.forEach(function(entry) {
-          // Supprimer les entrées de CE navigateur avec un ancien ID
-          if (entry.key !== myKey) {
-            // On ne supprime que les anciennes entrées de cet appareil (même nom)
-          }
-        });
+      var res = await sb.from('settings').upsert(heartbeat, { onConflict: 'key' });
+      if (res.error) {
+        console.error('[Device] Erreur upsert:', res.error.message);
+        UI.toast('Nom sauvegardé localement', 'info');
+      } else {
+        UI.toast('✅ "' + name + '" — synchronisé !', 'success');
+        console.log('[Device] ✅ Nom mis à jour : ' + name);
       }
-
-      UI.toast('✅ "' + name + '" — nom synchronisé !', 'success');
-      console.log('[Device] ✅ Nom mis à jour vers Supabase : ' + name);
-      // Rafraîchir le compteur
       if (window.loadDeviceCount) loadDeviceCount();
     } else {
-      UI.toast('Nom sauvegardé localement (pas de connexion cloud)', 'info');
+      UI.toast('Nom sauvegardé localement', 'info');
     }
   } catch(e) {
-    UI.toast('Nom sauvegardé localement. Sync au prochain démarrage.', 'info');
+    console.error('[Device] Exception:', e);
+    UI.toast('Nom sauvegardé localement', 'info');
   }
 }
 
@@ -747,7 +739,7 @@ async function loadDeviceCount() {
   if (!el) return;
   try {
     if (!navigator.onLine) { el.textContent = 'Hors ligne'; return; }
-    const sb = await getSupabaseClient();
+    const sb = await DB.getSupabaseClient();
     if (!sb) { el.textContent = 'Non configuré'; return; }
     const { data, error } = await sb.from('settings').select('value').like('key', 'device_status_%');
     if (error) { el.textContent = 'Erreur'; return; }
