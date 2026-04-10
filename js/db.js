@@ -573,14 +573,24 @@ async function syncToSupabase() {
       const deviceStatus = {
         name: AppState.deviceName,
         last_sync: Date.now(),
-        pending: 0, // Après sync réussie, tout est à jour
+        pending: 0,
         online: true
       };
-      await sb.from('settings').upsert({
-        key: `device_status_${AppState.deviceId}`,
-        value: JSON.stringify(deviceStatus),
-        updatedAt: new Date().toISOString()
-      }, { onConflict: 'key' });
+      var hbPayload = {
+        key: 'device_status_' + AppState.deviceId,
+        value: JSON.stringify(deviceStatus)
+      };
+      // Retry avec suppression de colonnes inconnues (comme le sync principal)
+      for (var hbRetry = 0; hbRetry < 3; hbRetry++) {
+        var hbRes = await sb.from('settings').upsert(hbPayload, { onConflict: 'key' });
+        if (!hbRes.error) break;
+        var hbCol = (hbRes.error.message || '').match(/Could not find the '([^']+)' column/);
+        if (hbCol) {
+          delete hbPayload[hbCol[1]];
+        } else {
+          break;
+        }
+      }
     } catch (heartbeatErr) {
       // Silently ignore heartbeat errors
     }
