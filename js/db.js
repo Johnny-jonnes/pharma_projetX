@@ -751,6 +751,25 @@ async function pullFromSupabase() {
             try {
               let localItem = { ...item, _synced: true, _updatedAt: item.updatedAt || Date.now() };
               
+              // ── Préserver les colonnes local-only lors du merge ──
+              // Supabase n'a pas ces colonnes : on les récupère de la version locale existante
+              try {
+                const existingLocal = await dbGet(storeName, localItem.id);
+                if (existingLocal) {
+                  const _localOnlyCols = {
+                    sales: ['assuranceName', 'assuranceRef', 'assuranceAmount', 'paymentDetails', 'paidAt', 'paidDate', 'paidMethod', 'returnStatus', 'lastReturnId', 'lastReturnDate', 'patientName', 'patientPhone'],
+                    cashRegister: ['reference', 'saleId'],
+                    prescriptions: ['notes', 'patientName', 'dispensedAt', 'dispensedBy', 'saleId'],
+                  };
+                  const colsToPreserve = _localOnlyCols[storeName] || [];
+                  for (const col of colsToPreserve) {
+                    if (existingLocal[col] !== undefined && localItem[col] === undefined) {
+                      localItem[col] = existingLocal[col];
+                    }
+                  }
+                }
+              } catch (_) { /* ignore merge errors */ }
+              
               if (storeName === 'settings' && localItem.status === 'DELETED') {
                 await _dbDeleteRaw(storeName, localItem.id);
                 continue;
