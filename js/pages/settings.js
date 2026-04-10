@@ -721,12 +721,21 @@ async function saveDeviceName() {
       } else {
         UI.toast('✅ "' + name + '" — synchronisé !', 'success');
         console.log('[Device] ✅ Nom mis à jour : ' + name);
+        // Re-push après 2s pour écraser tout heartbeat automatique
+        setTimeout(async function() {
+          try {
+            heartbeat.value = JSON.stringify({ name: name, last_sync: Date.now(), pending: 0, online: true, type: isMobileDevice ? 'mobile' : 'desktop' });
+            await sb.from('settings').upsert(heartbeat, { onConflict: 'key' });
+          } catch(e2) {}
+        }, 2000);
       }
       if (window.loadDeviceCount) loadDeviceCount();
-      // Rafraîchir le moniteur s'il est ouvert
-      var monitorModal = document.getElementById('sync-monitor-modal');
-      if (monitorModal && monitorModal.style.display === 'flex' && window.UI && UI.openSyncMonitor) {
-        UI.openSyncMonitor();
+      // Toujours rafraîchir le moniteur
+      if (window.UI && UI.openSyncMonitor) {
+        var monitorModal = document.getElementById('sync-monitor-modal');
+        if (monitorModal && monitorModal.style.display === 'flex') {
+          setTimeout(function() { UI.openSyncMonitor(); }, 500);
+        }
       }
     } else {
       UI.toast('Nom sauvegardé localement', 'info');
