@@ -548,13 +548,13 @@ async function syncToSupabase() {
 
     // --- PROBE METIER (Sonde) ---
     try {
-      const { error: probeErr } = await sb.from('settings').select('key').limit(1);
-      if (probeErr) {
-        AppState.isOnline = false;
-        return; 
-      } else {
-        AppState.isOnline = true;
-      }
+      const probeRes = await fetch(`${sb.supabaseUrl}/rest/v1/settings?select=key&limit=1&_t=${Date.now()}`, {
+        method: 'GET',
+        headers: { 'apikey': sb.supabaseKey, 'Authorization': `Bearer ${sb.supabaseKey}` },
+        cache: 'no-store'
+      });
+      if (!probeRes.ok) throw new Error('Probe Fail');
+      AppState.isOnline = true;
     } catch(err) {
       AppState.isOnline = false;
       return; 
@@ -741,10 +741,8 @@ async function pullFromSupabase() {
   let hasChanges = false;
   try {
     const sb = await getSupabaseClient();
-    if (!sb || !navigator.onLine || !AppState.isOnline) {
-      if (typeof console !== 'undefined' && console.warn) {
-        // Silenced to fulfill the zero-error console requirement
-      }
+    if (!sb || !navigator.onLine) {
+      // Return early if we definitely don't have networking
       return;
     }
 
@@ -758,13 +756,13 @@ async function pullFromSupabase() {
     // Pour ne pas inonder la console de 16 erreurs rouges si la connexion est "fantôme"
     // On fait un test ultra-rapide et unique. S'il échoue (n'importe quelle raison), on annule les 15 autres appels.
     try {
-      const { error: probeErr } = await sb.from('settings').select('key').limit(1);
-      if (probeErr) {
-        AppState.isOnline = false;
-        return; // Abort silencieux et strict
-      } else {
-        AppState.isOnline = true; // RECOVERY: Connection is successfully restored!
-      }
+      const probeRes = await fetch(`${sb.supabaseUrl}/rest/v1/settings?select=key&limit=1&_t=${Date.now()}`, {
+        method: 'GET',
+        headers: { 'apikey': sb.supabaseKey, 'Authorization': `Bearer ${sb.supabaseKey}` },
+        cache: 'no-store'
+      });
+      if (!probeRes.ok) throw new Error('Probe Fail');
+      AppState.isOnline = true; // RECOVERY: Connection is successfully restored!
     } catch(err) {
       AppState.isOnline = false;
       return; 
