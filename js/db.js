@@ -355,7 +355,7 @@ async function dbAdd(storeName, data) {
     const req = store.add({ ...data, _createdAt: Date.now(), _updatedAt: Date.now(), _synced: false });
     req.onsuccess = () => {
       resolve(req.result);
-      if (AppState.isOnline) _scheduleSyncToSupabase();
+      if (navigator.onLine) _scheduleSyncToSupabase();
     };
     req.onerror = () => reject(req.error);
   });
@@ -368,7 +368,7 @@ async function dbPut(storeName, data) {
     const req = store.put({ ...data, _updatedAt: Date.now(), _synced: false });
     req.onsuccess = () => {
       resolve(req.result);
-      if (AppState.isOnline) _scheduleSyncToSupabase();
+      if (navigator.onLine) _scheduleSyncToSupabase();
     };
     req.onerror = () => reject(req.error);
   });
@@ -544,6 +544,20 @@ async function syncToSupabase() {
       for (var ci = 0; ci < _knownBadCols[tbl].length; ci++) {
         if (_colCache[tbl].indexOf(_knownBadCols[tbl][ci]) === -1) _colCache[tbl].push(_knownBadCols[tbl][ci]);
       }
+    }
+
+    // --- PROBE METIER (Sonde) ---
+    try {
+      const { error: probeErr } = await sb.from('settings').select('key').limit(1);
+      if (probeErr) {
+        AppState.isOnline = false;
+        return; 
+      } else {
+        AppState.isOnline = true;
+      }
+    } catch(err) {
+      AppState.isOnline = false;
+      return; 
     }
 
     // ⚡ FLASH SEND — Envoi parallèle de toutes les tables simultanément
@@ -748,6 +762,8 @@ async function pullFromSupabase() {
       if (probeErr) {
         AppState.isOnline = false;
         return; // Abort silencieux et strict
+      } else {
+        AppState.isOnline = true; // RECOVERY: Connection is successfully restored!
       }
     } catch(err) {
       AppState.isOnline = false;
@@ -994,13 +1010,13 @@ function startAutoPull() {
   if (_autoPullTimer) clearTimeout(_autoPullTimer);
   
   const loop = async () => {
-    if (navigator.onLine && AppState.isOnline) {
+    if (navigator.onLine) {
       try {
         await pullFromSupabase();
       } catch (e) { }
     }
-    // Délai de 15 secondes entre chaque vérification pour la stabilité
-    _autoPullTimer = setTimeout(loop, 15000); 
+    const delay = (navigator.onLine && AppState.isOnline === false) ? 60000 : 15000;
+    _autoPullTimer = setTimeout(loop, delay); 
   };
   
   // On attend 5 secondes au démarrage de l'app avant de lancer la première boucle
