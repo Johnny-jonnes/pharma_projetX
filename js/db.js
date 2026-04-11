@@ -82,45 +82,45 @@ let _realtimeSubscription = null;
 let _realtimeTimeout = null;
 
 async function getSupabaseClient() {
-  if (_supabaseInstance) return _supabaseInstance;
+  if (_supabaseInstance) {
+    if (AppState.isOnline) _setupRealtime(_supabaseInstance);
+    return _supabaseInstance;
+  }
   try {
     const settings = await dbGetAll('settings');
     const url = settings.find(s => s.key === 'supabase_url')?.value;
     const key = settings.find(s => s.key === 'supabase_key')?.value;
     if (url && key && window.supabase) {
       _supabaseInstance = window.supabase.createClient(url.trim(), key.trim());
-
-      // ==========================================
-      // ⚡ FLASH SYNC : ACTIVATION REALTIME
-      // ==========================================
-      if (!_realtimeSubscription && navigator.onLine) {
-        _realtimeSubscription = _supabaseInstance.channel('flash-sync-channel')
-          .on('postgres_changes', { event: '*', schema: 'public' }, (payload) => {
-            clearTimeout(_realtimeTimeout);
-            _realtimeTimeout = setTimeout(() => {
-              console.log('[Flash] ⚡ Changement distant détecté, déclenchement pull', payload.table);
-              pullFromSupabase().catch(() => {});
-            }, 1500);
-          })
-          .subscribe((status, err) => {
-             if (status === 'SUBSCRIBED') {
-               console.log('[Flash] 📡 Connecté au temps réel Supabase');
-             } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-               // Silencieusement arrêter le channel si Realtime est désactivé sur Supabase
-               // Cela évite le spam "WebSocket connection failed" dans la console
-               AppState.isOnline = false;
-               try { _supabaseInstance.removeChannel(_realtimeSubscription).catch(()=>{}); } catch(e){}
-               _realtimeSubscription = null;
-             }
-          });
-      }
-
+      if (AppState.isOnline) _setupRealtime(_supabaseInstance);
       return _supabaseInstance;
     }
   } catch (e) {
-    console.warn('[Supabase] Client init failed:', e);
+    console.error('[Flash] Error initializing Supabase client:', e);
   }
   return null;
+}
+
+function _setupRealtime(sbClient) {
+  if (_realtimeSubscription || !navigator.onLine) return;
+
+  _realtimeSubscription = sbClient.channel('flash-sync-channel')
+    .on('postgres_changes', { event: '*', schema: 'public' }, (payload) => {
+      clearTimeout(_realtimeTimeout);
+      _realtimeTimeout = setTimeout(() => {
+        console.log('[Flash] ⚡ Changement distant détecté, déclenchement pull', payload.table);
+        pullFromSupabase().catch(() => {});
+      }, 1500);
+    })
+    .subscribe((status, err) => {
+       if (status === 'SUBSCRIBED') {
+         console.log('[Flash] 📡 Connecté au temps réel Supabase');
+       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+         // On ne force plus AppState.isOnline=false ici pour ne pas bloquer les Ventes
+         try { sbClient.removeChannel(_realtimeSubscription).catch(()=>{}); } catch(e){}
+         _realtimeSubscription = null;
+       }
+    });
 }
 
 async function initDB() {
