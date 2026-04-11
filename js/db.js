@@ -740,6 +740,21 @@ async function pullFromSupabase() {
       'cashRegister', 'auditLog', 'users', 'settings', 'returns'
     ];
 
+    // --- PROBE METIER (Sonde) ---
+    // Pour ne pas inonder la console de 16 erreurs rouges ('net::ERR_NAME_NOT_RESOLVED') si 
+    // le réseau saute mais que navigator.onLine prétend être True (ex: Wifi sans internet).
+    // On fait un test ultra-rapide et unique. S'il échoue, on annule les 15 autres appels.
+    try {
+      const { error: probeErr } = await sb.from('settings').select('key').limit(1);
+      if (probeErr && (probeErr.message === 'Failed to fetch' || probeErr.code === 'TypeError')) {
+        AppState.isOnline = false;
+        return; // Abort silencieux
+      }
+    } catch(err) {
+      AppState.isOnline = false;
+      return; 
+    }
+
     await Promise.all(storesToPull.map(async (storeName) => {
       try {
         const { data, error } = await sb.from(storeName === 'users' ? 'app_users' : storeName).select('*');
