@@ -803,11 +803,29 @@ img, canvas, video, iframe {
     -ms-overflow-style: none;
     gap: 6px !important;
     padding: 4px 0 8px !important;
+    /* Laissons la barre prendre la largeur disponible mais avec block au lieu de flex:1 */
     width: 100% !important;
   }
-
+  
   .pos-catbar::-webkit-scrollbar { display: none; }
 
+  /* Le parent de catbar et sort doit bien se comporter */
+  .pos-filter-bar {
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    margin-bottom: 8px !important;
+    width: 100% !important;
+    flex-shrink: 0 !important;
+  }
+
+  .pos-sort-select {
+    padding: 8px 10px !important;
+    font-size: 12px !important;
+    height: 36px !important;
+    border-radius: 8px !important;
+  }
   .cat-pill {
     flex-shrink: 0 !important;
     white-space: nowrap !important;

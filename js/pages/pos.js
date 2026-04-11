@@ -230,17 +230,21 @@ function renderFullPOSUI(container) {
           <button class="btn btn-sm btn-ghost" onclick="startBarcodeScan()" title="Scanner (F2)"><i data-lucide="camera"></i></button>
         </div>
         <!-- Barre catégories + Tri -->
-        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-          <div class="pos-catbar" id="pos-catbar" style="flex:1"></div>
-          <select id="pos-sort" class="pos-sort-select" onchange="applySort(this.value)">
-            <option value="default">Tri: Défaut</option>
-            <option value="name-az">Nom A→Z</option>
-            <option value="name-za">Nom Z→A</option>
-            <option value="price-asc">Prix ↑</option>
-            <option value="price-desc">Prix ↓</option>
-            <option value="stock-asc">Stock ↑</option>
-            <option value="stock-desc">Stock ↓</option>
-          </select>
+        <div style="margin-bottom:12px">
+          <!-- Filtres catégories -->
+          <div class="pos-catbar" id="pos-catbar" style="width:100%; overflow-x:auto; margin-bottom:8px"></div>
+          <!-- Menu Tri -->
+          <div style="width:100%">
+            <select id="pos-sort" class="pos-sort-select" onchange="applySort(this.value)" style="width:100%">
+              <option value="default">Tri: Défaut</option>
+              <option value="name-az">Nom A→Z</option>
+              <option value="name-za">Nom Z→A</option>
+              <option value="price-asc">Prix ↑</option>
+              <option value="price-desc">Prix ↓</option>
+              <option value="stock-asc">Stock ↑</option>
+              <option value="stock-desc">Stock ↓</option>
+            </select>
+          </div>
         </div>
         <div id="pos-grid" class="pos-grid"></div>
       </div>
