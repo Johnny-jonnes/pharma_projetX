@@ -3,7 +3,7 @@
  * Cache-first PWA strategy pour fonctionnement 100% offline
  */
 
-const CACHE_NAME = 'pharma-cache-v6.3.9';
+const CACHE_NAME = 'pharma-cache-v6.4.0';
 const ASSETS = [
   './',
   './index.html',
@@ -74,11 +74,26 @@ self.addEventListener('activate', event => {
 
 // Fetch: cache-first strategy
 self.addEventListener('fetch', event => {
-  // Skip non-GET and chrome-extension
+  // 🛡️ ABSORPTION D'ERREUR NATIVE:
+  // Si on est hors ligne, on intercepte TOUTES les requêtes vers Supabase (GET, POST, etc.)
+  // Cela empêche le navigateur d'afficher l'erreur rouge intrafable "net::ERR_INTERNET_DISCONNECTED".
+  if (event.request.url.includes('supabase.co')) {
+    if (!navigator.onLine) {
+      return event.respondWith(
+        new Response(JSON.stringify({ error: "Offline mode", message: "Network disconnected" }), {
+          status: 503,
+          statusText: "Service Unavailable",
+          headers: { 'Content-Type': 'application/json' }
+        })
+      );
+    }
+    // S'il est en ligne, on laisse passer vers le backend natif
+    return;
+  }
+
+  // Skip non-GET and chrome-extension for normal caching
   if (event.request.method !== 'GET') return;
   if (event.request.url.startsWith('chrome-extension')) return;
-  // CRITICAL: NEVER cache Supabase API calls, or else data like device names stays stale!
-  if (event.request.url.includes('supabase.co')) return;
 
   event.respondWith(
     caches.match(event.request).then(cached => {
