@@ -230,11 +230,12 @@ function renderFullPOSUI(container) {
           <button class="btn btn-sm btn-ghost" onclick="startBarcodeScan()" title="Scanner (F2)"><i data-lucide="camera"></i></button>
         </div>
         <!-- Barre catégories + Tri -->
-        <div style="margin-bottom:12px">
+        <!-- Barre catégories + Tri -->
+        <div style="display:flex; gap:8px; margin-bottom:12px; width:100%">
           <!-- Filtres catégories -->
-          <div class="pos-catbar" id="pos-catbar" style="width:100%; overflow-x:auto; margin-bottom:8px"></div>
+          <div class="pos-catbar" id="pos-catbar" style="flex:1; min-width:0; overflow-x:auto;"></div>
           <!-- Menu Tri -->
-          <div style="width:100%">
+          <div style="flex:1; min-width:0;">
             <select id="pos-sort" class="pos-sort-select" onchange="applySort(this.value)" style="width:100%">
               <option value="default">Tri: Défaut</option>
               <option value="name-az">Nom A→Z</option>
@@ -493,8 +494,18 @@ function buildCatBar() {
   const cats = [...new Set(posProducts.map(p => p.category).filter(Boolean))].sort();
   const el = document.getElementById('pos-catbar');
   if (!el) return;
-  el.innerHTML = `<button class="cat-pill active" onclick="filterCat(this,'')">Tous</button>`
-    + cats.map(c => `<button class="cat-pill" onclick="filterCat(this,'${c}')">${c}</button>`).join('');
+  
+  if (window.innerWidth <= 767) {
+    el.innerHTML = `
+      <select class="pos-sort-select" style="width:100%" onchange="posActiveCategory = this.value; refreshGrid();">
+        <option value="">Catégorie : Toutes</option>
+        ${cats.map(c => `<option value="${c}">${c}</option>`).join('')}
+      </select>
+    `;
+  } else {
+    el.innerHTML = `<button class="cat-pill active" onclick="filterCat(this,'')">Tous</button>`
+      + cats.map(c => `<button class="cat-pill" onclick="filterCat(this,'${c}')">${c}</button>`).join('');
+  }
 }
 
 function filterCat(btn, cat) {
