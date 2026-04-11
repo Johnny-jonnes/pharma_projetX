@@ -587,7 +587,7 @@ img, canvas, video, iframe {
     max-height: 90vh !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch;
-    padding-bottom: calc(20px + var(--safe-bottom)) !important;
+    padding-bottom: calc(95px + env(safe-area-inset-bottom, 0px)) !important;
   }
 
   /* Indicateur de glissement (sheet handle) */
