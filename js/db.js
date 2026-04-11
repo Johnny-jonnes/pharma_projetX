@@ -741,14 +741,13 @@ async function pullFromSupabase() {
     ];
 
     // --- PROBE METIER (Sonde) ---
-    // Pour ne pas inonder la console de 16 erreurs rouges ('net::ERR_NAME_NOT_RESOLVED') si 
-    // le réseau saute mais que navigator.onLine prétend être True (ex: Wifi sans internet).
-    // On fait un test ultra-rapide et unique. S'il échoue, on annule les 15 autres appels.
+    // Pour ne pas inonder la console de 16 erreurs rouges si la connexion est "fantôme"
+    // On fait un test ultra-rapide et unique. S'il échoue (n'importe quelle raison), on annule les 15 autres appels.
     try {
       const { error: probeErr } = await sb.from('settings').select('key').limit(1);
-      if (probeErr && (probeErr.message === 'Failed to fetch' || probeErr.code === 'TypeError')) {
+      if (probeErr) {
         AppState.isOnline = false;
-        return; // Abort silencieux
+        return; // Abort silencieux et strict
       }
     } catch(err) {
       AppState.isOnline = false;
