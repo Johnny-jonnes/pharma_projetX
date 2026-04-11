@@ -749,7 +749,7 @@ img, canvas, video, iframe {
   .pos-left {
     width: 100% !important;
     max-width: 100% !important;
-    padding: 10px 12px !important;
+    padding: 0px 12px 10px 12px !important;
     box-sizing: border-box !important;
     max-height: none !important;
     overflow: visible !important;
@@ -758,17 +758,23 @@ img, canvas, video, iframe {
     background: var(--bg, #F1F5F9) !important;
   }
 
-  /* Recherche — sticky en haut, 100% largeur */
-  .pos-searchbar {
+  /* Nouveau Header 100% sûr qui ne masque jamais les filtres */
+  .pos-main-header {
     position: sticky !important;
     top: 56px !important;
     z-index: 50 !important;
+    background: var(--bg, #F1F5F9) !important;
+    padding-top: 10px !important;
+    padding-bottom: 8px !important;
+  }
+
+  /* Recherche — design normal, c'est le parent qui est sticky */
+  .pos-searchbar {
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
     gap: 6px !important;
-    background: var(--bg, #F1F5F9) !important;
-    padding: 4px 0 8px !important;
+    margin-bottom: 12px !important;
   }
 
   .pos-searchfield {
@@ -1025,6 +1031,15 @@ img, canvas, video, iframe {
     padding: 8px 10px !important;
     flex-wrap: wrap;
     gap: 6px;
+  }
+
+  /* Garantir la visibilité des boutons d'en-tête (ex: Nouveau Client) */
+  .pos-section-header .btn {
+    flex-shrink: 0 !important;
+    padding: 6px 12px !important;
+    height: auto !important;
+    min-height: 36px !important;
+    font-size: 12px !important;
   }
 
   /* Boutons paiement POS — grille 3 colonnes pour économiser l'espace */

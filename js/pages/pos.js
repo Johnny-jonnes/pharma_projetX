@@ -219,32 +219,34 @@ function renderFullPOSUI(container) {
       </div>
 
       <!-- ══ GAUCHE : Catalogue ══ -->
+      <!-- ══ GAUCHE : Catalogue ══ -->
       <div class="pos-left">
-        <div class="pos-searchbar">
-          <div class="pos-searchfield">
-            <span class="pos-searchicon"><i data-lucide="search"></i></span>
-            <input id="pos-search" type="text" class="pos-searchinput"
-              placeholder="Nom, DCI, code-barres…" autocomplete="off">
-            <button id="pos-clearsearch" class="pos-clearbtn" onclick="clearPosSearch()" style="display:none"><i data-lucide="x"></i></button>
+        <div class="pos-main-header">
+          <div class="pos-searchbar">
+            <div class="pos-searchfield">
+              <span class="pos-searchicon"><i data-lucide="search"></i></span>
+              <input id="pos-search" type="text" class="pos-searchinput"
+                placeholder="Nom, DCI, code-barres…" autocomplete="off">
+              <button id="pos-clearsearch" class="pos-clearbtn" onclick="clearPosSearch()" style="display:none"><i data-lucide="x"></i></button>
+            </div>
+            <button class="btn btn-sm btn-ghost" onclick="startBarcodeScan()" title="Scanner (F2)"><i data-lucide="camera"></i></button>
           </div>
-          <button class="btn btn-sm btn-ghost" onclick="startBarcodeScan()" title="Scanner (F2)"><i data-lucide="camera"></i></button>
-        </div>
-        <!-- Barre catégories + Tri -->
-        <!-- Barre catégories + Tri -->
-        <div style="display:flex; gap:8px; margin-bottom:12px; width:100%">
-          <!-- Filtres catégories -->
-          <div class="pos-catbar" id="pos-catbar" style="flex:1; min-width:0; overflow-x:auto;"></div>
-          <!-- Menu Tri -->
-          <div style="flex:1; min-width:0;">
-            <select id="pos-sort" class="pos-sort-select" onchange="applySort(this.value)" style="width:100%">
-              <option value="default">Tri: Défaut</option>
-              <option value="name-az">Nom A→Z</option>
-              <option value="name-za">Nom Z→A</option>
-              <option value="price-asc">Prix ↑</option>
-              <option value="price-desc">Prix ↓</option>
-              <option value="stock-asc">Stock ↑</option>
-              <option value="stock-desc">Stock ↓</option>
-            </select>
+          <!-- Barre catégories + Tri -->
+          <div style="display:flex; gap:8px; width:100%">
+            <!-- Filtres catégories -->
+            <div class="pos-catbar" id="pos-catbar" style="flex:1; min-width:0; overflow-x:auto;"></div>
+            <!-- Menu Tri -->
+            <div style="flex:1; min-width:0;">
+              <select id="pos-sort" class="pos-sort-select" onchange="applySort(this.value)" style="width:100%">
+                <option value="default">Tri: Défaut</option>
+                <option value="name-az">Nom A→Z</option>
+                <option value="name-za">Nom Z→A</option>
+                <option value="price-asc">Prix ↑</option>
+                <option value="price-desc">Prix ↓</option>
+                <option value="stock-asc">Stock ↑</option>
+                <option value="stock-desc">Stock ↓</option>
+              </select>
+            </div>
           </div>
         </div>
         <div id="pos-grid" class="pos-grid"></div>
