@@ -912,13 +912,9 @@ img, canvas, video, iframe {
     display: none !important;
   }
 
+  /* Masquer complètement l'en-tête "Votre Panier" sur mobile car il y a déjà l'onglet */
   .pos-cart-header {
-    position: sticky;
-    top: 56px;
-    z-index: 10;
-    background: var(--surface);
-    padding: 14px 16px !important;
-    border-bottom: 1px solid var(--border);
+    display: none !important;
   }
 
   /* Items du panier */
